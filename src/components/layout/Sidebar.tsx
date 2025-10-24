@@ -2,7 +2,6 @@ import { NavLink } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Search, 
-  History, 
   Database,
   Settings,
   Sparkles,
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/search", label: "New Search", icon: Search },
-  { to: "/history", label: "History", icon: History },
   { to: "/recent-searches", label: "Recent Searches", icon: Database },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

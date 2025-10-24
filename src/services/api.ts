@@ -116,8 +116,71 @@ export const leadsApi = {
     }),
 };
 
+// Legacy Website Finder API
+export const legacyFinderApi = {
+  healthCheck: () => apiCall('/health'),
+  
+  scan: (params: {
+    city: string;
+    state?: string;
+    country: string;
+    radius?: number;
+    businessCategory?: string;
+    leadCap?: number;
+  }) => apiCall('/scan', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }),
+  
+  getHistory: () => apiCall('/history'),
+  
+  getSearchResults: (searchId: string) => apiCall(`/history/${searchId}/businesses`),
+  
+  deleteSearch: (searchId: string) => apiCall(`/history/${searchId}`, {
+    method: 'DELETE',
+  }),
+  
+  downloadExcel: async () => {
+    const url = `${API_BASE_URL}/download`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Download failed');
+    }
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = 'legacy-websites.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(downloadUrl);
+    document.body.removeChild(a);
+  },
+  
+  downloadSearchExcel: async (searchId: string, businesses: any[]) => {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
+      'Business Name': b.businessName,
+      'Category': b.category,
+      'Website': b.website,
+      'Domain Created': new Date(b.domainCreationDate).toLocaleDateString(),
+      'Phone': b.phone,
+      'Address': b.address,
+      'Emails': b.emails.join(', '),
+      'City': b.location.city,
+      'State': b.location.state,
+      'Country': b.location.country,
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Businesses');
+    XLSX.writeFile(workbook, `search-${searchId}.xlsx`);
+  },
+};
+
 export default {
   settings: settingsApi,
   searches: searchesApi,
   leads: leadsApi,
+  legacyFinder: legacyFinderApi,
 };
