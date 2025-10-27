@@ -19,7 +19,9 @@ export default function SearchPage() {
     country: 'United States',
     radius: 5000,
     businessCategory: 'restaurants',
-    leadCap: 50
+    leadCap: 50,
+    domainYear: '',
+    filterMode: 'before' // 'before' or 'after'
   });
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -30,6 +32,7 @@ export default function SearchPage() {
     try {
       const data = await legacyFinderApi.scan(formData);
       setResults(data);
+      
       toast({
         title: "Scan Complete! 🎉",
         description: `Found ${data.count} legacy websites`,
@@ -46,8 +49,25 @@ export default function SearchPage() {
   };
 
   const handleDownload = async () => {
+    if (!results || !results.data) return;
     try {
-      await legacyFinderApi.downloadExcel();
+      const XLSX = await import('xlsx');
+      const worksheet = XLSX.utils.json_to_sheet(results.data.map((b: any) => ({
+        'Business Name': b.businessName || b.name || 'N/A',
+        'Owner Name': b.ownerName || 'N/A',
+        'Category': b.category || 'N/A',
+        'Website': b.website || 'N/A',
+        'Domain Created': b.domainCreationDate ? new Date(b.domainCreationDate).toLocaleDateString() : 'N/A',
+        'Phone': b.phone || 'N/A',
+        'Emails': b.emails?.join(', ') || b.email || 'N/A',
+        'Address': b.address || 'N/A',
+        'City': b.location?.city || b.city || 'N/A',
+        'State': b.location?.state || b.state || 'N/A',
+        'Country': b.location?.country || b.country || 'N/A',
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Businesses');
+      XLSX.writeFile(workbook, 'search-results.xlsx');
       toast({
         title: "Success",
         description: "Excel file downloaded successfully",
@@ -62,6 +82,21 @@ export default function SearchPage() {
   };
 
   return (
+    <>
+    {isSearching && (
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-lg font-semibold text-foreground">Scanning for Legacy Websites...</p>
+            <p className="text-sm text-muted-foreground">This may take a few moments</p>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="space-y-1">
@@ -178,6 +213,36 @@ export default function SearchPage() {
                   disabled={isSearching}
                 />
               </div>
+
+              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="domainYear" className="text-base font-semibold">Domain Created Year</Label>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${formData.filterMode === 'before' ? 'text-primary' : 'text-muted-foreground'}`}>Before</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.filterMode === 'after'}
+                        onChange={(e) => setFormData(prev => ({ ...prev, filterMode: e.target.checked ? 'after' : 'before' }))}
+                        disabled={isSearching}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                    <span className={`text-sm font-medium ${formData.filterMode === 'after' ? 'text-primary' : 'text-muted-foreground'}`}>After</span>
+                  </div>
+                </div>
+                <Input 
+                  id="domainYear" 
+                  type="number"
+                  placeholder="e.g., 2020" 
+                  min="1990"
+                  max={formData.filterMode === 'before' ? new Date().getFullYear() : new Date().getFullYear() - 1}
+                  value={formData.domainYear}
+                  onChange={(e) => setFormData(prev => ({ ...prev, domainYear: e.target.value }))}
+                  disabled={isSearching}
+                />
+              </div>
             </div>
 
             <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-5 border border-primary/10">
@@ -268,5 +333,6 @@ export default function SearchPage() {
         </Card>
       )}
     </div>
+    </>
   );
 }

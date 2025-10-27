@@ -24,33 +24,48 @@ import { Search, Eye, Trash2, RefreshCw, Users, Download, MapPin, Calendar, Chec
 
 interface SearchHistory {
   _id: string;
-  city: string;
+  query?: string;
+  city?: string;
   state?: string;
-  country: string;
-  radius: number;
+  country?: string;
+  radius?: number;
   businessCategory?: string;
-  leadCap: number;
+  category?: string;
+  leadCap?: number;
   resultsCount: number;
   status: string;
   createdAt: string;
+  executedAt?: string;
+  filters?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    category?: string;
+  };
 }
 
 interface Business {
-  _id: string;
-  businessName: string;
-  category: string;
-  phone: string;
-  address: string;
-  website: string;
-  domainCreationDate: string;
-  isLegacy: boolean;
-  emails: string[];
-  location: {
+  _id?: string;
+  businessName?: string;
+  name: string;
+  category?: string;
+  phone?: string;
+  address?: string;
+  website?: string;
+  email?: string;
+  ownerName?: string;
+  domainCreationDate?: string;
+  isLegacy?: boolean;
+  emails?: string[];
+  city?: string;
+  state?: string;
+  country?: string;
+  location?: {
     city: string;
     state: string;
     country: string;
   };
-  scannedAt: string;
+  scannedAt?: string;
 }
 
 const RecentSearches = () => {
@@ -69,7 +84,7 @@ const RecentSearches = () => {
   const fetchSearches = async () => {
     setLoading(true);
     try {
-      const response = await legacyFinderApi.getHistory();
+      const response = await legacyFinderApi.getRecentSearches(20);
       setSearches(response.data || []);
     } catch (error: any) {
       toast({
@@ -86,7 +101,7 @@ const RecentSearches = () => {
     setBusinessesLoading(true);
     try {
       const response = await legacyFinderApi.getSearchResults(searchId);
-      setBusinesses(response.data || []);
+      setBusinesses(response.data?.results || []);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -142,15 +157,27 @@ const RecentSearches = () => {
   const handleDownloadSearch = async (searchId: string) => {
     try {
       const response = await legacyFinderApi.getSearchResults(searchId);
-      await legacyFinderApi.downloadSearchExcel(searchId, response.data);
+      const results = response.data?.results || [];
+      
+      if (results.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No results found for this search. Backend may not have stored the results.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      await legacyFinderApi.downloadSearchExcel(searchId, results);
       toast({
         title: "Success",
         description: "Search results downloaded"
       });
     } catch (error: any) {
+      console.error('Download error:', error);
       toast({
         title: "Error",
-        description: error.message || "Download failed",
+        description: `Download failed: ${error.message}. This is likely a BACKEND ERROR - the endpoint /api/searches/${searchId}/results is not returning data.`,
         variant: "destructive"
       });
     }
@@ -277,10 +304,10 @@ const RecentSearches = () => {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        {search.city}{search.state && `, ${search.state}`}, {search.country}
+                        {search.city || search.filters?.city || 'N/A'}{(search.state || search.filters?.state) && `, ${search.state || search.filters?.state}`}, {search.country || search.filters?.country || 'N/A'}
                       </div>
                     </TableCell>
-                    <TableCell>{search.businessCategory || 'All'}</TableCell>
+                    <TableCell>{search.businessCategory || search.category || search.filters?.category || 'All'}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{search.resultsCount}</Badge>
                     </TableCell>
@@ -344,15 +371,19 @@ const RecentSearches = () => {
                 {businesses.map((business) => (
                   <Card key={business._id}>
                     <CardContent className="p-4">
-                      <h4 className="font-semibold text-lg">{business.businessName}</h4>
-                      <p className="text-sm text-muted-foreground">{business.category}</p>
+                      <h4 className="font-semibold text-lg">{business.name || business.businessName}</h4>
+                      {business.category && <p className="text-sm text-muted-foreground">{business.category}</p>}
                       <div className="mt-2 space-y-1 text-sm">
-                        <p><strong>Website:</strong> <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{business.website}</a></p>
-                        <p><strong>Domain Created:</strong> {new Date(business.domainCreationDate).toLocaleDateString()}</p>
-                        <p><strong>Phone:</strong> {business.phone}</p>
-                        <p><strong>Address:</strong> {business.address}</p>
-                        {business.emails.length > 0 && (
-                          <p><strong>Emails:</strong> {business.emails.join(', ')}</p>
+                        {business.ownerName && <p><strong>Owner:</strong> {business.ownerName}</p>}
+                        {business.website && <p><strong>Website:</strong> <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{business.website}</a></p>}
+                        {business.domainCreationDate && <p><strong>Domain Created:</strong> {new Date(business.domainCreationDate).toLocaleDateString()}</p>}
+                        {business.phone && <p><strong>Phone:</strong> {business.phone}</p>}
+                        {(business.email || (business.emails && business.emails.length > 0)) && (
+                          <p><strong>Email:</strong> {business.email || business.emails?.join(', ')}</p>
+                        )}
+                        {business.address && <p><strong>Address:</strong> {business.address}</p>}
+                        {(business.city || business.state || business.country) && (
+                          <p><strong>Location:</strong> {[business.city, business.state, business.country].filter(Boolean).join(', ')}</p>
                         )}
                       </div>
                     </CardContent>

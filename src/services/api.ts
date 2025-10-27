@@ -132,13 +132,31 @@ export const legacyFinderApi = {
     body: JSON.stringify(params),
   }),
   
+  storeSearchResults: (searchId: string, results: any[]) => apiCall('/searches/results', {
+    method: 'POST',
+    body: JSON.stringify({ searchId, results }),
+  }),
+  
   getHistory: () => apiCall('/history'),
   
-  getSearchResults: (searchId: string) => apiCall(`/history/${searchId}/businesses`),
+  getDownloadableSearches: () => apiCall('/searches/downloadable'),
   
-  deleteSearch: (searchId: string) => apiCall(`/history/${searchId}`, {
+  getRecentSearches: (limit = 10) => apiCall(`/searches/recent?limit=${limit}`),
+  
+  getSearchResults: (searchId: string) => apiCall(`/searches/${searchId}/results`),
+  
+  getSearchResultsJson: (searchId: string) => apiCall(`/searches/${searchId}/results`),
+  
+  deleteSearch: (searchId: string) => apiCall(`/searches/${searchId}`, {
     method: 'DELETE',
   }),
+  
+  downloadSearchFromBackend: (searchId: string, searchName: string) => {
+    const link = document.createElement('a');
+    link.href = `${API_BASE_URL}/searches/${searchId}/download`;
+    link.download = `${searchName}-results.xlsx`;
+    link.click();
+  },
   
   downloadExcel: async () => {
     const url = `${API_BASE_URL}/download`;
@@ -161,16 +179,17 @@ export const legacyFinderApi = {
   downloadSearchExcel: async (searchId: string, businesses: any[]) => {
     const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
-      'Business Name': b.businessName,
-      'Category': b.category,
-      'Website': b.website,
-      'Domain Created': new Date(b.domainCreationDate).toLocaleDateString(),
-      'Phone': b.phone,
-      'Address': b.address,
-      'Emails': b.emails.join(', '),
-      'City': b.location.city,
-      'State': b.location.state,
-      'Country': b.location.country,
+      'Business Name': b.name || b.businessName || 'N/A',
+      'Owner Name': b.ownerName || 'N/A',
+      'Category': b.category || 'N/A',
+      'Website': b.website || 'N/A',
+      'Domain Created': b.domainCreationDate ? new Date(b.domainCreationDate).toLocaleDateString() : 'N/A',
+      'Phone': b.phone || 'N/A',
+      'Email': b.email || (b.emails && b.emails.length > 0 ? b.emails.join(', ') : 'N/A'),
+      'Address': b.address || 'N/A',
+      'City': b.city || b.location?.city || 'N/A',
+      'State': b.state || b.location?.state || 'N/A',
+      'Country': b.country || b.location?.country || 'N/A',
     })));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Businesses');
