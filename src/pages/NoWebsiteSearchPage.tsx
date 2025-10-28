@@ -4,24 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download } from "lucide-react";
+import { Loader2, Search, MapPin, Target, CheckCircle2, Download, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { legacyFinderApi } from "@/services/api";
+import { noWebsiteApi } from "@/services/api";
 
-export default function SearchPage() {
+export default function NoWebsiteSearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    city: '',
-    state: '',
-    country: 'United States',
+    location: '',
     radius: 5000,
-    businessCategory: 'restaurants',
-    leadCap: 50,
-    domainYear: '2020',
-    filterMode: 'before' // 'before' or 'after'
+    keywords: '',
+    leadCap: 50
   });
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -30,12 +26,12 @@ export default function SearchPage() {
     setResults(null);
 
     try {
-      const data = await legacyFinderApi.scan(formData);
+      const data = await noWebsiteApi.scan(formData);
       setResults(data);
       
       toast({
-        title: "Scan Complete! 🎉",
-        description: `Found ${data.count} legacy websites`,
+        title: "Campaign Started! 🚀",
+        description: `Campaign ${data.campaignId} is running`,
       });
     } catch (error: any) {
       toast({
@@ -54,20 +50,17 @@ export default function SearchPage() {
       const XLSX = await import('xlsx');
       const worksheet = XLSX.utils.json_to_sheet(results.data.map((b: any) => ({
         'Business Name': b.businessName || b.name || 'N/A',
-        'Owner Name': b.ownerName || 'N/A',
-        'Category': b.category || 'N/A',
-        'Website': b.website || 'N/A',
-        'Domain Created': b.domainCreationDate ? new Date(b.domainCreationDate).toLocaleDateString() : 'N/A',
         'Phone': b.phone || 'N/A',
-        'Emails': b.emails?.join(', ') || b.email || 'N/A',
         'Address': b.address || 'N/A',
         'City': b.location?.city || b.city || 'N/A',
         'State': b.location?.state || b.state || 'N/A',
         'Country': b.location?.country || b.country || 'N/A',
+        'Category': b.category || 'N/A',
+        'Rating': b.rating || 'N/A',
       })));
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Businesses');
-      XLSX.writeFile(workbook, 'search-results.xlsx');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'No Website Businesses');
+      XLSX.writeFile(workbook, 'no-website-results.xlsx');
       toast({
         title: "Success",
         description: "Excel file downloaded successfully",
@@ -91,7 +84,7 @@ export default function SearchPage() {
             <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
           </div>
           <div className="text-center space-y-2">
-            <p className="text-lg font-semibold text-foreground">Scanning for Legacy Websites...</p>
+            <p className="text-lg font-semibold text-foreground">Finding Businesses Without Websites...</p>
             <p className="text-sm text-muted-foreground">This may take a few moments</p>
           </div>
         </div>
@@ -101,29 +94,29 @@ export default function SearchPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-              <Search className="h-6 w-6 text-primary" />
+            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
+              <Globe className="h-6 w-6 text-orange-500" />
             </div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                New Search
+                No Website Search
               </h1>
-              <p className="text-muted-foreground mt-1">Discover leads with legacy websites</p>
+              <p className="text-muted-foreground mt-1">Find businesses without websites</p>
             </div>
           </div>
         </div>
       </div>
 
       <Card className="shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50">
-        <CardHeader className="border-b bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
+        <CardHeader className="border-b bg-gradient-to-r from-orange-500/5 via-orange-500/3 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Target className="h-5 w-5 text-primary" />
+            <div className="p-2 rounded-lg bg-orange-500/10">
+              <Target className="h-5 w-5 text-orange-500" />
             </div>
             <div>
               <CardTitle className="text-2xl">Search Configuration</CardTitle>
               <CardDescription className="mt-1">
-                Enter location and category to find businesses with legacy websites
+                Find businesses without websites in your target area
               </CardDescription>
             </div>
           </div>
@@ -132,38 +125,15 @@ export default function SearchPage() {
           <form onSubmit={handleSearch} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="city" className="text-base font-semibold flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  City *
+                <Label htmlFor="location" className="text-base font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-orange-500" />
+                  Location *
                 </Label>
                 <Input 
-                  id="city" 
-                  placeholder="San Francisco" 
-                  value={formData.city}
-                  onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                  required 
-                  disabled={isSearching}
-                />
-              </div>
-
-              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="state" className="text-base font-semibold">State/Province</Label>
-                <Input 
-                  id="state" 
-                  placeholder="California" 
-                  value={formData.state}
-                  onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                  disabled={isSearching}
-                />
-              </div>
-
-              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="country" className="text-base font-semibold">Country *</Label>
-                <Input 
-                  id="country" 
-                  placeholder="United States" 
-                  value={formData.country}
-                  onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                  id="location" 
+                  placeholder="San Francisco, CA" 
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   required 
                   disabled={isSearching}
                 />
@@ -191,12 +161,12 @@ export default function SearchPage() {
               </div>
 
               <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="businessCategory" className="text-base font-semibold">Business Category</Label>
+                <Label htmlFor="keywords" className="text-base font-semibold">Niche/Keywords</Label>
                 <Input 
-                  id="businessCategory" 
-                  placeholder="restaurants, hotels, lawyers" 
-                  value={formData.businessCategory}
-                  onChange={(e) => setFormData(prev => ({ ...prev, businessCategory: e.target.value }))}
+                  id="keywords" 
+                  placeholder="restaurants, plumbers, dentists" 
+                  value={formData.keywords}
+                  onChange={(e) => setFormData(prev => ({ ...prev, keywords: e.target.value }))}
                   disabled={isSearching}
                 />
               </div>
@@ -213,59 +183,29 @@ export default function SearchPage() {
                   disabled={isSearching}
                 />
               </div>
-
-              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="domainYear" className="text-base font-semibold">Domain Created Year</Label>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${formData.filterMode === 'before' ? 'text-primary' : 'text-muted-foreground'}`}>Before</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.filterMode === 'after'}
-                        onChange={(e) => setFormData(prev => ({ ...prev, filterMode: e.target.checked ? 'after' : 'before' }))}
-                        disabled={isSearching}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    </label>
-                    <span className={`text-sm font-medium ${formData.filterMode === 'after' ? 'text-primary' : 'text-muted-foreground'}`}>After</span>
-                  </div>
-                </div>
-                <Input 
-                  id="domainYear" 
-                  type="number"
-                  placeholder="e.g., 2020" 
-                  min="1990"
-                  max={formData.filterMode === 'before' ? new Date().getFullYear() : new Date().getFullYear() - 1}
-                  value={formData.domainYear}
-                  onChange={(e) => setFormData(prev => ({ ...prev, domainYear: e.target.value }))}
-                  disabled={isSearching}
-                />
-              </div>
             </div>
 
-            <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-5 border border-primary/10">
+            <div className="bg-gradient-to-br from-orange-500/5 to-accent/5 rounded-xl p-5 border border-orange-500/10">
               <h4 className="font-semibold text-base text-foreground flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-primary" />
+                <Globe className="w-5 h-5 text-orange-500" />
                 Discovery Process
               </h4>
               <ul className="text-sm text-muted-foreground space-y-2">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span>Search Google Places for businesses in your location</span>
+                  <span>Search for businesses in your target location</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span>Check domain registration dates</span>
+                  <span>Filter businesses without websites</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span>Filter legacy websites (older domains)</span>
+                  <span>Extract contact information</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span>Extract contact emails from websites</span>
+                  <span>Identify high-potential prospects</span>
                 </li>
               </ul>
             </div>
@@ -273,7 +213,7 @@ export default function SearchPage() {
             <Button 
               type="submit" 
               disabled={isSearching}
-              className="w-full gap-2 shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-bold py-6 text-lg"
+              className="w-full gap-2 shadow-lg bg-gradient-to-r from-orange-500 to-orange-500/80 hover:from-orange-500/90 hover:to-orange-500/70 text-white font-bold py-6 text-lg"
               size="lg"
             >
               {isSearching ? (
@@ -301,7 +241,7 @@ export default function SearchPage() {
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Found {results.count} Legacy Websites</CardTitle>
+                  <CardTitle className="text-xl">Found {results.count} Businesses Without Websites</CardTitle>
                   <CardDescription>{results.message}</CardDescription>
                 </div>
               </div>
@@ -313,18 +253,14 @@ export default function SearchPage() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {results.data.map((business: any) => (
+              {results.data?.map((business: any) => (
                 <div key={business._id} className="p-4 rounded-lg border bg-muted/30">
                   <h4 className="font-semibold text-lg">{business.businessName}</h4>
                   <p className="text-sm text-muted-foreground">{business.category}</p>
                   <div className="mt-2 space-y-1 text-sm">
-                    <p><strong>Website:</strong> <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{business.website}</a></p>
-                    <p><strong>Domain Created:</strong> {new Date(business.domainCreationDate).toLocaleDateString()}</p>
                     <p><strong>Phone:</strong> {business.phone}</p>
                     <p><strong>Address:</strong> {business.address}</p>
-                    {business.emails.length > 0 && (
-                      <p><strong>Emails:</strong> {business.emails.join(', ')}</p>
-                    )}
+                    <p><strong>Rating:</strong> {business.rating}/5</p>
                   </div>
                 </div>
               ))}

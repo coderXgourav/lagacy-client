@@ -4,9 +4,14 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 async function apiCall(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  const defaultHeaders = {
+  const token = localStorage.getItem('token');
+  const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
   };
+  
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
   
   const config: RequestInit = {
     ...options,
@@ -197,9 +202,27 @@ export const legacyFinderApi = {
   },
 };
 
+// No Website Outreach API
+export const noWebsiteApi = {
+  startCampaign: (campaignData: {
+    location: string;
+    radius?: number;
+    niche?: string;
+    leadCap?: number;
+  }) => apiCall('/outreach/campaign', {
+    method: 'POST',
+    body: JSON.stringify(campaignData),
+  }),
+  
+  getCampaignStatus: (campaignId: string) => apiCall(`/outreach/campaign/${campaignId}`),
+  
+  getAllCampaigns: () => apiCall('/outreach/campaigns'),
+};
+
 export default {
   settings: settingsApi,
   searches: searchesApi,
   leads: leadsApi,
   legacyFinder: legacyFinderApi,
+  noWebsite: noWebsiteApi,
 };

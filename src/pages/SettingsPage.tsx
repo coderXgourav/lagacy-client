@@ -19,7 +19,9 @@ export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState({
     whoisxml: "",
     hunter: "",
-    googlePlaces: ""
+    googlePlaces: "",
+    whoisfreaks: "",
+    foursquare: ""
   });
   const [notifications, setNotifications] = useState({
     email: false,
@@ -215,6 +217,34 @@ export default function SettingsPage() {
                     className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground">Location-based business discovery</p>
+                </div>
+
+                <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
+                  <Label htmlFor="whoisfreaks" className="text-base font-semibold">WhoisFreaks API Key</Label>
+                  <Input 
+                    id="whoisfreaks" 
+                    type="password" 
+                    placeholder="••••••••••••••••" 
+                    value={apiKeys.whoisfreaks}
+                    onChange={(e) => setApiKeys({ ...apiKeys, whoisfreaks: e.target.value })}
+                    disabled={loading}
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">Alternative WHOIS data provider</p>
+                </div>
+
+                <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
+                  <Label htmlFor="foursquare" className="text-base font-semibold">Foursquare API Key</Label>
+                  <Input 
+                    id="foursquare" 
+                    type="password" 
+                    placeholder="••••••••••••••••" 
+                    value={apiKeys.foursquare}
+                    onChange={(e) => setApiKeys({ ...apiKeys, foursquare: e.target.value })}
+                    disabled={loading}
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">Location-based business data</p>
                 </div>
               </div>
 
