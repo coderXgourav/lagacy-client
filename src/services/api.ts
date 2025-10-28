@@ -219,7 +219,28 @@ export const noWebsiteApi = {
   getAllCampaigns: () => apiCall('/outreach/campaigns'),
 };
 
+// Auth API
+export const authApi = {
+  login: (credentials: { email: string; password: string }) =>
+    apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }),
+  
+  register: (userData: { name: string; email: string; password: string }) =>
+    apiCall('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+  
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+};
+
 export default {
+  auth: authApi,
   settings: settingsApi,
   searches: searchesApi,
   leads: leadsApi,

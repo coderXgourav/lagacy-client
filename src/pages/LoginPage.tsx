@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { authApi } from "@/services/api";
 import { Search } from "lucide-react";
 
 export default function LoginPage() {
@@ -14,6 +16,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,28 +31,22 @@ export default function LoginPage() {
     }
 
     try {
-      const endpoint = isLogin ? '/auth/login' : '/auth/signup';
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isLogin ? { email, password } : { name, email, password })
-      });
+      const data = isLogin 
+        ? await authApi.login({ email, password })
+        : await authApi.register({ name, email, password });
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (data.success) {
+        login(data.user, data.token);
+        
+        toast({
+          title: "Success!",
+          description: isLogin ? "Logged in successfully" : "Account created successfully"
+        });
+        
+        navigate("/offerings");
+      } else {
         throw new Error(data.message || 'Authentication failed');
       }
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      toast({
-        title: "Success!",
-        description: isLogin ? "Logged in successfully" : "Account created successfully"
-      });
-      
-      navigate("/offerings");
     } catch (error: any) {
       toast({
         title: "Error",
