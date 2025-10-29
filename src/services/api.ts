@@ -202,21 +202,96 @@ export const legacyFinderApi = {
   },
 };
 
-// No Website Outreach API
+// No Website Finder API
 export const noWebsiteApi = {
-  startCampaign: (campaignData: {
-    location: string;
+  // Scan for businesses without websites
+  scan: (params: {
+    city: string;
+    state?: string;
+    country: string;
     radius?: number;
     niche?: string;
-    leadCap?: number;
-  }) => apiCall('/outreach/campaign', {
+    leads?: number;
+  }) => apiCall('/no-website/scan', {
     method: 'POST',
-    body: JSON.stringify(campaignData),
+    body: JSON.stringify(params),
   }),
   
-  getCampaignStatus: (campaignId: string) => apiCall(`/outreach/campaign/${campaignId}`),
+  // Get recent searches
+  getRecentSearches: (limit = 20) => apiCall(`/no-website/searches/recent?limit=${limit}`),
   
-  getAllCampaigns: () => apiCall('/outreach/campaigns'),
+  // Get results for specific search
+  getSearchResults: (searchId: string) => apiCall(`/no-website/searches/${searchId}/results`),
+  
+  // Delete search
+  deleteSearch: (searchId: string) => apiCall(`/no-website/searches/${searchId}`, {
+    method: 'DELETE',
+  }),
+  
+  // Download search results as Excel
+  downloadSearchExcel: async (searchId: string, businesses: any[]) => {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
+      'Owner Name': b.ownerName || 'N/A',
+      'Business Name': b.businessName || b.name || 'N/A',
+      'Rating': b.rating || 'N/A',
+      'Phone': b.phone || 'N/A',
+      'Email': b.email || 'N/A',
+      'Social Media': b.facebookPage || 'N/A',
+      'Address': b.address || 'N/A',
+      'City': b.city || 'N/A',
+      'State': b.state || 'N/A',
+      'Country': b.country || 'N/A',
+      'Niche': b.niche || b.category || 'N/A',
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'No Website Businesses');
+    XLSX.writeFile(workbook, `no-website-${searchId}.xlsx`);
+  },
+};
+
+// Low Rating Finder API
+export const lowRatingApi = {
+  scan: (params: {
+    city: string;
+    state?: string;
+    country: string;
+    radius?: number;
+    niche?: string;
+    maxRating?: number;
+    leads?: number;
+  }) => apiCall('/low-rating/scan', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }),
+  
+  getRecentSearches: (limit = 20) => apiCall(`/low-rating/searches/recent?limit=${limit}`),
+  
+  getSearchResults: (searchId: string) => apiCall(`/low-rating/searches/${searchId}/results`),
+  
+  deleteSearch: (searchId: string) => apiCall(`/low-rating/searches/${searchId}`, {
+    method: 'DELETE',
+  }),
+  
+  downloadSearchExcel: async (searchId: string, businesses: any[]) => {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
+      'Business Name': b.businessName || b.name || 'N/A',
+      'Rating': b.rating || 'N/A',
+      'Total Reviews': b.totalReviews || 'N/A',
+      'Phone': b.phone || 'N/A',
+      'Email': b.email || 'N/A',
+      'Website': b.website || 'N/A',
+      'Address': b.address || 'N/A',
+      'City': b.city || 'N/A',
+      'State': b.state || 'N/A',
+      'Country': b.country || 'N/A',
+      'Niche': b.niche || b.category || 'N/A',
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Low Rating Businesses');
+    XLSX.writeFile(workbook, `low-rating-${searchId}.xlsx`);
+  },
 };
 
 // Auth API
@@ -245,5 +320,6 @@ export default {
   searches: searchesApi,
   leads: leadsApi,
   legacyFinder: legacyFinderApi,
-  noWebsite: noWebsiteApi,
+  noWebsiteFinder: noWebsiteApi,
+  lowRatingFinder: lowRatingApi,
 };

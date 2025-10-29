@@ -1,48 +1,31 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Search, 
-  Database,
-  Settings,
-  Sparkles,
-  TrendingUp,
-  BookOpen,
-  LogOut
-} from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { LayoutDashboard, Search, Database, Settings, Star, TrendingUp, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/legacy", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/legacy/search", label: "New Search", icon: Search },
-  { to: "/legacy/recent-searches", label: "Recent Searches", icon: Database },
-  { to: "/legacy/settings", label: "Settings", icon: Settings },
+  { to: "/low-rating", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/low-rating/search", label: "New Search", icon: Search },
+  { to: "/low-rating/recent-searches", label: "Recent Searches", icon: Database },
+  { to: "/low-rating/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
-  const navigate = useNavigate();
-  
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
-  };
-  
+export function LowRatingSidebar() {
   return (
     <aside className="w-64 min-h-screen bg-gradient-to-b from-sidebar-background to-sidebar-background/95 border-r border-sidebar-border flex flex-col shadow-xl">
       <div className="p-6 border-b border-sidebar-border bg-gradient-to-br from-primary/5 to-transparent">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20 relative overflow-hidden group">
-              <Sparkles className="w-6 h-6 text-white relative z-10 group-hover:scale-110 transition-transform" />
+              <Star className="w-6 h-6 text-white relative z-10 group-hover:scale-110 transition-transform" />
               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-sidebar-background animate-pulse"></div>
           </div>
           <div>
             <h1 className="text-sidebar-foreground font-bold text-xl tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-              LAGACY
+              LOW RATING
             </h1>
-            <p className="text-muted-foreground text-xs font-medium">AI Lead Discovery</p>
+            <p className="text-muted-foreground text-xs font-medium">Business Finder</p>
           </div>
         </div>
       </div>
@@ -52,7 +35,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/legacy"}
+            end={item.to === "/low-rating"}
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium group relative overflow-hidden",
@@ -86,15 +69,6 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 space-y-3">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all"
-        >
-          <div className="p-1.5 rounded-lg bg-muted/50">
-            <LogOut className="w-4 h-4" />
-          </div>
-          <span className="font-semibold">Logout</span>
-        </button>
         <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-5 border border-primary/20 shadow-lg">
           <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full blur-2xl"></div>
           <div className="relative z-10 space-y-3">
@@ -105,7 +79,7 @@ export function Sidebar() {
               <p className="text-foreground text-sm font-bold">Pro Tip</p>
             </div>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Configure your API keys first for the best search results and lead discovery
+              Target businesses with ratings below 3.5 for best conversion rates
             </p>
             <button className="w-full px-3 py-2.5 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 text-white rounded-xl text-xs font-bold transition-all shadow-md hover:shadow-lg hover:scale-[1.02] flex items-center justify-center gap-2">
               <BookOpen className="w-4 h-4" />

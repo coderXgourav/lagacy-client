@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Globe, Clock, Search, Database, CheckCircle2, ArrowRight, Sparkles, Target, Zap } from "lucide-react";
+import { TrendingUp, Users, Star, Clock, Search, Database, CheckCircle2, ArrowRight, Sparkles, Target, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const stats = [
@@ -9,7 +9,7 @@ const stats = [
     title: "Total Searches",
     value: "0",
     change: "+0%",
-    icon: Globe,
+    icon: Star,
     trend: "up"
   },
   {
@@ -20,7 +20,7 @@ const stats = [
     trend: "up"
   },
   {
-    title: "Without Website",
+    title: "Low Rated",
     value: "0",
     change: "+0%",
     icon: TrendingUp,
@@ -35,10 +35,9 @@ const stats = [
   }
 ];
 
-export default function NoWebsiteDashboard() {
+export default function LowRatingDashboard() {
   return (
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
-      {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-8 md:p-12">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -50,19 +49,19 @@ export default function NoWebsiteDashboard() {
               <Badge className="bg-primary/20 text-primary border-primary/30">AI-Powered</Badge>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
-              Welcome to No Website Finder
+              Welcome to Low Rating Finder
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Discover businesses without websites and their social media pages (Facebook, Zomato, Instagram, etc.) with AI-powered search. Configure your preferences, execute searches, and manage your leads effortlessly.
+              Discover businesses with low ratings and help them improve their reputation. Configure your preferences, execute searches, and manage your leads effortlessly.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
-              <Link to="/no-website/search">
+              <Link to="/low-rating/search">
                 <Button size="lg" className="gap-2 shadow-lg">
                   <Search className="h-4 w-4" />
                   Start New Search
                 </Button>
               </Link>
-              <Link to="/no-website/settings">
+              <Link to="/low-rating/settings">
                 <Button size="lg" variant="outline" className="gap-2">
                   <Target className="h-4 w-4" />
                   Configure Settings
@@ -73,7 +72,6 @@ export default function NoWebsiteDashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => {
           const colors = [
@@ -111,9 +109,7 @@ export default function NoWebsiteDashboard() {
         })}
       </div>
 
-      {/* Activity & Quick Start Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity Card */}
         <Card className="shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50">
           <CardHeader className="border-b bg-gradient-to-r from-blue-500/5 via-blue-500/3 to-transparent">
             <div className="flex items-center justify-between">
@@ -126,7 +122,7 @@ export default function NoWebsiteDashboard() {
                   <CardDescription>Your latest search operations</CardDescription>
                 </div>
               </div>
-              <Link to="/no-website/recent-searches">
+              <Link to="/low-rating/recent-searches">
                 <Button variant="outline" size="sm" className="gap-2">
                   View All
                   <ArrowRight className="h-3 w-3" />
@@ -145,7 +141,7 @@ export default function NoWebsiteDashboard() {
                   Start your first search to see your activity history here
                 </p>
               </div>
-              <Link to="/no-website/search">
+              <Link to="/low-rating/search">
                 <Button className="gap-2 mt-4">
                   <Search className="h-4 w-4" />
                   Create First Search
@@ -155,7 +151,6 @@ export default function NoWebsiteDashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Start Guide Card */}
         <Card className="shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50">
           <CardHeader className="border-b bg-gradient-to-r from-purple-500/5 via-purple-500/3 to-transparent">
             <div className="flex items-center gap-3">
@@ -174,23 +169,23 @@ export default function NoWebsiteDashboard() {
                 {
                   step: 1,
                   title: "Configure Settings",
-                  description: "Set up your outreach preferences",
+                  description: "Set up your search preferences",
                   icon: Target,
-                  link: "/no-website/settings"
+                  link: "/low-rating/settings"
                 },
                 {
                   step: 2,
                   title: "Execute Search",
-                  description: "Define your search criteria and discover leads",
+                  description: "Find businesses with low ratings",
                   icon: Search,
-                  link: "/no-website/search"
+                  link: "/low-rating/search"
                 },
                 {
                   step: 3,
                   title: "Manage Leads",
-                  description: "Review and export your discovered leads",
+                  description: "Review and export your leads",
                   icon: CheckCircle2,
-                  link: "/no-website/recent-searches"
+                  link: "/low-rating/recent-searches"
                 }
               ].map((item, idx) => (
                 <Link key={idx} to={item.link}>

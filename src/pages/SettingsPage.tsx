@@ -21,7 +21,8 @@ export default function SettingsPage() {
     hunter: "",
     googlePlaces: "",
     whoisfreaks: "",
-    foursquare: ""
+    foursquare: "",
+    facebook: ""
   });
   const [notifications, setNotifications] = useState({
     email: false,
@@ -245,6 +246,20 @@ export default function SettingsPage() {
                     className="font-mono"
                   />
                   <p className="text-xs text-muted-foreground">Location-based business data</p>
+                </div>
+
+                <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
+                  <Label htmlFor="facebook" className="text-base font-semibold">Facebook Graph API Access Token</Label>
+                  <Input 
+                    id="facebook" 
+                    type="password" 
+                    placeholder="••••••••••••••••" 
+                    value={apiKeys.facebook}
+                    onChange={(e) => setApiKeys({ ...apiKeys, facebook: e.target.value })}
+                    disabled={loading}
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">Enriches no-website businesses with Facebook pages and owner info</p>
                 </div>
               </div>
 

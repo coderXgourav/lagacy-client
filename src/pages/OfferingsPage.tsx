@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Globe, Sparkles, User, LogOut } from "lucide-react";
+import { Search, Globe, Sparkles, User, LogOut, Star } from "lucide-react";
 
 export default function OfferingsPage() {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ export default function OfferingsPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login');
+    navigate('/');
   };
 
   const offerings = [
@@ -32,11 +32,12 @@ export default function OfferingsPage() {
       route: "/no-website"
     },
     {
-      id: "coming-soon-1",
-      title: "Coming Soon",
-      description: "New AI agent in development",
-      icon: Sparkles,
-      available: false
+      id: "low-rating",
+      title: "Low Rating Business Finder",
+      description: "Find businesses with low ratings and help them improve their reputation",
+      icon: Star,
+      available: true,
+      route: "/low-rating"
     },
     {
       id: "coming-soon-2",
