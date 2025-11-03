@@ -8,6 +8,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { MainLayout } from "./components/layout/MainLayout";
 import { NoWebsiteLayout } from "./components/layout/NoWebsiteLayout";
 import { LowRatingLayout } from "./components/layout/LowRatingLayout";
+import NewDomainLayout from "./components/layout/NewDomainLayout";
+import NewBusinessLayout from "./components/layout/NewBusinessLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import SearchPage from "./pages/SearchPage";
@@ -22,6 +24,12 @@ import NoWebsiteRecentSearches from "./pages/nowebsite/NoWebsiteRecentSearches";
 import LowRatingDashboard from "./pages/lowrating/LowRatingDashboard";
 import LowRatingSearchPage from "./pages/lowrating/LowRatingSearchPage";
 import LowRatingRecentSearches from "./pages/lowrating/LowRatingRecentSearches";
+import NewDomainDashboard from "./pages/newdomain/NewDomainDashboard";
+import NewDomainSearchPage from "./pages/newdomain/NewDomainSearchPage";
+import NewDomainRecentSearches from "./pages/newdomain/NewDomainRecentSearches";
+import NewBusinessDashboard from "./pages/newbusiness/NewBusinessDashboard";
+import NewBusinessSearchPage from "./pages/newbusiness/NewBusinessSearchPage";
+import NewBusinessRecentSearches from "./pages/newbusiness/NewBusinessRecentSearches";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +62,18 @@ const App = () => (
               <Route index element={<LowRatingDashboard />} />
               <Route path="search" element={<LowRatingSearchPage />} />
               <Route path="recent-searches" element={<LowRatingRecentSearches />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="/new-domain" element={<ProtectedRoute><NewDomainLayout /></ProtectedRoute>}>
+              <Route index element={<NewDomainDashboard />} />
+              <Route path="search" element={<NewDomainSearchPage />} />
+              <Route path="recent-searches" element={<NewDomainRecentSearches />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="/new-business" element={<ProtectedRoute><NewBusinessLayout /></ProtectedRoute>}>
+              <Route index element={<NewBusinessDashboard />} />
+              <Route path="search" element={<NewBusinessSearchPage />} />
+              <Route path="recent-searches" element={<NewBusinessRecentSearches />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="/" element={<LoginPage />} />

@@ -314,6 +314,90 @@ export const authApi = {
   },
 };
 
+// New Domain Tracker API
+export const newDomainApi = {
+  scan: (params: {
+    keywords: string;
+    tlds: string[];
+    daysBack: number;
+    leads: number;
+  }) => apiCall('/new-domain/scan', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }),
+  
+  getRecentSearches: (limit = 20) => apiCall(`/new-domain/searches/recent?limit=${limit}`),
+  
+  getSearchResults: (searchId: string) => apiCall(`/new-domain/searches/${searchId}/results`),
+  
+  deleteSearch: (searchId: string) => apiCall(`/new-domain/searches/${searchId}`, {
+    method: 'DELETE',
+  }),
+  
+  downloadSearchExcel: async (searchId: string, domains: any[]) => {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(domains.map(d => ({
+      'Domain Name': d.domainName || 'N/A',
+      'Registration Date': d.registrationDate ? new Date(d.registrationDate).toLocaleDateString() : 'N/A',
+      'TLD': d.tld || 'N/A',
+      'Registrant Name': d.registrant?.name || 'N/A',
+      'Registrant Email': d.registrant?.email || 'N/A',
+      'Registrant Phone': d.registrant?.phone || 'N/A',
+      'Organization': d.registrant?.organization || 'N/A',
+      'Country': d.registrant?.country || 'N/A',
+      'Nameservers': d.nameservers?.join(', ') || 'N/A',
+      'Status': d.status || 'N/A',
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'New Domains');
+    XLSX.writeFile(workbook, `new-domains-${searchId}.xlsx`);
+  },
+};
+
+// New Business Registration Finder API
+export const newBusinessApi = {
+  scan: (params: {
+    city: string;
+    state?: string;
+    country: string;
+    radius?: number;
+    niche?: string;
+    daysBack?: number;
+    leads?: number;
+  }) => apiCall('/new-business/scan', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }),
+  
+  getRecentSearches: (limit = 20) => apiCall(`/new-business/searches/recent?limit=${limit}`),
+  
+  getSearchResults: (searchId: string) => apiCall(`/new-business/searches/${searchId}/results`),
+  
+  deleteSearch: (searchId: string) => apiCall(`/new-business/searches/${searchId}`, {
+    method: 'DELETE',
+  }),
+  
+  downloadSearchExcel: async (searchId: string, businesses: any[]) => {
+    const XLSX = await import('xlsx');
+    const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
+      'Owner Name': b.ownerName || 'N/A',
+      'Business Name': b.businessName || 'N/A',
+      'Phone': b.phone || 'N/A',
+      'Email': b.email || 'N/A',
+      'Social Media': b.facebookPage || 'N/A',
+      'Address': b.address || 'N/A',
+      'City': b.city || 'N/A',
+      'State': b.state || 'N/A',
+      'Country': b.country || 'N/A',
+      'Niche': b.niche || 'N/A',
+      'Registration Date': b.registrationDate ? new Date(b.registrationDate).toLocaleDateString() : 'N/A',
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'New Businesses');
+    XLSX.writeFile(workbook, `new-businesses-${searchId}.xlsx`);
+  },
+};
+
 export default {
   auth: authApi,
   settings: settingsApi,
@@ -322,4 +406,6 @@ export default {
   legacyFinder: legacyFinderApi,
   noWebsiteFinder: noWebsiteApi,
   lowRatingFinder: lowRatingApi,
+  newDomainTracker: newDomainApi,
+  newBusinessFinder: newBusinessApi,
 };

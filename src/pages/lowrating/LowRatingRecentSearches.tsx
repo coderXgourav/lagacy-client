@@ -75,17 +75,28 @@ const LowRatingRecentSearches = () => {
     setBusinessesLoading(true);
     try {
       const response = await lowRatingApi.getSearchResults(searchId);
-      console.log('Search results response:', response);
-      // Backend returns: {success: true, data: {businesses: [...]}}
+      console.log('=== FETCH BUSINESSES DEBUG ===');
+      console.log('Full response:', JSON.stringify(response, null, 2));
+      
       let businessesData = [];
-      if (response.businesses) {
+      if (Array.isArray(response.businesses)) {
         businessesData = response.businesses;
-      } else if (response.data?.businesses) {
+        console.log('Using response.businesses');
+      } else if (response.data?.results && Array.isArray(response.data.results)) {
+        businessesData = response.data.results;
+        console.log('Using response.data.results');
+      } else if (response.data?.businesses && Array.isArray(response.data.businesses)) {
         businessesData = response.data.businesses;
+        console.log('Using response.data.businesses');
       } else if (Array.isArray(response.data)) {
         businessesData = response.data;
+        console.log('Using response.data as array');
+      } else {
+        console.error('Could not find businesses array in response');
       }
-      console.log('Businesses extracted:', businessesData);
+      
+      console.log('Final businesses array:', businessesData);
+      console.log('Businesses count:', businessesData.length);
       setBusinesses(businessesData);
     } catch (error: any) {
       console.error('Fetch businesses error:', error);
@@ -143,20 +154,29 @@ const LowRatingRecentSearches = () => {
   const handleDownloadSearch = async (searchId: string) => {
     try {
       const response = await lowRatingApi.getSearchResults(searchId);
-      console.log('Download - Search results:', response);
+      console.log('=== DOWNLOAD DEBUG ===');
+      console.log('Full response:', JSON.stringify(response, null, 2));
       
       let businessesData = [];
-      if (response.businesses) {
+      if (Array.isArray(response.businesses)) {
         businessesData = response.businesses;
-      } else if (response.data?.businesses) {
+        console.log('Using response.businesses');
+      } else if (response.data?.results && Array.isArray(response.data.results)) {
+        businessesData = response.data.results;
+        console.log('Using response.data.results');
+      } else if (response.data?.businesses && Array.isArray(response.data.businesses)) {
         businessesData = response.data.businesses;
+        console.log('Using response.data.businesses');
       } else if (Array.isArray(response.data)) {
         businessesData = response.data;
+        console.log('Using response.data as array');
+      } else {
+        console.error('Could not find businesses array in response');
       }
       
-      console.log('Download - Businesses count:', businessesData.length);
+      console.log('Businesses to download:', businessesData.length);
       
-      if (businessesData.length === 0) {
+      if (!businessesData || businessesData.length === 0) {
         toast({
           title: "No Data",
           description: "No businesses to download",
@@ -171,7 +191,7 @@ const LowRatingRecentSearches = () => {
         description: `Downloaded ${businessesData.length} businesses`
       });
     } catch (error: any) {
-      console.error('Download search error:', error);
+      console.error('Download error:', error);
       toast({
         title: "Error",
         description: error.message || "Download failed",

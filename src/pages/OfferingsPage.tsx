@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Globe, Sparkles, User, LogOut, Star } from "lucide-react";
+import { Search, Globe, Sparkles, User, LogOut, Star, Calendar, Building2 } from "lucide-react";
 
 export default function OfferingsPage() {
   const navigate = useNavigate();
@@ -40,18 +40,20 @@ export default function OfferingsPage() {
       route: "/low-rating"
     },
     {
-      id: "coming-soon-2",
-      title: "Coming Soon",
-      description: "New AI agent in development",
-      icon: Sparkles,
-      available: false
+      id: "new-domain",
+      title: "New Domain Registration Tracker",
+      description: "Track newly registered domains and reach out to new businesses early",
+      icon: Calendar,
+      available: true,
+      route: "/new-domain"
     },
     {
-      id: "coming-soon-3",
-      title: "Coming Soon",
-      description: "New AI agent in development",
-      icon: Sparkles,
-      available: false
+      id: "new-business",
+      title: "New Business Registration Finder",
+      description: "Track newly registered businesses in the last 90 days and extract owner details",
+      icon: Building2,
+      available: true,
+      route: "/new-business"
     }
   ];
 
