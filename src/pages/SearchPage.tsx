@@ -1,17 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download } from "lucide-react";
+import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { legacyFinderApi } from "@/services/api";
+
+const statusMessages = [
+  "Initializing search...",
+  "Searching Google Places...",
+  "Finding businesses in your area...",
+  "Extracting website URLs...",
+  "Checking domain registration dates...",
+  "Filtering legacy websites...",
+  "Extracting contact information...",
+  "Finalizing results..."
+];
 
 export default function SearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any>(null);
+  const [statusIndex, setStatusIndex] = useState(0);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [formData, setFormData] = useState({
     city: '',
@@ -24,6 +38,17 @@ export default function SearchPage() {
     filterMode: 'before' // 'before' or 'after'
   });
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSearching) {
+      setStatusIndex(0);
+      interval = setInterval(() => {
+        setStatusIndex(prev => (prev + 1) % statusMessages.length);
+      }, 4000);
+    }
+    return () => clearInterval(interval);
+  }, [isSearching]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
@@ -31,19 +56,92 @@ export default function SearchPage() {
 
     try {
       const data = await legacyFinderApi.scan(formData);
-      setResults(data);
       
-      toast({
-        title: "Scan Complete! 🎉",
-        description: `Found ${data.count} legacy websites`,
-      });
+      console.log('API Response:', data);
+      console.log('SearchId:', data.searchId);
+      
+      // Store searchId for cancellation
+      if (data.searchId) {
+        setCurrentSearchId(data.searchId);
+        console.log('Stored searchId for cancellation:', data.searchId);
+      }
+      
+      // If we got results immediately, show them
+      if (data.data && data.data.length > 0) {
+        setResults(data);
+        setIsSearching(false);
+        setCurrentSearchId(null);
+        toast({
+          title: "Scan Complete! 🎉",
+          description: `Found ${data.count} legacy websites`,
+        });
+      } else if (data.searchId) {
+        // Search started, poll for results
+        const pollInterval = setInterval(async () => {
+          try {
+            const results = await legacyFinderApi.getSearchResults(data.searchId);
+            console.log('Full poll response:', JSON.stringify(results, null, 2));
+            const status = results.data?.search?.status || results.status;
+            console.log('Poll status:', status);
+            
+            if (status === 'completed') {
+              clearInterval(pollInterval);
+              const businessData = results.data?.results || results.data || [];
+              setResults({
+                count: businessData.length,
+                message: 'Scan complete',
+                data: businessData.map((r: any) => r.businessData || r)
+              });
+              setIsSearching(false);
+              setCurrentSearchId(null);
+              toast({
+                title: "Scan Complete! 🎉",
+                description: `Found ${businessData.length} legacy websites`,
+              });
+            } else if (status === 'cancelled' || status === 'failed') {
+              clearInterval(pollInterval);
+              setIsSearching(false);
+              setCurrentSearchId(null);
+            }
+          } catch (error) {
+            console.error('Polling error:', error);
+          }
+        }, 3000); // Poll every 3 seconds
+      }
     } catch (error: any) {
+      setIsSearching(false);
+      setCurrentSearchId(null);
       toast({
         title: "Error",
         description: error.message || "Scan failed",
         variant: "destructive"
       });
-    } finally {
+    }
+  };
+
+  const handleCancel = async () => {
+    console.log('Cancel clicked, currentSearchId:', currentSearchId);
+    if (currentSearchId) {
+      try {
+        console.log('Calling cancelSearch API with searchId:', currentSearchId);
+        const result = await legacyFinderApi.cancelSearch(currentSearchId);
+        console.log('Cancel API result:', result);
+        setIsSearching(false);
+        setCurrentSearchId(null);
+        toast({
+          title: "Search Cancelled",
+          description: "The search was cancelled by user",
+        });
+      } catch (error: any) {
+        console.error('Cancel error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to cancel search",
+          variant: "destructive"
+        });
+      }
+    } else {
+      console.log('No searchId available, just stopping UI');
       setIsSearching(false);
     }
   };
@@ -85,16 +183,34 @@ export default function SearchPage() {
     <>
     {isSearching && (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
-          </div>
-          <div className="text-center space-y-2">
-            <p className="text-lg font-semibold text-foreground">Scanning for Legacy Websites...</p>
-            <p className="text-sm text-muted-foreground">This may take a few moments</p>
-          </div>
-        </div>
+        <Card className="w-[400px] shadow-2xl">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+              </div>
+              <div className="text-center space-y-3 w-full">
+                <p className="text-lg font-semibold text-foreground">Scanning for Legacy Websites</p>
+                <div className="min-h-[40px] flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground animate-pulse">{statusMessages[statusIndex]}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">This may take 3-4 minutes</p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  console.log('🔴 CANCEL BUTTON CLICKED!');
+                  handleCancel();
+                }}
+                className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+                Cancel Search
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )}
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
@@ -313,17 +429,17 @@ export default function SearchPage() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {results.data.map((business: any) => (
-                <div key={business._id} className="p-4 rounded-lg border bg-muted/30">
-                  <h4 className="font-semibold text-lg">{business.businessName}</h4>
+              {results.data && results.data.map((business: any, idx: number) => (
+                <div key={idx} className="p-4 rounded-lg border bg-muted/30">
+                  <h4 className="font-semibold text-lg">{business.name || business.businessName}</h4>
                   <p className="text-sm text-muted-foreground">{business.category}</p>
                   <div className="mt-2 space-y-1 text-sm">
                     <p><strong>Website:</strong> <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{business.website}</a></p>
                     <p><strong>Domain Created:</strong> {new Date(business.domainCreationDate).toLocaleDateString()}</p>
                     <p><strong>Phone:</strong> {business.phone}</p>
                     <p><strong>Address:</strong> {business.address}</p>
-                    {business.emails.length > 0 && (
-                      <p><strong>Emails:</strong> {business.emails.join(', ')}</p>
+                    {business.email && (
+                      <p><strong>Email:</strong> {business.email}</p>
                     )}
                   </div>
                 </div>

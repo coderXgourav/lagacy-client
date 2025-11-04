@@ -85,8 +85,10 @@ const RecentSearches = () => {
     setLoading(true);
     try {
       const response = await legacyFinderApi.getRecentSearches(20);
-      setSearches(response.data || []);
+      console.log('📊 Recent Searches Response:', response);
+      setSearches(response.searches || response.data || []);
     } catch (error: any) {
+      console.error('❌ Fetch searches error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to load search history",

@@ -1,17 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download } from "lucide-react";
+import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { noWebsiteApi } from "@/services/api";
+
+const statusMessages = [
+  "Initializing search...",
+  "Searching Google Places...",
+  "Finding businesses in your area...",
+  "Filtering businesses without websites...",
+  "Checking social media presence...",
+  "Extracting contact information...",
+  "Finalizing results..."
+];
 
 export default function NoWebsiteSearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any>(null);
+  const [statusIndex, setStatusIndex] = useState(0);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [formData, setFormData] = useState({
     city: '',
@@ -22,6 +35,17 @@ export default function NoWebsiteSearchPage() {
     leads: 50
   });
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSearching) {
+      setStatusIndex(0);
+      interval = setInterval(() => {
+        setStatusIndex(prev => (prev + 1) % statusMessages.length);
+      }, 4000);
+    }
+    return () => clearInterval(interval);
+  }, [isSearching]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
@@ -29,19 +53,79 @@ export default function NoWebsiteSearchPage() {
 
     try {
       const data = await noWebsiteApi.scan(formData);
-      setResults(data);
       
-      toast({
-        title: "Scan Complete! 🎉",
-        description: `Found ${data.count} businesses without websites`,
-      });
+      if (data.searchId) {
+        setCurrentSearchId(data.searchId);
+      }
+      
+      if (data.data && data.data.length > 0) {
+        setResults(data);
+        setIsSearching(false);
+        setCurrentSearchId(null);
+        toast({
+          title: "Scan Complete! 🎉",
+          description: `Found ${data.count} businesses without websites`,
+        });
+      } else if (data.searchId) {
+        const pollInterval = setInterval(async () => {
+          try {
+            const results = await noWebsiteApi.getSearchResults(data.searchId);
+            const status = results.data?.search?.status;
+            
+            if (status === 'completed') {
+              clearInterval(pollInterval);
+              const businessData = results.data?.results || [];
+              setResults({
+                count: businessData.length,
+                message: 'Scan complete',
+                data: businessData
+              });
+              setIsSearching(false);
+              setCurrentSearchId(null);
+              toast({
+                title: "Scan Complete! 🎉",
+                description: `Found ${businessData.length} businesses without websites`,
+              });
+            } else if (status === 'cancelled' || status === 'failed') {
+              clearInterval(pollInterval);
+              setIsSearching(false);
+              setCurrentSearchId(null);
+            }
+          } catch (error) {
+            console.error('Polling error:', error);
+          }
+        }, 3000);
+      }
     } catch (error: any) {
+      setIsSearching(false);
+      setCurrentSearchId(null);
       toast({
         title: "Error",
         description: error.message || "Scan failed",
         variant: "destructive"
       });
-    } finally {
+    }
+  };
+
+  const handleCancel = async () => {
+    if (currentSearchId) {
+      try {
+        await noWebsiteApi.cancelSearch(currentSearchId);
+        setIsSearching(false);
+        setCurrentSearchId(null);
+        toast({
+          title: "Search Cancelled",
+          description: "The search was cancelled by user",
+        });
+      } catch (error: any) {
+        console.error('Cancel error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to cancel search",
+          variant: "destructive"
+        });
+      }
+    } else {
       setIsSearching(false);
     }
   };
@@ -67,16 +151,31 @@ export default function NoWebsiteSearchPage() {
     <>
     {isSearching && (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
-          </div>
-          <div className="text-center space-y-2">
-            <p className="text-lg font-semibold text-foreground">Scanning for Businesses Without Websites...</p>
-            <p className="text-sm text-muted-foreground">This may take a few moments</p>
-          </div>
-        </div>
+        <Card className="w-[400px] shadow-2xl">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+              </div>
+              <div className="text-center space-y-3 w-full">
+                <p className="text-lg font-semibold text-foreground">Scanning for Businesses</p>
+                <div className="min-h-[40px] flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground animate-pulse">{statusMessages[statusIndex]}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">This may take 3-4 minutes</p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleCancel}
+                className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+                Cancel Search
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )}
     <div className="container mx-auto space-y-8 animate-fade-in p-6">

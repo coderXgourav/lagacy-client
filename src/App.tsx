@@ -10,6 +10,7 @@ import { NoWebsiteLayout } from "./components/layout/NoWebsiteLayout";
 import { LowRatingLayout } from "./components/layout/LowRatingLayout";
 import NewDomainLayout from "./components/layout/NewDomainLayout";
 import NewBusinessLayout from "./components/layout/NewBusinessLayout";
+import { DomainScraperLayout } from "./components/layout/DomainScraperLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import SearchPage from "./pages/SearchPage";
@@ -30,6 +31,8 @@ import NewDomainRecentSearches from "./pages/newdomain/NewDomainRecentSearches";
 import NewBusinessDashboard from "./pages/newbusiness/NewBusinessDashboard";
 import NewBusinessSearchPage from "./pages/newbusiness/NewBusinessSearchPage";
 import NewBusinessRecentSearches from "./pages/newbusiness/NewBusinessRecentSearches";
+import DomainScraperDashboard from "./pages/domainscraper/DomainScraperDashboard";
+import DomainScraperSettings from "./pages/domainscraper/DomainScraperSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +78,10 @@ const App = () => (
               <Route path="search" element={<NewBusinessSearchPage />} />
               <Route path="recent-searches" element={<NewBusinessRecentSearches />} />
               <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="/domain-scraper" element={<ProtectedRoute><DomainScraperLayout /></ProtectedRoute>}>
+              <Route index element={<DomainScraperDashboard />} />
+              <Route path="settings" element={<DomainScraperSettings />} />
             </Route>
             <Route path="/" element={<LoginPage />} />
             <Route path="*" element={<NotFound />} />

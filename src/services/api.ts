@@ -46,7 +46,7 @@ export const settingsApi = {
       body: JSON.stringify(settings),
     }),
   
-  updateApiKeys: (apiKeys: { whoisxml?: string; hunter?: string; googlePlaces?: string }) =>
+  updateApiKeys: (apiKeys: any) =>
     apiCall('/settings/api-keys', {
       method: 'PUT',
       body: JSON.stringify(apiKeys),
@@ -200,6 +200,10 @@ export const legacyFinderApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Businesses');
     XLSX.writeFile(workbook, `search-${searchId}.xlsx`);
   },
+  
+  cancelSearch: (searchId: string) => apiCall(`/searches/${searchId}/cancel`, {
+    method: 'POST',
+  }),
 };
 
 // No Website Finder API
@@ -248,6 +252,10 @@ export const noWebsiteApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'No Website Businesses');
     XLSX.writeFile(workbook, `no-website-${searchId}.xlsx`);
   },
+  
+  cancelSearch: (searchId: string) => apiCall(`/no-website/searches/${searchId}/cancel`, {
+    method: 'POST',
+  }),
 };
 
 // Low Rating Finder API
@@ -292,6 +300,10 @@ export const lowRatingApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Low Rating Businesses');
     XLSX.writeFile(workbook, `low-rating-${searchId}.xlsx`);
   },
+  
+  cancelSearch: (searchId: string) => apiCall(`/low-rating/searches/${searchId}/cancel`, {
+    method: 'POST',
+  }),
 };
 
 // Auth API
@@ -352,6 +364,10 @@ export const newDomainApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'New Domains');
     XLSX.writeFile(workbook, `new-domains-${searchId}.xlsx`);
   },
+  
+  cancelSearch: (searchId: string) => apiCall(`/new-domain/searches/${searchId}/cancel`, {
+    method: 'POST',
+  }),
 };
 
 // New Business Registration Finder API
@@ -396,6 +412,43 @@ export const newBusinessApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'New Businesses');
     XLSX.writeFile(workbook, `new-businesses-${searchId}.xlsx`);
   },
+  
+  cancelSearch: (searchId: string) => apiCall(`/new-business/searches/${searchId}/cancel`, {
+    method: 'POST',
+  }),
+};
+
+// Domain Scraper API
+export const domainScraperApi = {
+  getDashboardStats: () => apiCall('/domain-scraper/stats'),
+  
+  getDomainsByDate: (date: string, page = 1, limit = 50) => 
+    apiCall(`/domain-scraper/domains?date=${date}&page=${page}&limit=${limit}`),
+  
+  triggerScrape: () => apiCall('/domain-scraper/scrape', {
+    method: 'POST',
+  }),
+  
+  downloadAllDomains: async () => {
+    const XLSX = await import('xlsx');
+    const response = await apiCall('/domain-scraper/domains');
+    const domains = response.domains || [];
+    
+    const worksheet = XLSX.utils.json_to_sheet(domains.map(d => ({
+      'Domain Name': d.domainName || 'N/A',
+      'TLD': d.tld || 'N/A',
+      'Registration Date': d.registrationDate ? new Date(d.registrationDate).toLocaleDateString() : 'N/A',
+      'Registrant Name': d.registrant?.name || 'N/A',
+      'Registrant Email': d.registrant?.email || 'N/A',
+      'Registrant Phone': d.registrant?.phone || 'N/A',
+      'Organization': d.registrant?.organization || 'N/A',
+      'Country': d.registrant?.country || 'N/A',
+      'Scraped At': d.scrapedAt ? new Date(d.scrapedAt).toLocaleDateString() : 'N/A',
+    })));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Scraped Domains');
+    XLSX.writeFile(workbook, `scraped-domains-${new Date().toISOString().split('T')[0]}.xlsx`);
+  },
 };
 
 export default {
@@ -408,4 +461,5 @@ export default {
   lowRatingFinder: lowRatingApi,
   newDomainTracker: newDomainApi,
   newBusinessFinder: newBusinessApi,
+  domainScraper: domainScraperApi,
 };

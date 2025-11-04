@@ -54,6 +54,14 @@ export default function OfferingsPage() {
       icon: Building2,
       available: true,
       route: "/new-business"
+    },
+    {
+      id: "domain-scraper",
+      title: "Latest Domain Scraper",
+      description: "Automatically scrape and track newly registered domains from WhoisXML daily feeds",
+      icon: Sparkles,
+      available: true,
+      route: "/domain-scraper"
     }
   ];
 
@@ -84,7 +92,7 @@ export default function OfferingsPage() {
           </DropdownMenu>
         </div>
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold mb-4">
             Our AI Agent Offerings
           </h1>
           <p className="text-muted-foreground text-lg">
@@ -98,7 +106,7 @@ export default function OfferingsPage() {
             return (
               <Card
                 key={offering.id}
-                className={`shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50 transition-all duration-300 ${
+                className={`h-[280px] flex flex-col shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50 transition-all duration-300 ${
                   offering.available
                     ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
                     : "opacity-60 cursor-not-allowed"

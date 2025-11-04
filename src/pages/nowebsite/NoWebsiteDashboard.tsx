@@ -1,41 +1,48 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Globe, Clock, Search, Database, CheckCircle2, ArrowRight, Sparkles, Target, Zap } from "lucide-react";
+import { TrendingUp, Users, Globe, Clock, Search, Database, CheckCircle2, ArrowRight, Sparkles, Target, Zap, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const stats = [
-  {
-    title: "Total Searches",
-    value: "0",
-    change: "+0%",
-    icon: Globe,
-    trend: "up"
-  },
-  {
-    title: "Leads Found",
-    value: "0",
-    change: "+0%",
-    icon: Users,
-    trend: "up"
-  },
-  {
-    title: "Without Website",
-    value: "0",
-    change: "+0%",
-    icon: TrendingUp,
-    trend: "up"
-  },
-  {
-    title: "Avg. Response Time",
-    value: "0s",
-    change: "0s",
-    icon: Clock,
-    trend: "neutral"
-  }
-];
+import { noWebsiteApi } from "@/services/api";
+import { calculateAvgResponseTime, formatResponseTime } from "@/utils/dashboardHelpers";
 
 export default function NoWebsiteDashboard() {
+  const [stats, setStats] = useState([
+    { title: "Total Searches", value: "0", change: "+0%", icon: Globe, trend: "up" },
+    { title: "Leads Found", value: "0", change: "+0%", icon: Users, trend: "up" },
+    { title: "Without Website", value: "0", change: "+0%", icon: TrendingUp, trend: "up" },
+    { title: "Avg. Response Time", value: "0s", change: "0s", icon: Clock, trend: "neutral" }
+  ]);
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await noWebsiteApi.getRecentSearches(10);
+      const searches = response.searches || response.data || [];
+      
+      if (searches.length > 0) {
+        setRecentSearches(searches.slice(0, 5));
+        const avgTime = calculateAvgResponseTime(searches);
+        
+        setStats([
+          { title: "Total Searches", value: searches.length.toString(), change: "+0%", icon: Globe, trend: "up" },
+          { title: "Leads Found", value: searches.reduce((sum: number, s: any) => sum + (s.resultsCount || 0), 0).toString(), change: "+0%", icon: Users, trend: "up" },
+          { title: "Without Website", value: searches.filter((s: any) => s.status === 'completed').length.toString(), change: "+0%", icon: TrendingUp, trend: "up" },
+          { title: "Avg. Response Time", value: formatResponseTime(avgTime), change: "0s", icon: Clock, trend: "neutral" }
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
       {/* Hero Section */}
@@ -135,7 +142,12 @@ export default function NoWebsiteDashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : recentSearches.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <div className="p-4 rounded-full bg-muted/50">
                 <Database className="h-12 w-12 text-muted-foreground" />
               </div>
@@ -152,6 +164,23 @@ export default function NoWebsiteDashboard() {
                 </Button>
               </Link>
             </div>
+            ) : (
+              <div className="space-y-3">
+                {recentSearches.map((search: any) => (
+                  <div key={search._id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{search.city}, {search.country}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(search.createdAt).toLocaleDateString()} • {search.resultsCount || 0} leads
+                      </p>
+                    </div>
+                    <Badge variant={search.status === 'completed' ? 'default' : 'secondary'}>
+                      {search.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

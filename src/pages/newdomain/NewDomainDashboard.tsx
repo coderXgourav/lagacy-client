@@ -1,10 +1,36 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Search, TrendingUp, Clock, Sparkles, CheckCircle2 } from "lucide-react";
+import { newDomainApi } from "@/services/api";
+import { calculateAvgResponseTime, formatResponseTime } from "@/utils/dashboardHelpers";
 
 export default function NewDomainDashboard() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({ totalSearches: 0, domainsFound: 0, avgTime: '--' });
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await newDomainApi.getRecentSearches(10);
+      const searches = response.searches || response.data || [];
+      
+      if (searches.length > 0) {
+        const avgTime = calculateAvgResponseTime(searches);
+        setStats({
+          totalSearches: searches.length,
+          domainsFound: searches.reduce((sum: number, s: any) => sum + (s.resultsCount || 0), 0),
+          avgTime: formatResponseTime(avgTime)
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    }
+  };
 
   return (
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
@@ -23,7 +49,7 @@ export default function NewDomainDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Searches</p>
-                <p className="text-3xl font-bold mt-2">0</p>
+                <p className="text-3xl font-bold mt-2">{stats.totalSearches}</p>
               </div>
               <div className="p-3 rounded-full bg-blue-500/10">
                 <Search className="h-6 w-6 text-blue-500" />
@@ -37,7 +63,7 @@ export default function NewDomainDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Domains Found</p>
-                <p className="text-3xl font-bold mt-2">0</p>
+                <p className="text-3xl font-bold mt-2">{stats.domainsFound}</p>
               </div>
               <div className="p-3 rounded-full bg-green-500/10">
                 <Calendar className="h-6 w-6 text-green-500" />
@@ -51,7 +77,7 @@ export default function NewDomainDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg Response Time</p>
-                <p className="text-3xl font-bold mt-2">--</p>
+                <p className="text-3xl font-bold mt-2">{stats.avgTime}</p>
               </div>
               <div className="p-3 rounded-full bg-purple-500/10">
                 <Clock className="h-6 w-6 text-purple-500" />

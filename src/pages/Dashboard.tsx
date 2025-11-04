@@ -1,41 +1,74 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Globe, Clock, Search, Database, CheckCircle2, ArrowRight, Sparkles, Target, Zap } from "lucide-react";
+import { TrendingUp, Users, Globe, Clock, Search, Database, CheckCircle2, ArrowRight, Sparkles, Target, Zap, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const stats = [
-  {
-    title: "Total Searches",
-    value: "0",
-    change: "+0%",
-    icon: Globe,
-    trend: "up"
-  },
-  {
-    title: "Leads Found",
-    value: "0",
-    change: "+0%",
-    icon: Users,
-    trend: "up"
-  },
-  {
-    title: "Legacy Sites",
-    value: "0",
-    change: "+0%",
-    icon: TrendingUp,
-    trend: "up"
-  },
-  {
-    title: "Avg. Response Time",
-    value: "0s",
-    change: "0s",
-    icon: Clock,
-    trend: "neutral"
-  }
-];
+import { legacyFinderApi } from "@/services/api";
 
 export default function Dashboard() {
+  const [stats, setStats] = useState([
+    { title: "Total Searches", value: "0", change: "+0%", icon: Globe, trend: "up" },
+    { title: "Leads Found", value: "0", change: "+0%", icon: Users, trend: "up" },
+    { title: "Legacy Sites", value: "0", change: "+0%", icon: TrendingUp, trend: "up" },
+    { title: "Avg. Response Time", value: "0s", change: "0s", icon: Clock, trend: "neutral" }
+  ]);
+  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await legacyFinderApi.getRecentSearches(10);
+      console.log('📊 Dashboard API Response:', response);
+      
+      const searches = response.searches || response.data || [];
+      if (searches.length > 0) {
+        setRecentSearches(searches.slice(0, 5));
+
+        // Calculate stats
+        const totalSearches = searches.length;
+        const totalLeads = searches.reduce((sum: number, s: any) => sum + (s.resultsCount || 0), 0);
+        const legacySites = searches.filter((s: any) => s.status === 'completed').length;
+        
+        // Calculate avg response time (in seconds)
+        // If completedAt doesn't exist, estimate 2-5 seconds per search
+        const completedSearches = searches.filter((s: any) => s.status === 'completed');
+        let avgTime = 0;
+        
+        if (completedSearches.length > 0) {
+          const totalDuration = completedSearches.reduce((sum: number, s: any) => {
+            if (s.completedAt && s.createdAt) {
+              // Use actual duration if available
+              const duration = (new Date(s.completedAt).getTime() - new Date(s.createdAt).getTime()) / 1000;
+              return sum + duration;
+            } else {
+              // Estimate based on results count (more results = longer time)
+              const estimatedTime = Math.min(2 + (s.resultsCount || 0) * 0.05, 30);
+              return sum + estimatedTime;
+            }
+          }, 0);
+          avgTime = totalDuration / completedSearches.length;
+        }
+
+        console.log('🕒 Avg Response Time:', avgTime.toFixed(1) + 's');
+
+        setStats([
+          { title: "Total Searches", value: totalSearches.toString(), change: "+0%", icon: Globe, trend: "up" },
+          { title: "Leads Found", value: totalLeads.toString(), change: "+0%", icon: Users, trend: "up" },
+          { title: "Legacy Sites", value: legacySites.toString(), change: "+0%", icon: TrendingUp, trend: "up" },
+          { title: "Avg. Response Time", value: avgTime > 0 ? `${avgTime.toFixed(1)}s` : "N/A", change: "0s", icon: Clock, trend: "neutral" }
+        ]);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
       {/* Hero Section */}
@@ -135,23 +168,45 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="flex flex-col items-center justify-center py-12 space-y-4">
-              <div className="p-4 rounded-full bg-muted/50">
-                <Database className="h-12 w-12 text-muted-foreground" />
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-              <div className="text-center space-y-2">
-                <p className="font-semibold text-muted-foreground">No activity yet</p>
-                <p className="text-sm text-muted-foreground max-w-xs">
-                  Start your first search to see your activity history here
-                </p>
+            ) : recentSearches.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="p-4 rounded-full bg-muted/50">
+                  <Database className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="font-semibold text-muted-foreground">No activity yet</p>
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    Start your first search to see your activity history here
+                  </p>
+                </div>
+                <Link to="/search">
+                  <Button className="gap-2 mt-4">
+                    <Search className="h-4 w-4" />
+                    Create First Search
+                  </Button>
+                </Link>
               </div>
-              <Link to="/search">
-                <Button className="gap-2 mt-4">
-                  <Search className="h-4 w-4" />
-                  Create First Search
-                </Button>
-              </Link>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {recentSearches.map((search: any) => (
+                  <div key={search._id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{search.city}, {search.country}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(search.createdAt).toLocaleDateString()} • {search.resultsCount || 0} leads
+                      </p>
+                    </div>
+                    <Badge variant={search.status === 'completed' ? 'default' : 'secondary'}>
+                      {search.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

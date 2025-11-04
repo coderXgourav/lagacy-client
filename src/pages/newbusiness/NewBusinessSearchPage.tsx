@@ -1,19 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Target, CheckCircle2, Download } from "lucide-react";
+import { Loader2, Search, Target, CheckCircle2, Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { newBusinessApi } from "@/services/api";
+
+const statusMessages = [
+  "Initializing search...",
+  "Querying OpenStreetMap...",
+  "Finding new businesses...",
+  "Extracting business details...",
+  "Enriching contact information...",
+  "Finalizing results..."
+];
 
 export default function NewBusinessSearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [searchId, setSearchId] = useState<string | null>(null);
+  const [statusIndex, setStatusIndex] = useState(0);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const { toast } = useToast();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [formData, setFormData] = useState({
     city: '',
@@ -25,11 +37,23 @@ export default function NewBusinessSearchPage() {
     leads: 100
   });
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSearching) {
+      setStatusIndex(0);
+      interval = setInterval(() => {
+        setStatusIndex(prev => (prev + 1) % statusMessages.length);
+      }, 4000);
+    }
+    return () => clearInterval(interval);
+  }, [isSearching]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
     setResults([]);
     setSearchId(null);
+    setCurrentSearchId(null);
 
     try {
       console.log('🔍 Sending search request:', formData);
@@ -49,6 +73,9 @@ export default function NewBusinessSearchPage() {
       if (response.success && response.data) {
         setResults(response.data);
         setSearchId(response.searchId);
+        if (response.searchId) {
+          setCurrentSearchId(response.searchId);
+        }
         toast({
           title: "Search Complete",
           description: `Found ${response.count || response.data.length} businesses`,
@@ -67,6 +94,30 @@ export default function NewBusinessSearchPage() {
         variant: "destructive"
       });
     } finally {
+      setIsSearching(false);
+      setCurrentSearchId(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (currentSearchId) {
+      try {
+        await newBusinessApi.cancelSearch(currentSearchId);
+        setIsSearching(false);
+        setCurrentSearchId(null);
+        toast({
+          title: "Search Cancelled",
+          description: "The search was cancelled by user",
+        });
+      } catch (error: any) {
+        console.error('Cancel error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to cancel search",
+          variant: "destructive"
+        });
+      }
+    } else {
       setIsSearching(false);
     }
   };
@@ -92,10 +143,31 @@ export default function NewBusinessSearchPage() {
     <>
     {isSearching && (
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-lg font-semibold">Searching for new businesses...</p>
-        </div>
+        <Card className="w-[400px] shadow-2xl">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-b-primary/50 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+              </div>
+              <div className="text-center space-y-3 w-full">
+                <p className="text-lg font-semibold text-foreground">Searching for New Businesses</p>
+                <div className="min-h-[40px] flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground animate-pulse">{statusMessages[statusIndex]}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">This may take 3-4 minutes</p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleCancel}
+                className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+                Cancel Search
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )}
     <div className="container mx-auto space-y-8 animate-fade-in p-6">
