@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkles, Database, Calendar, TrendingUp, Download } from "lucide-react";
+import { Sparkles, Database, Calendar, TrendingUp, Download, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { domainScraperApi } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ export default function DomainScraperDashboard() {
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDomains, setLoadingDomains] = useState(false);
+  const [triggering, setTriggering] = useState(false);
   const { toast } = useToast();
 
   const fetchDashboardData = async () => {
@@ -83,6 +84,29 @@ export default function DomainScraperDashboard() {
     }
   };
 
+  const handleTriggerScrape = async () => {
+    try {
+      setTriggering(true);
+      await domainScraperApi.triggerScrape();
+      toast({
+        title: "Scraping Started",
+        description: "Domain scraping has been triggered in the background",
+      });
+      // Refresh dashboard after a delay
+      setTimeout(() => {
+        fetchDashboardData();
+      }, 5000);
+    } catch (error: any) {
+      toast({
+        title: "Failed to Start Scraping",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setTriggering(false);
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-8 p-6">
       <div className="flex items-center justify-between">
@@ -90,10 +114,21 @@ export default function DomainScraperDashboard() {
           <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Auto-scraped domain leads</p>
         </div>
-        <Button onClick={handleDownload} className="gap-2">
-          <Download className="w-4 h-4" />
-          Download All
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleTriggerScrape} 
+            disabled={triggering}
+            variant="outline"
+            className="gap-2"
+          >
+            <Play className="w-4 h-4" />
+            {triggering ? "Starting..." : "Run Scraper"}
+          </Button>
+          <Button onClick={handleDownload} className="gap-2">
+            <Download className="w-4 h-4" />
+            Download All
+          </Button>
+        </div>
       </div>
 
       <Card>
