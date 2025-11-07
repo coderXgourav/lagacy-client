@@ -318,12 +318,12 @@ export default function SearchPage() {
               </div>
 
               <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="leadCap" className="text-base font-semibold">Lead Cap (1-100)</Label>
+                <Label htmlFor="leadCap" className="text-base font-semibold">Lead Cap (1-1000)</Label>
                 <Input 
                   id="leadCap" 
                   type="number"
                   min="1"
-                  max="100"
+                  max="1000"
                   value={formData.leadCap}
                   onChange={(e) => setFormData(prev => ({ ...prev, leadCap: parseInt(e.target.value) || 50 }))}
                   disabled={isSearching}

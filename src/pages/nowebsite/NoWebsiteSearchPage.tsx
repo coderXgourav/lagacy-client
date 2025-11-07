@@ -283,12 +283,12 @@ export default function NoWebsiteSearchPage() {
               </div>
 
               <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="leads" className="text-base font-semibold">Leads (1-100)</Label>
+                <Label htmlFor="leads" className="text-base font-semibold">Leads (1-1000)</Label>
                 <Input 
                   id="leads" 
                   type="number"
                   min="1"
-                  max="100"
+                  max="1000"
                   value={formData.leads}
                   onChange={(e) => setFormData(prev => ({ ...prev, leads: parseInt(e.target.value) || 50 }))}
                   disabled={isSearching}
