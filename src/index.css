@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet CSS for OpenStreetMap */
+@import 'leaflet/dist/leaflet.css';
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -290,4 +293,70 @@ button, a, input, textarea, select {
 
 .hover-glow:hover {
   box-shadow: var(--shadow-glow);
+}
+
+/* Leaflet Map Customization */
+.leaflet-container {
+  font-family: inherit;
+  border-radius: 0 0 0.75rem 0.75rem;
+  position: relative;
+  z-index: 0 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+}
+
+/* Ensure leaflet controls and popups are below UI elements */
+.leaflet-control-container {
+  z-index: 1 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1 !important;
+}
+
+/* Override all leaflet z-index values to stay below UI */
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane {
+  z-index: 1 !important;
+}
+
+/* Ensure UI elements are above map */
+[role="dialog"],
+[data-radix-dialog-content],
+[data-radix-popper-content-wrapper],
+.toast,
+[data-sonner-toast],
+[data-sonner-toaster] {
+  z-index: 9999 !important;
+}
+
+/* Dark mode map styling */
+.dark .leaflet-tile {
+  filter: brightness(0.7) invert(1) contrast(1.2) hue-rotate(200deg) saturate(0.3);
+}
+
+.dark .leaflet-control-attribution {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.dark .leaflet-popup-tip {
+  background-color: hsl(var(--card));
 }
