@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download, X } from "lucide-react";
+import { Loader2, Search, Sparkles, MapPin, Target, CheckCircle2, Download, X, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { lowRatingApi } from "@/services/api";
+import LocationMap from "@/components/LocationMap";
 
 const statusMessages = [
   "Initializing search...",
@@ -30,11 +31,14 @@ export default function LowRatingSearchPage() {
     city: '',
     state: '',
     country: 'United States',
-    radius: 5000,
+    radius: 5000, // Fixed at 5km
     niche: '',
     maxRating: 3.0,
-    leads: 200
+    useHunter: true, // Enable Hunter.io email lookup
+    lat: null as number | null,
+    lng: null as number | null,
   });
+  const [useMapLocation, setUseMapLocation] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -53,15 +57,26 @@ export default function LowRatingSearchPage() {
     setResults(null);
 
     try {
-      const data = await lowRatingApi.scan({
+      // Prepare search data
+      const searchData: any = {
         city: formData.city,
         state: formData.state,
         country: formData.country,
         radius: formData.radius,
         niche: formData.niche,
         maxRating: formData.maxRating,
-        leads: formData.leads
-      });
+        useHunter: formData.useHunter
+      };
+      
+      // Only add lat/lng if they're actually set
+      if (formData.lat && formData.lng) {
+        searchData.lat = formData.lat;
+        searchData.lng = formData.lng;
+      }
+      
+      console.log('Sending search data:', searchData);
+      
+      const data = await lowRatingApi.scan(searchData);
       
       if (data.searchId) {
         setCurrentSearchId(data.searchId);
@@ -140,6 +155,38 @@ export default function LowRatingSearchPage() {
     } else {
       console.log('No searchId available, just stopping UI');
       setIsSearching(false);
+    }
+  };
+
+  const handleLocationSelect = (lat: number, lng: number, address?: { city: string; state: string; country: string }) => {
+    console.log('🗺️ Location selected:', { lat, lng, address });
+    
+    // Update form data with coordinates and address in one call
+    if (address) {
+      console.log('📍 Updating with address:', address);
+      setFormData(prev => ({ 
+        ...prev, 
+        lat, 
+        lng,
+        city: address.city || prev.city,
+        state: address.state || prev.state,
+        country: address.country || prev.country
+      }));
+      
+      const addressParts = [address.city, address.state, address.country].filter(Boolean);
+      
+      toast({
+        title: "Location Selected",
+        description: addressParts.length > 0 ? addressParts.join(', ') : 'Coordinates updated',
+      });
+    } else {
+      console.log('📍 Updating coordinates only (no address)');
+      setFormData(prev => ({ ...prev, lat, lng }));
+      
+      toast({
+        title: "Location Selected",
+        description: `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`,
+      });
     }
   };
 
@@ -227,6 +274,15 @@ export default function LowRatingSearchPage() {
         </CardHeader>
         <CardContent className="p-6">
           <form onSubmit={handleSearch} className="space-y-6">
+            {useMapLocation && (
+              <div className="animate-fade-in relative z-0">
+                <LocationMap
+                  onLocationSelect={handleLocationSelect}
+                  radius={5000}
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
                 <Label htmlFor="city" className="text-base font-semibold flex items-center gap-2">
@@ -266,25 +322,27 @@ export default function LowRatingSearchPage() {
                 />
               </div>
 
-              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="radius" className="text-base font-semibold">Search Radius *</Label>
-                <Select 
-                  value={formData.radius.toString()}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, radius: parseInt(value) }))}
-                  disabled={isSearching}
-                  required
-                >
-                  <SelectTrigger id="radius">
-                    <SelectValue placeholder="Select radius" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1000">1 km</SelectItem>
-                    <SelectItem value="5000">5 km</SelectItem>
-                    <SelectItem value="10000">10 km</SelectItem>
-                    <SelectItem value="25000">25 km</SelectItem>
-                    <SelectItem value="50000">50 km</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-blue-50 dark:from-blue-950/20 to-muted/10">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="useMapLocation" className="text-base font-semibold flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-blue-500" />
+                      Use Map Location
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Pinpoint exact location on map (5km radius)</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="useMapLocation"
+                      checked={useMapLocation}
+                      onChange={(e) => setUseMapLocation(e.target.checked)}
+                      disabled={isSearching}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                  </label>
+                </div>
               </div>
 
               <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
@@ -312,17 +370,27 @@ export default function LowRatingSearchPage() {
                 />
               </div>
 
-              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-muted/30 to-muted/10">
-                <Label htmlFor="leads" className="text-base font-semibold">Max Leads (1-1000)</Label>
-                <Input 
-                  id="leads" 
-                  type="number"
-                  min="1"
-                  max="1000"
-                  value={formData.leads}
-                  onChange={(e) => setFormData(prev => ({ ...prev, leads: parseInt(e.target.value) || 200 }))}
-                  disabled={isSearching}
-                />
+              <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-br from-purple-50 dark:from-purple-950/20 to-muted/10">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="useHunter" className="text-base font-semibold flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-purple-500" />
+                      Hunter.io Email Lookup
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Find email addresses for businesses</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="useHunter"
+                      checked={formData.useHunter}
+                      onChange={(e) => setFormData(prev => ({ ...prev, useHunter: e.target.checked }))}
+                      disabled={isSearching}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                  </label>
+                </div>
               </div>
             </div>
 
