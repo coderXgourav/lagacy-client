@@ -277,12 +277,12 @@ export default function NewBusinessSearchPage() {
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="leads">Max Leads (1-500)</Label>
+                <Label htmlFor="leads">Max Leads (1-1000)</Label>
                 <Input 
                   id="leads" 
                   type="number"
                   min="1"
-                  max="500"
+                  max="1000"
                   value={formData.leads}
                   onChange={(e) => setFormData(prev => ({ ...prev, leads: parseInt(e.target.value) || 100 }))}
                   disabled={isSearching}
