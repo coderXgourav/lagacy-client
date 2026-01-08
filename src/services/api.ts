@@ -3,16 +3,16 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 // Helper function for API calls
 async function apiCall(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const token = localStorage.getItem('token');
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  
+
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
-  
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -20,15 +20,20 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
       ...options.headers,
     },
   };
-  
+
   try {
     const response = await fetch(url, config);
     const data = await response.json();
-    
+
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
       throw new Error(data.message || 'API request failed');
     }
-    
+
     return data;
   } catch (error) {
     console.error('API Error:', error);
@@ -39,13 +44,13 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
 // Settings API
 export const settingsApi = {
   getSettings: () => apiCall('/settings'),
-  
-  updateSettings: (settings: any) => 
+
+  updateSettings: (settings: any) =>
     apiCall('/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
     }),
-  
+
   updateApiKeys: (apiKeys: any) =>
     apiCall('/settings/api-keys', {
       method: 'PUT',
@@ -56,23 +61,23 @@ export const settingsApi = {
 // Searches API
 export const searchesApi = {
   getAllSearches: () => apiCall('/searches'),
-  
+
   getRecentSearches: (limit = 10) => apiCall(`/searches/recent?limit=${limit}`),
-  
+
   getSearchById: (id: string) => apiCall(`/searches/${id}`),
-  
+
   createSearch: (searchData: any) =>
     apiCall('/searches', {
       method: 'POST',
       body: JSON.stringify(searchData),
     }),
-  
+
   updateSearchStatus: (id: string, status: string, resultsCount?: number) =>
     apiCall(`/searches/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ status, resultsCount }),
     }),
-  
+
   deleteSearch: (id: string) =>
     apiCall(`/searches/${id}`, {
       method: 'DELETE',
@@ -88,33 +93,33 @@ export const leadsApi = {
     if (params?.status) queryParams.append('status', params.status);
     if (params?.source) queryParams.append('source', params.source);
     if (params?.searchId) queryParams.append('searchId', params.searchId);
-    
+
     const queryString = queryParams.toString();
     return apiCall(`/leads${queryString ? `?${queryString}` : ''}`);
   },
-  
+
   getLeadById: (id: string) => apiCall(`/leads/${id}`),
-  
+
   getLeadsBySearchId: (searchId: string) => apiCall(`/leads/search/${searchId}`),
-  
+
   createLead: (leadData: any) =>
     apiCall('/leads', {
       method: 'POST',
       body: JSON.stringify(leadData),
     }),
-  
+
   createBulkLeads: (leads: any[], searchId?: string) =>
     apiCall('/leads/bulk', {
       method: 'POST',
       body: JSON.stringify({ leads, searchId }),
     }),
-  
+
   updateLead: (id: string, leadData: any) =>
     apiCall(`/leads/${id}`, {
       method: 'PUT',
       body: JSON.stringify(leadData),
     }),
-  
+
   deleteLead: (id: string) =>
     apiCall(`/leads/${id}`, {
       method: 'DELETE',
@@ -124,7 +129,7 @@ export const leadsApi = {
 // Legacy Website Finder API
 export const legacyFinderApi = {
   healthCheck: () => apiCall('/health'),
-  
+
   scan: (params: {
     city: string;
     state?: string;
@@ -136,36 +141,42 @@ export const legacyFinderApi = {
     method: 'POST',
     body: JSON.stringify(params),
   }),
-  
+
   storeSearchResults: (searchId: string, results: any[]) => apiCall('/searches/results', {
     method: 'POST',
     body: JSON.stringify({ searchId, results }),
   }),
-  
+
   getHistory: () => apiCall('/history'),
-  
+
   getDownloadableSearches: () => apiCall('/searches/downloadable'),
-  
+
   getRecentSearches: (limit = 10) => apiCall(`/searches/recent?limit=${limit}`),
-  
+
   getSearchResults: (searchId: string) => apiCall(`/searches/${searchId}/results`),
-  
+
   getSearchResultsJson: (searchId: string) => apiCall(`/searches/${searchId}/results`),
-  
+
   deleteSearch: (searchId: string) => apiCall(`/searches/${searchId}`, {
     method: 'DELETE',
   }),
-  
+
   downloadSearchFromBackend: (searchId: string, searchName: string) => {
     const link = document.createElement('a');
     link.href = `${API_BASE_URL}/searches/${searchId}/download`;
     link.download = `${searchName}-results.xlsx`;
     link.click();
   },
-  
+
   downloadExcel: async () => {
     const url = `${API_BASE_URL}/download`;
-    const response = await fetch(url);
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Download failed');
@@ -180,7 +191,7 @@ export const legacyFinderApi = {
     window.URL.revokeObjectURL(downloadUrl);
     document.body.removeChild(a);
   },
-  
+
   downloadSearchExcel: async (searchId: string, businesses: any[]) => {
     const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
@@ -200,7 +211,7 @@ export const legacyFinderApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Businesses');
     XLSX.writeFile(workbook, `search-${searchId}.xlsx`);
   },
-  
+
   cancelSearch: (searchId: string) => apiCall(`/searches/${searchId}/cancel`, {
     method: 'POST',
   }),
@@ -220,18 +231,18 @@ export const noWebsiteApi = {
     method: 'POST',
     body: JSON.stringify(params),
   }),
-  
+
   // Get recent searches
   getRecentSearches: (limit = 20) => apiCall(`/no-website/searches/recent?limit=${limit}`),
-  
+
   // Get results for specific search
   getSearchResults: (searchId: string) => apiCall(`/no-website/searches/${searchId}/results`),
-  
+
   // Delete search
   deleteSearch: (searchId: string) => apiCall(`/no-website/searches/${searchId}`, {
     method: 'DELETE',
   }),
-  
+
   // Download search results as Excel
   downloadSearchExcel: async (searchId: string, businesses: any[]) => {
     const XLSX = await import('xlsx');
@@ -252,7 +263,7 @@ export const noWebsiteApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'No Website Businesses');
     XLSX.writeFile(workbook, `no-website-${searchId}.xlsx`);
   },
-  
+
   cancelSearch: (searchId: string) => apiCall(`/no-website/searches/${searchId}/cancel`, {
     method: 'POST',
   }),
@@ -272,15 +283,15 @@ export const lowRatingApi = {
     method: 'POST',
     body: JSON.stringify(params),
   }),
-  
+
   getRecentSearches: (limit = 20) => apiCall(`/low-rating/searches/recent?limit=${limit}`),
-  
+
   getSearchResults: (searchId: string) => apiCall(`/low-rating/searches/${searchId}/results`),
-  
+
   deleteSearch: (searchId: string) => apiCall(`/low-rating/searches/${searchId}`, {
     method: 'DELETE',
   }),
-  
+
   downloadSearchExcel: async (searchId: string, businesses: any[]) => {
     const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
@@ -300,7 +311,7 @@ export const lowRatingApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Low Rating Businesses');
     XLSX.writeFile(workbook, `low-rating-${searchId}.xlsx`);
   },
-  
+
   cancelSearch: (searchId: string) => apiCall(`/low-rating/searches/${searchId}/cancel`, {
     method: 'POST',
   }),
@@ -313,13 +324,13 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(credentials),
     }),
-  
+
   register: (userData: { name: string; email: string; password: string }) =>
     apiCall('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     }),
-  
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -337,15 +348,15 @@ export const newDomainApi = {
     method: 'POST',
     body: JSON.stringify(params),
   }),
-  
+
   getRecentSearches: (limit = 20) => apiCall(`/new-domain/searches/recent?limit=${limit}`),
-  
+
   getSearchResults: (searchId: string) => apiCall(`/new-domain/searches/${searchId}/results`),
-  
+
   deleteSearch: (searchId: string) => apiCall(`/new-domain/searches/${searchId}`, {
     method: 'DELETE',
   }),
-  
+
   downloadSearchExcel: async (searchId: string, domains: any[]) => {
     const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(domains.map(d => ({
@@ -364,7 +375,7 @@ export const newDomainApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'New Domains');
     XLSX.writeFile(workbook, `new-domains-${searchId}.xlsx`);
   },
-  
+
   cancelSearch: (searchId: string) => apiCall(`/new-domain/searches/${searchId}/cancel`, {
     method: 'POST',
   }),
@@ -384,15 +395,15 @@ export const newBusinessApi = {
     method: 'POST',
     body: JSON.stringify(params),
   }),
-  
+
   getRecentSearches: (limit = 20) => apiCall(`/new-business/searches/recent?limit=${limit}`),
-  
+
   getSearchResults: (searchId: string) => apiCall(`/new-business/searches/${searchId}/results`),
-  
+
   deleteSearch: (searchId: string) => apiCall(`/new-business/searches/${searchId}`, {
     method: 'DELETE',
   }),
-  
+
   downloadSearchExcel: async (searchId: string, businesses: any[]) => {
     const XLSX = await import('xlsx');
     const worksheet = XLSX.utils.json_to_sheet(businesses.map(b => ({
@@ -412,7 +423,7 @@ export const newBusinessApi = {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'New Businesses');
     XLSX.writeFile(workbook, `new-businesses-${searchId}.xlsx`);
   },
-  
+
   cancelSearch: (searchId: string) => apiCall(`/new-business/searches/${searchId}/cancel`, {
     method: 'POST',
   }),
@@ -421,19 +432,19 @@ export const newBusinessApi = {
 // Domain Scraper API
 export const domainScraperApi = {
   getDashboardStats: () => apiCall('/domain-scraper/stats'),
-  
-  getDomainsByDate: (date: string, page = 1, limit = 50) => 
+
+  getDomainsByDate: (date: string, page = 1, limit = 50) =>
     apiCall(`/domain-scraper/domains?date=${date}&page=${page}&limit=${limit}`),
-  
+
   triggerScrape: () => apiCall('/domain-scraper/scrape', {
     method: 'POST',
   }),
-  
+
   downloadAllDomains: async () => {
     const XLSX = await import('xlsx');
     const response = await apiCall('/domain-scraper/domains');
     const domains = response.domains || [];
-    
+
     const worksheet = XLSX.utils.json_to_sheet(domains.map(d => ({
       'Domain Name': d.domainName || 'N/A',
       'TLD': d.tld || 'N/A',
@@ -451,6 +462,57 @@ export const domainScraperApi = {
   },
 };
 
+// CSV Filter API
+export const csvFilterApi = {
+  uploadCsv: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Direct fetch to handle FormData correctly (browser sets Content-Type)
+    const url = `${API_BASE_URL}/csv-filter/upload-csv`;
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Upload failed');
+    return data;
+  },
+
+  filterCsv: (params: { fileId: string; country: string; page?: number; limit?: number }) =>
+    apiCall('/csv-filter/filter-csv', {
+      method: 'POST',
+      body: JSON.stringify(params)
+    }),
+
+  downloadResult: (fileId: string, country: string) => {
+    // Direct download link logic
+    const token = localStorage.getItem('token');
+    // For download, we might need to use fetch/blob if auth is required in headers
+    // But usually download links are GET. If token is needed, we might have to pass it as query param or use fetch->blob->a.click
+    // The current backend doesn't seem to check auth strictly on that specific endpoint?
+    // Wait, app.js doesn't show global auth middleware usage on API routes?
+    // "app.use('/api/auth', authRoutes);"
+    // Let's check if auth is applied globally.
+    // app.js: 
+    // app.use('/api/csv-filter', csvFilterRoutes);
+    // csvFilterRoutes doesn't import auth middleware.
+    // So it's public.
+
+    const link = document.createElement('a');
+    link.href = `${API_BASE_URL}/csv-filter/download-result?fileId=${fileId}&country=${encodeURIComponent(country)}`;
+    link.click();
+  }
+};
+
 export default {
   auth: authApi,
   settings: settingsApi,
@@ -462,4 +524,5 @@ export default {
   newDomainTracker: newDomainApi,
   newBusinessFinder: newBusinessApi,
   domainScraper: domainScraperApi,
+  csvFilter: csvFilterApi,
 };

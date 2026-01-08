@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Globe, Sparkles, User, LogOut, Star, Calendar, Building2 } from "lucide-react";
+import { Search, Globe, Sparkles, User, LogOut, Star, Calendar, Building2, FileText } from "lucide-react";
 
 export default function OfferingsPage() {
   const navigate = useNavigate();
@@ -62,6 +62,14 @@ export default function OfferingsPage() {
       icon: Sparkles,
       available: true,
       route: "/domain-scraper"
+    },
+    {
+      id: "csv-filter",
+      title: "CSV Filter Pro",
+      description: "Upload large CSV files and filter data by country with instant previews",
+      icon: FileText,
+      available: true,
+      route: "/csv-filter"
     }
   ];
 
@@ -106,20 +114,18 @@ export default function OfferingsPage() {
             return (
               <Card
                 key={offering.id}
-                className={`h-[280px] flex flex-col shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50 transition-all duration-300 ${
-                  offering.available
-                    ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
-                    : "opacity-60 cursor-not-allowed"
-                }`}
+                className={`h-[280px] flex flex-col shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50 transition-all duration-300 ${offering.available
+                  ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
+                  : "opacity-60 cursor-not-allowed"
+                  }`}
                 onClick={() => offering.available && offering.route && navigate(offering.route)}
               >
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`p-3 rounded-xl ${
-                      offering.available
-                        ? "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
-                        : "bg-muted"
-                    }`}>
+                    <div className={`p-3 rounded-xl ${offering.available
+                      ? "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                      : "bg-muted"
+                      }`}>
                       <Icon className={`h-6 w-6 ${offering.available ? "text-primary" : "text-muted-foreground"}`} />
                     </div>
                   </div>

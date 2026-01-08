@@ -33,6 +33,8 @@ import NewBusinessSearchPage from "./pages/newbusiness/NewBusinessSearchPage";
 import NewBusinessRecentSearches from "./pages/newbusiness/NewBusinessRecentSearches";
 import DomainScraperDashboard from "./pages/domainscraper/DomainScraperDashboard";
 import DomainScraperSettings from "./pages/domainscraper/DomainScraperSettings";
+import { CsvFilterLayout } from "./components/layout/CsvFilterLayout";
+import CsvFilterDashboard from "./pages/csvfilter/CsvFilterDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,54 +43,57 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <ThemeProvider defaultTheme="light">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/offerings" element={<ProtectedRoute><OfferingsPage /></ProtectedRoute>} />
-            <Route path="/no-website" element={<ProtectedRoute><NoWebsiteLayout /></ProtectedRoute>}>
-              <Route index element={<NoWebsiteDashboard />} />
-              <Route path="search" element={<NoWebsiteSearchPage />} />
-              <Route path="recent-searches" element={<NoWebsiteRecentSearches />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="/legacy" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-              <Route index element={<Dashboard />} />
-              <Route path="search" element={<SearchPage />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="recent-searches" element={<RecentSearches />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="/low-rating" element={<ProtectedRoute><LowRatingLayout /></ProtectedRoute>}>
-              <Route index element={<LowRatingDashboard />} />
-              <Route path="search" element={<LowRatingSearchPage />} />
-              <Route path="recent-searches" element={<LowRatingRecentSearches />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="/new-domain" element={<ProtectedRoute><NewDomainLayout /></ProtectedRoute>}>
-              <Route index element={<NewDomainDashboard />} />
-              <Route path="search" element={<NewDomainSearchPage />} />
-              <Route path="recent-searches" element={<NewDomainRecentSearches />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="/new-business" element={<ProtectedRoute><NewBusinessLayout /></ProtectedRoute>}>
-              <Route index element={<NewBusinessDashboard />} />
-              <Route path="search" element={<NewBusinessSearchPage />} />
-              <Route path="recent-searches" element={<NewBusinessRecentSearches />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="/domain-scraper" element={<ProtectedRoute><DomainScraperLayout /></ProtectedRoute>}>
-              <Route index element={<DomainScraperDashboard />} />
-              <Route path="settings" element={<DomainScraperSettings />} />
-            </Route>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LoginPage />} />
+              <Route path="/offerings" element={<ProtectedRoute><OfferingsPage /></ProtectedRoute>} />
+              <Route path="/no-website" element={<ProtectedRoute><NoWebsiteLayout /></ProtectedRoute>}>
+                <Route index element={<NoWebsiteDashboard />} />
+                <Route path="search" element={<NoWebsiteSearchPage />} />
+                <Route path="recent-searches" element={<NoWebsiteRecentSearches />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="/legacy" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="search" element={<SearchPage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="recent-searches" element={<RecentSearches />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="/low-rating" element={<ProtectedRoute><LowRatingLayout /></ProtectedRoute>}>
+                <Route index element={<LowRatingDashboard />} />
+                <Route path="search" element={<LowRatingSearchPage />} />
+                <Route path="recent-searches" element={<LowRatingRecentSearches />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="/new-domain" element={<ProtectedRoute><NewDomainLayout /></ProtectedRoute>}>
+                <Route index element={<NewDomainDashboard />} />
+                <Route path="search" element={<NewDomainSearchPage />} />
+                <Route path="recent-searches" element={<NewDomainRecentSearches />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="/new-business" element={<ProtectedRoute><NewBusinessLayout /></ProtectedRoute>}>
+                <Route index element={<NewBusinessDashboard />} />
+                <Route path="search" element={<NewBusinessSearchPage />} />
+                <Route path="recent-searches" element={<NewBusinessRecentSearches />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="/domain-scraper" element={<ProtectedRoute><DomainScraperLayout /></ProtectedRoute>}>
+                <Route index element={<DomainScraperDashboard />} />
+                <Route path="settings" element={<DomainScraperSettings />} />
+              </Route>
+              <Route path="/csv-filter" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
+                <Route index element={<CsvFilterDashboard />} />
+              </Route>
+              <Route path="/" element={<LoginPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

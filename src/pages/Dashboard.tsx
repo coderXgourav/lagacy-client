@@ -6,6 +6,7 @@ import { TrendingUp, Users, Globe, Clock, Search, Database, CheckCircle2, ArrowR
 import { Link } from "react-router-dom";
 import { legacyFinderApi } from "@/services/api";
 
+
 export default function Dashboard() {
   const [stats, setStats] = useState([
     { title: "Total Searches", value: "0", change: "+0%", icon: Globe, trend: "up" },
@@ -24,7 +25,7 @@ export default function Dashboard() {
     try {
       const response = await legacyFinderApi.getRecentSearches(10);
       console.log('📊 Dashboard API Response:', response);
-      
+
       const searches = response.searches || response.data || [];
       if (searches.length > 0) {
         setRecentSearches(searches.slice(0, 5));
@@ -33,12 +34,12 @@ export default function Dashboard() {
         const totalSearches = searches.length;
         const totalLeads = searches.reduce((sum: number, s: any) => sum + (s.resultsCount || 0), 0);
         const legacySites = searches.filter((s: any) => s.status === 'completed').length;
-        
+
         // Calculate avg response time (in seconds)
         // If completedAt doesn't exist, estimate 2-5 seconds per search
         const completedSearches = searches.filter((s: any) => s.status === 'completed');
         let avgTime = 0;
-        
+
         if (completedSearches.length > 0) {
           const totalDuration = completedSearches.reduce((sum: number, s: any) => {
             if (s.completedAt && s.createdAt) {
@@ -118,8 +119,8 @@ export default function Dashboard() {
           const color = colors[idx];
 
           return (
-            <Card 
-              key={stat.title} 
+            <Card
+              key={stat.title}
               className={`shadow-lg hover:shadow-xl transition-all duration-300 border-0 border-l-4 ${color.border} hover:scale-105 cursor-pointer`}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -272,6 +273,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
     </div>
   );
 }
