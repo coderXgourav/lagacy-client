@@ -62,7 +62,7 @@ export const settingsApi = {
 export const searchesApi = {
   getAllSearches: () => apiCall('/searches'),
 
-  getRecentSearches: (limit = 10) => apiCall(`/searches/recent?limit=${limit}`),
+  getRecentSearches: (limit = 10, page = 1) => apiCall(`/searches/recent?limit=${limit}&page=${page}`),
 
   getSearchById: (id: string) => apiCall(`/searches/${id}`),
 
@@ -151,7 +151,7 @@ export const legacyFinderApi = {
 
   getDownloadableSearches: () => apiCall('/searches/downloadable'),
 
-  getRecentSearches: (limit = 10) => apiCall(`/searches/recent?limit=${limit}`),
+  getRecentSearches: (limit = 10, page = 1) => apiCall(`/searches/recent?limit=${limit}&page=${page}`),
 
   getSearchResults: (searchId: string) => apiCall(`/searches/${searchId}/results`),
 
@@ -233,7 +233,7 @@ export const noWebsiteApi = {
   }),
 
   // Get recent searches
-  getRecentSearches: (limit = 20) => apiCall(`/no-website/searches/recent?limit=${limit}`),
+  getRecentSearches: (limit = 20, page = 1) => apiCall(`/no-website/searches/recent?limit=${limit}&page=${page}`),
 
   // Get results for specific search
   getSearchResults: (searchId: string) => apiCall(`/no-website/searches/${searchId}/results`),
@@ -284,7 +284,7 @@ export const lowRatingApi = {
     body: JSON.stringify(params),
   }),
 
-  getRecentSearches: (limit = 20) => apiCall(`/low-rating/searches/recent?limit=${limit}`),
+  getRecentSearches: (limit = 20, page = 1) => apiCall(`/low-rating/searches/recent?limit=${limit}&page=${page}`),
 
   getSearchResults: (searchId: string) => apiCall(`/low-rating/searches/${searchId}/results`),
 
@@ -349,7 +349,7 @@ export const newDomainApi = {
     body: JSON.stringify(params),
   }),
 
-  getRecentSearches: (limit = 20) => apiCall(`/new-domain/searches/recent?limit=${limit}`),
+  getRecentSearches: (limit = 20, page = 1) => apiCall(`/new-domain/searches/recent?limit=${limit}&page=${page}`),
 
   getSearchResults: (searchId: string) => apiCall(`/new-domain/searches/${searchId}/results`),
 
@@ -396,7 +396,7 @@ export const newBusinessApi = {
     body: JSON.stringify(params),
   }),
 
-  getRecentSearches: (limit = 20) => apiCall(`/new-business/searches/recent?limit=${limit}`),
+  getRecentSearches: (limit = 20, page = 1) => apiCall(`/new-business/searches/recent?limit=${limit}&page=${page}`),
 
   getSearchResults: (searchId: string) => apiCall(`/new-business/searches/${searchId}/results`),
 
@@ -435,6 +435,9 @@ export const domainScraperApi = {
 
   getDomainsByDate: (date: string, page = 1, limit = 50) =>
     apiCall(`/domain-scraper/domains?date=${date}&page=${page}&limit=${limit}`),
+
+  getDomains: (page = 1, limit = 50) =>
+    apiCall(`/domain-scraper/domains?page=${page}&limit=${limit}`),
 
   triggerScrape: () => apiCall('/domain-scraper/scrape', {
     method: 'POST',

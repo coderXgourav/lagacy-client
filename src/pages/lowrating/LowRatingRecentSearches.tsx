@@ -46,19 +46,29 @@ const LowRatingRecentSearches = () => {
   const [loading, setLoading] = useState(false);
   const [businessesLoading, setBusinessesLoading] = useState(false);
   const [showBusinessesDialog, setShowBusinessesDialog] = useState(false);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+
   const { toast } = useToast();
 
   useEffect(() => {
     fetchSearches();
-  }, []);
+  }, [page]);
 
   const fetchSearches = async () => {
     setLoading(true);
     try {
-      const response = await lowRatingApi.getRecentSearches(20);
+      const response = await lowRatingApi.getRecentSearches(limit, page);
       console.log('Recent searches response:', response);
       const searchesData = response.searches || response.data || [];
       setSearches(searchesData);
+
+      if (response.pagination) {
+        setTotalPages(response.pagination.pages);
+      }
     } catch (error: any) {
       console.error('Fetch searches error:', error);
       toast({
@@ -77,7 +87,7 @@ const LowRatingRecentSearches = () => {
       const response = await lowRatingApi.getSearchResults(searchId);
       console.log('=== FETCH BUSINESSES DEBUG ===');
       console.log('Full response:', JSON.stringify(response, null, 2));
-      
+
       let businessesData = [];
       if (Array.isArray(response.businesses)) {
         businessesData = response.businesses;
@@ -94,7 +104,7 @@ const LowRatingRecentSearches = () => {
       } else {
         console.error('Could not find businesses array in response');
       }
-      
+
       console.log('Final businesses array:', businessesData);
       console.log('Businesses count:', businessesData.length);
       setBusinesses(businessesData);
@@ -118,7 +128,7 @@ const LowRatingRecentSearches = () => {
 
   const handleDeleteSearch = async (id: string) => {
     if (!confirm("Delete this search?")) return;
-    
+
     try {
       await lowRatingApi.deleteSearch(id);
       toast({
@@ -156,7 +166,7 @@ const LowRatingRecentSearches = () => {
       const response = await lowRatingApi.getSearchResults(searchId);
       console.log('=== DOWNLOAD DEBUG ===');
       console.log('Full response:', JSON.stringify(response, null, 2));
-      
+
       let businessesData = [];
       if (Array.isArray(response.businesses)) {
         businessesData = response.businesses;
@@ -173,9 +183,9 @@ const LowRatingRecentSearches = () => {
       } else {
         console.error('Could not find businesses array in response');
       }
-      
+
       console.log('Businesses to download:', businessesData.length);
-      
+
       if (!businessesData || businessesData.length === 0) {
         toast({
           title: "No Data",
@@ -184,7 +194,7 @@ const LowRatingRecentSearches = () => {
         });
         return;
       }
-      
+
       await lowRatingApi.downloadSearchExcel(searchId, businessesData);
       toast({
         title: "Success",
@@ -298,79 +308,102 @@ const LowRatingRecentSearches = () => {
               <p className="mt-2 text-muted-foreground">No searches yet</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>State</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Radius</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Max Rating</TableHead>
-                  <TableHead>Leads</TableHead>
-                  <TableHead>Results</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {searches.map((search) => (
-                  <TableRow key={search._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(search.createdAt).toLocaleDateString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>{search.country || 'N/A'}</TableCell>
-                    <TableCell>{search.state || 'N/A'}</TableCell>
-                    <TableCell>{search.city || 'N/A'}</TableCell>
-                    <TableCell>{search.radius ? `${search.radius/1000}km` : 'N/A'}</TableCell>
-                    <TableCell>{search.niche || 'All'}</TableCell>
-                    <TableCell>⭐ {search.maxRating || '< 3.0'}</TableCell>
-                    <TableCell>{search.leads || 200}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{search.resultsCount}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={search.status === 'completed' ? 'default' : 'destructive'}>
-                        {search.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewBusinesses(search)}
-                          className="gap-1"
-                        >
-                          <Eye className="h-3 w-3" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownloadSearch(search._id)}
-                          className="gap-1"
-                        >
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteSearch(search._id)}
-                          className="gap-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Country</TableHead>
+                    <TableHead>State</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Radius</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Max Rating</TableHead>
+                    <TableHead>Leads</TableHead>
+                    <TableHead>Results</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {searches.map((search) => (
+                    <TableRow key={search._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(search.createdAt).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>{search.country || 'N/A'}</TableCell>
+                      <TableCell>{search.state || 'N/A'}</TableCell>
+                      <TableCell>{search.city || 'N/A'}</TableCell>
+                      <TableCell>{search.radius ? `${search.radius / 1000}km` : 'N/A'}</TableCell>
+                      <TableCell>{search.niche || 'All'}</TableCell>
+                      <TableCell>⭐ {search.maxRating || '< 3.0'}</TableCell>
+                      <TableCell>{search.leads || 200}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{search.resultsCount}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={search.status === 'completed' ? 'default' : 'destructive'}>
+                          {search.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewBusinesses(search)}
+                            className="gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadSearch(search._id)}
+                            className="gap-1"
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteSearch(search._id)}
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-end space-x-2 py-4 border-t mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

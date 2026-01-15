@@ -1,12 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Globe, Sparkles, User, LogOut, Star, Calendar, Building2, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
+import { Search, Globe, Sparkles, User, LogOut, Star, Calendar, Building2, FileText, Moon, Sun, Laptop } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function OfferingsPage() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const { setTheme } = useTheme();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -45,7 +48,8 @@ export default function OfferingsPage() {
       description: "Track newly registered domains and reach out to new businesses early",
       icon: Calendar,
       available: true,
-      route: "/new-domain"
+      route: "/new-domain",
+      beta: true
     },
     {
       id: "new-business",
@@ -53,7 +57,8 @@ export default function OfferingsPage() {
       description: "Track newly registered businesses in the last 90 days and extract owner details",
       icon: Building2,
       available: true,
-      route: "/new-business"
+      route: "/new-business",
+      beta: true
     },
     {
       id: "domain-scraper",
@@ -61,7 +66,8 @@ export default function OfferingsPage() {
       description: "Automatically scrape and track newly registered domains from WhoisXML daily feeds",
       icon: Sparkles,
       available: true,
-      route: "/domain-scraper"
+      route: "/domain-scraper",
+      beta: true
     },
     {
       id: "csv-filter",
@@ -92,6 +98,30 @@ export default function OfferingsPage() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Sun className="h-4 w-4 mr-2 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-4 w-4 mr-2 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span>Theme</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setTheme("light")}>
+                      <Sun className="h-4 w-4 mr-2" />
+                      Light
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme("dark")}>
+                      <Moon className="h-4 w-4 mr-2" />
+                      Dark
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme("system")}>
+                      <Laptop className="h-4 w-4 mr-2" />
+                      System
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -114,19 +144,36 @@ export default function OfferingsPage() {
             return (
               <Card
                 key={offering.id}
-                className={`h-[280px] flex flex-col shadow-xl border-0 bg-gradient-to-br from-card via-card to-card/50 transition-all duration-300 ${offering.available
+                className={`h-[280px] flex flex-col shadow-xl border overflow-hidden transition-all duration-300 relative ${offering.available
                   ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
                   : "opacity-60 cursor-not-allowed"
+                  } ${offering.beta
+                    ? "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800"
+                    : "bg-gradient-to-br from-card via-card to-card/50 border-transparent"
                   }`}
                 onClick={() => offering.available && offering.route && navigate(offering.route)}
               >
+                {offering.beta && (
+                  <div className="absolute top-3 right-3">
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+                      Beta
+                    </Badge>
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`p-3 rounded-xl ${offering.available
-                      ? "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                      ? offering.beta
+                        ? "bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+                        : "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
                       : "bg-muted"
                       }`}>
-                      <Icon className={`h-6 w-6 ${offering.available ? "text-primary" : "text-muted-foreground"}`} />
+                      <Icon className={`h-6 w-6 ${offering.available
+                        ? offering.beta
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-primary"
+                        : "text-muted-foreground"
+                        }`} />
                     </div>
                   </div>
                   <CardTitle className="text-xl">{offering.title}</CardTitle>
@@ -136,7 +183,7 @@ export default function OfferingsPage() {
                 </CardHeader>
                 <CardContent>
                   {offering.available ? (
-                    <div className="text-sm font-semibold text-primary">
+                    <div className={`text-sm font-semibold ${offering.beta ? "text-amber-600 dark:text-amber-400" : "text-primary"}`}>
                       Click to launch →
                     </div>
                   ) : (

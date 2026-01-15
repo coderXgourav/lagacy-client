@@ -12,6 +12,7 @@ export default function DomainScraperDashboard() {
     dateStats: [] as Array<{ date: string; count: number }>
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'date' | 'all'>('date');
   const [domains, setDomains] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<any>(null);
@@ -40,12 +41,25 @@ export default function DomainScraperDashboard() {
     }
   };
 
-  const fetchDomainsByDate = async (date: string, pageNum: number) => {
+  const fetchDomains = async () => {
     try {
       setLoadingDomains(true);
-      const data = await domainScraperApi.getDomainsByDate(date, pageNum);
+      let data;
+      if (viewMode === 'all') {
+        data = await domainScraperApi.getDomains(page, 10);
+      } else if (selectedDate) {
+        data = await domainScraperApi.getDomainsByDate(selectedDate, page, 10);
+      } else {
+        return; // Nothing to fetch
+      }
+
       setDomains(data.domains || []);
-      setPagination(data.pagination);
+      setPagination({
+        ...data.pagination,
+        // Backend returns 'pages' but locally we used 'totalPages' in previous logic or vice versa, 
+        // let's ensure consistency. Controller returns 'pages'.
+        totalPages: data.pages || data.pagination?.pages || 1
+      });
     } catch (error: any) {
       console.error('Failed to fetch domains:', error);
       toast({
@@ -63,10 +77,10 @@ export default function DomainScraperDashboard() {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
-      fetchDomainsByDate(selectedDate, page);
+    if (viewMode === 'all' || selectedDate) {
+      fetchDomains();
     }
-  }, [selectedDate, page]);
+  }, [selectedDate, page, viewMode]);
 
   const handleDownload = async () => {
     try {
@@ -95,6 +109,7 @@ export default function DomainScraperDashboard() {
       // Refresh dashboard after a delay
       setTimeout(() => {
         fetchDashboardData();
+        if (viewMode === 'all') fetchDomains();
       }, 5000);
     } catch (error: any) {
       toast({
@@ -115,14 +130,26 @@ export default function DomainScraperDashboard() {
           <p className="text-muted-foreground mt-1">Auto-scraped domain leads</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={handleTriggerScrape} 
+          <Button
+            onClick={handleTriggerScrape}
             disabled={triggering}
             variant="outline"
             className="gap-2"
           >
             <Play className="w-4 h-4" />
             {triggering ? "Starting..." : "Run Scraper"}
+          </Button>
+          <Button
+            onClick={() => {
+              setViewMode('all');
+              setSelectedDate(null);
+              setPage(1);
+            }}
+            variant={viewMode === 'all' ? "default" : "secondary"}
+            className="gap-2"
+          >
+            <Database className="w-4 h-4" />
+            View All
           </Button>
           <Button onClick={handleDownload} className="gap-2">
             <Download className="w-4 h-4" />
@@ -131,16 +158,18 @@ export default function DomainScraperDashboard() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Domains</CardTitle>
-          <Database className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{loading ? "..." : stats.totalDomains.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground mt-1">All scraped domains</p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Domains</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{loading ? "..." : stats.totalDomains.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">All scraped domains in database</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
@@ -149,8 +178,8 @@ export default function DomainScraperDashboard() {
               <Calendar className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle>Domains by Date</CardTitle>
-              <CardDescription>Click a date to view domains</CardDescription>
+              <CardTitle>Domains Filter</CardTitle>
+              <CardDescription>Select a date to filter by date</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -167,11 +196,11 @@ export default function DomainScraperDashboard() {
               {stats.dateStats.map((stat) => (
                 <Card
                   key={stat.date}
-                  className={`cursor-pointer hover:shadow-lg transition-all ${
-                    selectedDate === stat.date ? 'ring-2 ring-primary' : ''
-                  }`}
+                  className={`cursor-pointer hover:shadow-lg transition-all ${selectedDate === stat.date ? 'ring-2 ring-primary border-primary' : ''
+                    }`}
                   onClick={() => {
                     setSelectedDate(stat.date);
+                    setViewMode('date');
                     setPage(1);
                   }}
                 >
@@ -187,7 +216,7 @@ export default function DomainScraperDashboard() {
         </CardContent>
       </Card>
 
-      {selectedDate && (
+      {(selectedDate || viewMode === 'all') && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -196,9 +225,11 @@ export default function DomainScraperDashboard() {
                   <Sparkles className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>Domains for {selectedDate}</CardTitle>
+                  <CardTitle>
+                    {viewMode === 'all' ? 'All Recent Domains' : `Domains for ${selectedDate}`}
+                  </CardTitle>
                   <CardDescription>
-                    {pagination ? `${pagination.total} total domains` : 'Loading...'}
+                    Showing latest results first
                   </CardDescription>
                 </div>
               </div>
@@ -227,7 +258,7 @@ export default function DomainScraperDashboard() {
                           <TableCell className="font-medium">{domain.domainName || 'N/A'}</TableCell>
                           <TableCell>{domain.tld || 'N/A'}</TableCell>
                           <TableCell>
-                            {domain.registrationDate 
+                            {domain.registrationDate
                               ? new Date(domain.registrationDate).toLocaleDateString()
                               : 'N/A'
                             }
@@ -249,7 +280,7 @@ export default function DomainScraperDashboard() {
                       variant="outline"
                       size="sm"
                       disabled={page === 1}
-                      onClick={() => setPage(page - 1)}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
                     >
                       Previous
                     </Button>
@@ -260,7 +291,7 @@ export default function DomainScraperDashboard() {
                       variant="outline"
                       size="sm"
                       disabled={page === pagination.totalPages}
-                      onClick={() => setPage(page + 1)}
+                      onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                     >
                       Next
                     </Button>

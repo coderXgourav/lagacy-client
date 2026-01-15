@@ -75,18 +75,28 @@ const RecentSearches = () => {
   const [loading, setLoading] = useState(false);
   const [businessesLoading, setBusinessesLoading] = useState(false);
   const [showBusinessesDialog, setShowBusinessesDialog] = useState(false);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+
   const { toast } = useToast();
 
   useEffect(() => {
     fetchSearches();
-  }, []);
+  }, [page]);
 
   const fetchSearches = async () => {
     setLoading(true);
     try {
-      const response = await legacyFinderApi.getRecentSearches(20);
+      const response = await legacyFinderApi.getRecentSearches(limit, page);
       console.log('📊 Recent Searches Response:', response);
       setSearches(response.searches || response.data || []);
+
+      if (response.pagination) {
+        setTotalPages(response.pagination.pages);
+      }
     } catch (error: any) {
       console.error('❌ Fetch searches error:', error);
       toast({
@@ -123,7 +133,7 @@ const RecentSearches = () => {
 
   const handleDeleteSearch = async (id: string) => {
     if (!confirm("Delete this search?")) return;
-    
+
     try {
       await legacyFinderApi.deleteSearch(id);
       toast({
@@ -160,7 +170,7 @@ const RecentSearches = () => {
     try {
       const response = await legacyFinderApi.getSearchResults(searchId);
       const results = response.data?.results || [];
-      
+
       if (results.length === 0) {
         toast({
           title: "No Data",
@@ -169,7 +179,7 @@ const RecentSearches = () => {
         });
         return;
       }
-      
+
       await legacyFinderApi.downloadSearchExcel(searchId, results);
       toast({
         title: "Success",
@@ -283,74 +293,97 @@ const RecentSearches = () => {
               <p className="mt-2 text-muted-foreground">No searches yet</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Results</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {searches.map((search) => (
-                  <TableRow key={search._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(search.createdAt).toLocaleDateString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        {search.city || search.filters?.city || 'N/A'}{(search.state || search.filters?.state) && `, ${search.state || search.filters?.state}`}, {search.country || search.filters?.country || 'N/A'}
-                      </div>
-                    </TableCell>
-                    <TableCell>{search.businessCategory || search.category || search.filters?.category || 'All'}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{search.resultsCount}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={search.status === 'completed' ? 'default' : 'destructive'}>
-                        {search.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewBusinesses(search)}
-                          className="gap-1"
-                        >
-                          <Eye className="h-3 w-3" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDownloadSearch(search._id)}
-                          className="gap-1"
-                        >
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteSearch(search._id)}
-                          className="gap-1"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Results</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {searches.map((search) => (
+                    <TableRow key={search._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(search.createdAt).toLocaleDateString()}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          {search.city || search.filters?.city || 'N/A'}{(search.state || search.filters?.state) && `, ${search.state || search.filters?.state}`}, {search.country || search.filters?.country || 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell>{search.businessCategory || search.category || search.filters?.category || 'All'}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{search.resultsCount}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={search.status === 'completed' ? 'default' : 'destructive'}>
+                          {search.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewBusinesses(search)}
+                            className="gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadSearch(search._id)}
+                            className="gap-1"
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteSearch(search._id)}
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-end space-x-2 py-4 border-t mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1 || loading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
