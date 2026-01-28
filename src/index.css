@@ -1,9 +1,9 @@
+/* Leaflet CSS for OpenStreetMap - must be first */
+@import "leaflet/dist/leaflet.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Leaflet CSS for OpenStreetMap */
-@import 'leaflet/dist/leaflet.css';
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
@@ -51,13 +51,29 @@ All colors MUST be HSL.
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 221 83% 53%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(221, 83%, 53%) 0%, hsl(250, 70%, 60%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(190, 100%, 45%) 0%, hsl(221, 83%, 53%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(240, 20%, 99%) 0%, hsl(240, 15%, 97%) 100%);
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(221, 83%, 53%) 0%,
+      hsl(250, 70%, 60%) 100%
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(190, 100%, 45%) 0%,
+      hsl(221, 83%, 53%) 100%
+    );
+    --gradient-subtle: linear-gradient(
+      180deg,
+      hsl(240, 20%, 99%) 0%,
+      hsl(240, 15%, 97%) 100%
+    );
 
     --shadow-sm: 0 1px 2px 0 hsl(240 10% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(240 10% 10% / 0.1), 0 2px 4px -1px hsl(240 10% 10% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(240 10% 10% / 0.1), 0 4px 6px -2px hsl(240 10% 10% / 0.05);
+    --shadow-md:
+      0 4px 6px -1px hsl(240 10% 10% / 0.1),
+      0 2px 4px -1px hsl(240 10% 10% / 0.06);
+    --shadow-lg:
+      0 10px 15px -3px hsl(240 10% 10% / 0.1),
+      0 4px 6px -2px hsl(240 10% 10% / 0.05);
     --shadow-glow: 0 0 30px hsl(221 83% 53% / 0.3);
 
     --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -104,8 +120,10 @@ All colors MUST be HSL.
     --sidebar-ring: 221 83% 53%;
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.5);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -2px hsl(0 0% 0% / 0.4);
+    --shadow-md:
+      0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.4);
+    --shadow-lg:
+      0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -2px hsl(0 0% 0% / 0.4);
     --shadow-glow: 0 0 30px hsl(221 83% 53% / 0.4);
   }
 }
@@ -225,7 +243,6 @@ All colors MUST be HSL.
 }
 
 @keyframes bounceSubtle {
-
   0%,
   100% {
     transform: translateY(0);
@@ -261,7 +278,6 @@ All colors MUST be HSL.
 }
 
 @keyframes gradient {
-
   0%,
   100% {
     background-position: 0% 50%;
@@ -377,7 +393,8 @@ select {
 
 /* Dark mode map styling */
 .dark .leaflet-tile {
-  filter: brightness(0.7) invert(1) contrast(1.2) hue-rotate(200deg) saturate(0.3);
+  filter: brightness(0.7) invert(1) contrast(1.2) hue-rotate(200deg)
+    saturate(0.3);
 }
 
 .dark .leaflet-control-attribution {

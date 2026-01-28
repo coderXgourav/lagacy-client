@@ -35,6 +35,9 @@ import DomainScraperDashboard from "./pages/domainscraper/DomainScraperDashboard
 import DomainScraperSettings from "./pages/domainscraper/DomainScraperSettings";
 import { CsvFilterLayout } from "./components/layout/CsvFilterLayout";
 import CsvFilterDashboard from "./pages/csvfilter/CsvFilterDashboard";
+import { CsvUploaderLayout } from "./components/layout/CsvUploaderLayout";
+import CsvUploaderDashboard from "./pages/csvuploader/CsvUploaderDashboard";
+import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +90,10 @@ const App = () => (
               </Route>
               <Route path="/csv-filter" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
                 <Route index element={<CsvFilterDashboard />} />
+              </Route>
+              <Route path="/csv-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
+                <Route index element={<CsvUploaderDashboard />} />
+                <Route path="stats" element={<CsvUploaderStats />} />
               </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
