@@ -38,6 +38,8 @@ import CsvFilterDashboard from "./pages/csvfilter/CsvFilterDashboard";
 import { CsvUploaderLayout } from "./components/layout/CsvUploaderLayout";
 import CsvUploaderDashboard from "./pages/csvuploader/CsvUploaderDashboard";
 import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
+import CsvUploaderInbox from "./pages/csvuploader/CsvUploaderInbox";
+import CsvUploaderTemplates from "./pages/csvuploader/CsvUploaderTemplates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +96,8 @@ const App = () => (
               <Route path="/csv-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
                 <Route index element={<CsvUploaderDashboard />} />
                 <Route path="stats" element={<CsvUploaderStats />} />
+                <Route path="inbox" element={<CsvUploaderInbox />} />
+                <Route path="templates" element={<CsvUploaderTemplates />} />
               </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />

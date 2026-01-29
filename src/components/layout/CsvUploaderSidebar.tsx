@@ -3,13 +3,17 @@ import {
     Upload,
     LogOut,
     ArrowLeft,
-    BarChart3
+    BarChart3,
+    FileText,
+    Inbox
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { to: "/csv-uploader", label: "Dashboard", icon: Upload },
     { to: "/csv-uploader/stats", label: "Stats", icon: BarChart3 },
+    { to: "/csv-uploader/inbox", label: "Inbox", icon: Inbox },
+    { to: "/csv-uploader/templates", label: "Templates", icon: FileText },
 ];
 
 export function CsvUploaderSidebar() {
