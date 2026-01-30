@@ -34,6 +34,7 @@ import {
   Sun,
   Laptop,
   Upload,
+  Users,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -123,6 +124,15 @@ export default function OfferingsPage() {
       icon: Upload,
       available: true,
       route: "/csv-uploader",
+    },
+    {
+      id: "hr-portal",
+      title: "HR Portal",
+      description:
+        "Streamline your human resources, simplify recruitment, and manage employee records efficiently",
+      icon: Users,
+      available: true,
+      route: "/hr-portal",
     },
   ];
 

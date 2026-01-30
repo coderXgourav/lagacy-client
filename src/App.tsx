@@ -40,6 +40,12 @@ import CsvUploaderDashboard from "./pages/csvuploader/CsvUploaderDashboard";
 import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
 import CsvUploaderInbox from "./pages/csvuploader/CsvUploaderInbox";
 import CsvUploaderTemplates from "./pages/csvuploader/CsvUploaderTemplates";
+import { HrPortalLayout } from "./components/layout/HrPortalLayout";
+import HrPortalDashboard from "./pages/hrportal/HrPortalDashboard";
+import HrEmployeeDirectory from "./pages/hrportal/HrEmployeeDirectory";
+import HrRecruitment from "./pages/hrportal/HrRecruitment";
+import HrJobRequest from "./pages/hrportal/recruitment/HrJobRequest";
+import CandidateBoard from "./pages/hrportal/recruitment/CandidateBoard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -98,6 +104,13 @@ const App = () => (
                 <Route path="stats" element={<CsvUploaderStats />} />
                 <Route path="inbox" element={<CsvUploaderInbox />} />
                 <Route path="templates" element={<CsvUploaderTemplates />} />
+              </Route>
+              <Route path="/hr-portal" element={<ProtectedRoute><HrPortalLayout /></ProtectedRoute>}>
+                <Route index element={<HrPortalDashboard />} />
+                <Route path="employees" element={<HrEmployeeDirectory />} />
+                <Route path="recruitment" element={<HrRecruitment />} />
+                <Route path="recruitment/new" element={<HrJobRequest />} />
+                <Route path="recruitment/board/:jobId" element={<CandidateBoard />} />
               </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
