@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 // Reusable Glass Card Component
 const GlassCard = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <div className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md shadow-xl transition-all duration-300 hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-indigo-900/10 group",
+        "relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md shadow-xl transition-all duration-300 hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-teal-900/10 group",
         className
     )}>
         {/* Shine effect */}
@@ -31,24 +31,24 @@ export default function HrPortalDashboard() {
             value: "154", 
             trend: "+4 this month", 
             icon: Users,
-            color: "text-indigo-400", 
-            gradient: "from-indigo-500/20 to-indigo-500/0"
+            color: "text-teal-400", 
+            gradient: "from-teal-500/20 to-teal-500/0"
         },
         { 
             title: "Active Roles", 
             value: "12", 
             trend: "3 critical", 
             icon: Briefcase,
-            color: "text-sky-400", 
-            gradient: "from-sky-500/20 to-sky-500/0"
+            color: "text-cyan-400", 
+            gradient: "from-cyan-500/20 to-cyan-500/0"
         },
         { 
             title: "New Applicants", 
             value: "48", 
             trend: "+12% vs last week", 
             icon: UserPlus,
-            color: "text-violet-400", 
-            gradient: "from-violet-500/20 to-violet-500/0"
+            color: "text-emerald-400", 
+            gradient: "from-emerald-500/20 to-emerald-500/0"
         },
         { 
             title: "Onboarding", 
@@ -61,9 +61,9 @@ export default function HrPortalDashboard() {
     ];
 
     const upcomingEvents = [
-        { name: "John Doe", event: "Performance Review", time: "2:00 PM", type: "Review", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
-        { name: "Sarah Smith", event: "Onboarding Start", time: "Tomorrow", type: "Onboarding", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
-        { name: "Mike Johnson", event: "Work Anniversary", time: "Feb 2", type: "Celebration", color: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
+        { name: "John Doe", event: "Performance Review", time: "2:00 PM", type: "Review", color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
+        { name: "Sarah Smith", event: "Onboarding Start", time: "Tomorrow", type: "Onboarding", color: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+        { name: "Mike Johnson", event: "Work Anniversary", time: "Feb 2", type: "Celebration", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
     ];
 
     return (
@@ -79,13 +79,13 @@ export default function HrPortalDashboard() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input 
                             placeholder="Quick search..." 
-                            className="bg-white/5 border border-white/10 rounded-full pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 w-64 transition-all"
+                            className="bg-white/5 border border-white/10 rounded-full pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/50 w-64 transition-all"
                         />
                     </div>
-                    <button className="p-2 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                    <button className="p-2 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20 transition-colors">
                         <Filter className="w-4 h-4" />
                     </button>
-                    <button className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full text-sm font-semibold transition-all shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.6)]">
+                    <button className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-full text-sm font-semibold transition-all shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)] hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.6)]">
                          + New Action
                     </button>
                 </div>
@@ -125,21 +125,21 @@ export default function HrPortalDashboard() {
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-indigo-400" />
+                                <TrendingUp className="w-5 h-5 text-teal-400" />
                                 Recruitment Pipeline
                             </h2>
                             <p className="text-slate-400 text-sm mt-1">Real-time candidate tracking across all roles.</p>
                         </div>
-                        <button className="text-sm font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                        <button className="text-sm font-medium text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors">
                             View ATS <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="space-y-6">
                         {[
-                            { label: "Sourcing", value: "45%", count: "12 Candidates", color: "bg-indigo-500" },
-                            { label: "Technical Interview", value: "28%", count: "8 Candidates", color: "bg-sky-500" },
-                            { label: "Final Round", value: "12%", count: "3 Candidates", color: "bg-violet-500" }
+                            { label: "Sourcing", value: "45%", count: "12 Candidates", color: "bg-teal-500" },
+                            { label: "Technical Interview", value: "28%", count: "8 Candidates", color: "bg-cyan-500" },
+                            { label: "Final Round", value: "12%", count: "3 Candidates", color: "bg-emerald-500" }
                         ].map((item, i) => (
                             <div key={i} className="group">
                                 <div className="flex justify-between text-sm mb-2">
@@ -160,13 +160,13 @@ export default function HrPortalDashboard() {
                 {/* Upcoming Events (Timeline) */}
                 <GlassCard className="p-6 md:p-8">
                     <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-indigo-400" />
+                        <Calendar className="w-5 h-5 text-teal-400" />
                         Today's Agenda
                     </h2>
                     <div className="space-y-6 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/5">
                         {upcomingEvents.map((event, i) => (
                             <div key={i} className="relative pl-10 group">
-                                <div className="absolute left-[14px] top-1 w-3 h-3 rounded-full bg-[#0F172A] border-2 border-indigo-500/50 group-hover:border-indigo-400 group-hover:scale-110 transition-all z-10" />
+                                <div className="absolute left-[14px] top-1 w-3 h-3 rounded-full bg-[#0F172A] border-2 border-teal-500/50 group-hover:border-teal-400 group-hover:scale-110 transition-all z-10" />
                                 <div className="flex flex-col gap-1">
                                     <div className="flex justify-between items-start">
                                         <span className="font-bold text-slate-200 text-sm">{event.name}</span>
@@ -175,7 +175,7 @@ export default function HrPortalDashboard() {
                                         </span>
                                     </div>
                                     <span className="text-xs text-slate-400">{event.event}</span>
-                                    <div className="flex items-center gap-1 mt-1 text-xs text-indigo-400/80 font-medium">
+                                    <div className="flex items-center gap-1 mt-1 text-xs text-teal-400/80 font-medium">
                                         <Clock className="w-3 h-3" />
                                         {event.time}
                                     </div>

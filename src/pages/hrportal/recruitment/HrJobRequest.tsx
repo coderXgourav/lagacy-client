@@ -14,6 +14,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { notification } from "antd";
 import axios from "axios";
 
 // API Base URL (adjust if needed)
@@ -37,8 +38,11 @@ export default function HrJobRequest() {
             toast.success("Job Request Created Successfully");
             navigate("/hr-portal/recruitment");
         } catch (error) {
-            console.error(error);
-            toast.error("Failed to create job request");
+            notification.error({
+                message: 'Creation Failed',
+                description: 'Failed to create job request. Please check all fields and try again.',
+                placement: 'topRight'
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -68,7 +72,7 @@ export default function HrJobRequest() {
                             <Input 
                                 id="title" 
                                 placeholder="e.g. Senior Frontend Engineer" 
-                                className="pl-10 bg-white/5 border-white/10 text-white focus:border-indigo-500"
+                                className="pl-10 bg-white/5 border-white/10 text-white focus:border-teal-500"
                                 {...register("title", { required: "Job title is required" })}
                             />
                         </div>
@@ -83,7 +87,7 @@ export default function HrJobRequest() {
                                 <Input 
                                     id="location" 
                                     placeholder="e.g. Remote / New York" 
-                                    className="pl-10 bg-white/5 border-white/10 text-white focus:border-indigo-500"
+                                    className="pl-10 bg-white/5 border-white/10 text-white focus:border-teal-500"
                                     {...register("location", { required: "Location is required" })}
                                 />
                             </div>
@@ -110,30 +114,70 @@ export default function HrJobRequest() {
                         <Textarea 
                             id="skills" 
                             placeholder="e.g. React, Node.js, TypeScript, AWS" 
-                            className="bg-white/5 border-white/10 text-white min-h-[80px] focus:border-indigo-500"
+                            className="bg-white/5 border-white/10 text-white min-h-[80px] focus:border-teal-500"
                             {...register("skills")}
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="calendarUrl" className="text-white">HR Calendar Link</Label>
-                        <div className="relative">
-                            <CalendarIcon className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                            <Input 
-                                id="calendarUrl" 
-                                placeholder="https://calendly.com/hr-team/interview" 
-                                className="pl-10 bg-white/5 border-white/10 text-white focus:border-indigo-500"
-                                {...register("calendarUrl")}
-                            />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="yearsOfExperience" className="text-white">Years of Experience</Label>
+                            <Select onValueChange={(val) => register("yearsOfExperience").onChange({ target: { value: val, name: "yearsOfExperience" } })}>
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue placeholder="Select Experience" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
+                                    <SelectItem value="1 to 2 years">1 to 2 years</SelectItem>
+                                    <SelectItem value="3 to 5 years">3 to 5 years</SelectItem>
+                                    <SelectItem value="6 to 10 years">6 to 10 years</SelectItem>
+                                    <SelectItem value="More than 10 years">More than 10 years</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <p className="text-xs text-slate-500">The agent will use this to schedule initial screens.</p>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="yearsAtCompany" className="text-white">Years at Current Company</Label>
+                            <Select onValueChange={(val) => register("yearsAtCompany").onChange({ target: { value: val, name: "yearsAtCompany" } })}>
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue placeholder="Select Tenure" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
+                                    <SelectItem value="1 to 2 years">1 to 2 years</SelectItem>
+                                    <SelectItem value="3 to 5 years">3 to 5 years</SelectItem>
+                                    <SelectItem value="6 to 10 years">6 to 10 years</SelectItem>
+                                    <SelectItem value="More than 10 years">More than 10 years</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="seniorityLevel" className="text-white">Seniority Level</Label>
+                            <Select onValueChange={(val) => register("seniorityLevel").onChange({ target: { value: val, name: "seniorityLevel" } })}>
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue placeholder="Select Level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Entry Level">Entry Level</SelectItem>
+                                    <SelectItem value="In Training">In Training</SelectItem>
+                                    <SelectItem value="Senior">Senior</SelectItem>
+                                    <SelectItem value="Strategic">Strategic</SelectItem>
+                                    <SelectItem value="Entry Level Manager">Entry Level Manager</SelectItem>
+                                    <SelectItem value="Experienced Manager">Experienced Manager</SelectItem>
+                                    <SelectItem value="Director">Director</SelectItem>
+                                    <SelectItem value="Vice President">Vice President</SelectItem>
+                                    <SelectItem value="CXO">CXO</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="pt-4 flex justify-end">
                         <Button 
                             type="submit" 
                             disabled={isSubmitting}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-[0_0_20px_-5px_rgba(99,102,241,0.5)]"
+                            className="bg-teal-600 hover:bg-teal-500 text-white font-semibold transition-all shadow-[0_0_20px_-5px_rgba(99,102,241,0.5)]"
                         >
                             {isSubmitting ? (
                                 <>

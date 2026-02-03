@@ -3,7 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { notification } from "antd";
 import axios from "axios";
+import { CandidateDetailsDialog } from "./CandidateDetailsDialog"; 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
     DropdownMenu,
@@ -23,7 +25,8 @@ const STATUS_CONFIG = {
     ENRICHING: { label: "Enriching...", color: "bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse" },
     READY: { label: "Ready", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
     NEEDS_REVIEW: { label: "Needs Review", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-    LINKEDIN_SENT: { label: "LinkedIn Sent", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+    LINKEDIN_SENT: { label: "LinkedIn Sent", color: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+    VAPI_CALLED: { label: "Vapi Call Initiated", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
     REJECTED: { label: "Rejected", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" }
 };
 
@@ -33,14 +36,20 @@ export default function CandidateBoard() {
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [jobTitle, setJobTitle] = useState("");
 
     const fetchCandidates = async () => {
         if (!jobId) return;
         try {
             const res = await axios.get(`${API_URL}/hr/candidates?jobId=${jobId}`);
             setCandidates(res.data);
-        } catch (error) {
-            console.error("Failed to fetch candidates", error);
+        } catch (error: any) {
+            notification.error({
+                message: 'Pipeline Sync Error',
+                description: "Failed to reload candidates. Please refresh the page.",
+                placement: 'topRight'
+            });
         } finally {
             setLoading(false);
         }
@@ -53,13 +62,33 @@ export default function CandidateBoard() {
         return () => clearInterval(interval);
     }, [jobId]);
 
-    const updateStatus = async (id: string, newStatus: string) => {
+    useEffect(() => {
+        const fetchJob = async () => {
+            if (!jobId) return;
+            try {
+                const res = await axios.get(`${API_URL}/hr/jobs/${jobId}`);
+                setJobTitle(res.data?.title || "");
+            } catch (err) {
+                console.error("Failed to fetch job title", err);
+            }
+        };
+        fetchJob();
+    }, [jobId]);
+
+    const updateStatus = async (id: string, newStatus: string, metadata: any = {}) => {
+        if (newStatus === 'LINKEDIN_SENT') setIsSending(true);
         try {
-            await axios.patch(`${API_URL}/hr/candidates/${id}/status`, { status: newStatus });
+            await axios.patch(`${API_URL}/hr/candidates/${id}/status`, { status: newStatus, ...metadata });
             toast.success(`Candidate moved to ${STATUS_CONFIG[newStatus].label}`);
             fetchCandidates(); // Refresh list
-        } catch (error) {
-            toast.error("Failed to update status");
+        } catch (error: any) {
+            notification.error({
+                message: 'Status Update Failed',
+                description: error.response?.data?.error || "Failed to update candidate status.",
+                placement: 'topRight'
+            });
+        } finally {
+            if (newStatus === 'LINKEDIN_SENT') setIsSending(false);
         }
     };
 
@@ -124,20 +153,28 @@ export default function CandidateBoard() {
     };
 
     const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
     const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+
+    const handleCardClick = (candidate: any) => {
+        setSelectedCandidate(candidate);
+        setDetailsOpen(true);
+    };
 
     const getTemplates = (candidate: any) => {
         const firstName = candidate.name.split(' ')[0];
-        const company = candidate.companyData?.name || "your company";
+        const title = jobTitle || "your field";
+        const calendarLink = "https://calendar.app.google/4nwNSZdtumvdNJgm7";
         
         return {
-            connect: `Hi ${firstName}, saw your background in ${candidate.companyData?.industry || 'your field'} and would love to connect!`,
-            followUp: `Hi ${firstName}, thanks for connecting! I'm reaching out from Kyptronix regarding a role that might be a great fit given your experience at ${company}. Would you be open to a quick chat?`
+            connect: `Hi ${firstName}, liked your work in ${title}. We're hiring a ${title} & want to discuss your career growth. Book here: ${calendarLink} - Paromita P, HR Manager`,
+            followUp: `Hi ${firstName}, I came across your profile and reviewed your work; it truly stood out. We currently have an opening for a ${title} and are connecting with professionals who are genuinely looking for career growth, ownership, and long-term opportunities. If this aligns with what you're looking for, I'd like to schedule a quick interview to discuss the role and growth path. Book here: ${calendarLink} - Best regards, Paromita Pututunda, HR Manager, Kyptronix LLP`
         };
     };
 
     const handleConnectDone = async (id: string) => {
-        await updateStatus(id, 'LINKEDIN_SENT');
+        const templates = getTemplates(selectedCandidate);
+        await updateStatus(id, 'LINKEDIN_SENT', { message: templates.connect });
         setConnectDialogOpen(false);
     };
 
@@ -152,71 +189,131 @@ export default function CandidateBoard() {
         }
     };
 
+    // Calculate visible columns once
+    const visibleStatuses = (['ENRICHING', 'READY', 'NEEDS_REVIEW', 'VAPI_CALLED', 'LINKEDIN_SENT', 'REJECTED'] as const).filter(status => {
+         if (status === 'ENRICHING') {
+             return candidates.some((c: any) => c.status === 'ENRICHING' || c.status === 'NEW');
+         }
+         return candidates.some((c: any) => c.status === status);
+    });
+
+    const isSingleView = visibleStatuses.length === 1;
+
     const renderColumn = (status: keyof typeof STATUS_CONFIG) => {
-        const items = candidates.filter((c: any) => c.status === status);
+        let items = candidates.filter((c: any) => c.status === status);
+        if (status === 'ENRICHING') {
+             const newItems = candidates.filter((c: any) => c.status === 'NEW');
+             items = [...items, ...newItems];
+        }
         const config = STATUS_CONFIG[status];
 
         return (
-            <div className="flex-1 min-w-[280px] flex flex-col gap-4">
-                <div className={`p-3 rounded-xl border ${config.color} flex justify-between items-center`}>
-                    <span className="font-bold">{config.label}</span>
+            <div className={`flex flex-col gap-4 min-h-0 h-full ${isSingleView ? 'w-full' : ''}`}>
+                <div className={`p-3 rounded-xl border ${config.color} flex justify-between items-center shrink-0`}>
+                    <span className="font-bold truncate">{config.label}</span>
                     <span className="text-xs font-mono opacity-80 bg-white/10 px-2 py-0.5 rounded">{items.length}</span>
                 </div>
 
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
                     {items.map((candidate: any) => (
-                        <div key={candidate._id} className="p-4 rounded-xl border border-white/5 bg-[#0F172A]/40 backdrop-blur-sm hover:border-indigo-500/30 transition-all group relative">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <h4 className="font-bold text-slate-200">{candidate.name}</h4>
-                                    {candidate.companyData?.name && (
-                                        <p className="text-xs text-slate-400">{candidate.companyData.name}</p>
-                                    )}
-                                </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button className="text-slate-500 hover:text-white transition-colors">
-                                            <MoreHorizontal className="w-4 h-4" />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="bg-[#0B1120] border-white/10 text-slate-200">
-                                        <DropdownMenuItem 
-                                            className="text-rose-400 focus:text-rose-300 focus:bg-rose-500/10 cursor-pointer"
-                                            onClick={() => handleDelete(candidate._id)}
-                                        >
-                                            <Trash2 className="w-4 h-4 mr-2" /> Delete Candidate
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
+                        <div 
+                            key={candidate._id} 
+                            onClick={() => handleCardClick(candidate)}
+                            className={`rounded-xl border border-white/5 bg-[#0F172A]/40 backdrop-blur-sm hover:border-teal-500/30 hover:bg-[#0F172A]/60 cursor-pointer transition-all group relative ${isSingleView ? 'p-3 flex items-center justify-between gap-4' : 'p-4'}`}
+                        >
                             
-                            <div className="space-y-1 mb-3">
-                                <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-indigo-400 hover:underline truncate">
-                                    <Linkedin className="w-3 h-3" /> Profile
-                                </a>
-                                {candidate.email ? (
-                                    <div className="flex items-center gap-2 text-xs text-emerald-400 truncate">
-                                        <Mail className="w-3 h-3" /> {candidate.email}
+                            {/* SECTION 1: Identity (Left) */}
+                            <div className={`${isSingleView ? 'flex-1 min-w-[300px]' : 'mb-2'}`}>
+                                <div className="flex gap-4 items-start">
+                                    {/* Avatar */}
+                                    {candidate.profilePicture ? (
+                                        <img src={candidate.profilePicture} alt={candidate.name} className="w-12 h-12 rounded-full object-cover border-2 border-teal-500/20" />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-full bg-teal-500/10 flex items-center justify-center text-teal-400 font-bold border border-teal-500/20 text-lg">
+                                            {candidate.name.charAt(0)}
+                                        </div>
+                                    )}
+                                    
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="font-bold text-slate-100 text-base truncate pr-2" title={candidate.name}>{candidate.name}</h4>
+                                            {!isSingleView && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button className="text-slate-500 hover:text-white transition-colors">
+                                                            <MoreHorizontal className="w-4 h-4" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent className="bg-[#0B1120] border-white/10 text-slate-200">
+                                                        <DropdownMenuItem className="text-rose-400 cursor-pointer" onClick={() => handleDelete(candidate._id)}>
+                                                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Headline / Current Role */}
+                                        <p className="text-xs text-teal-300 line-clamp-2 mt-0.5" title={candidate.headline}>
+                                            {candidate.headline || (candidate.experience?.[0] ? `${candidate.experience[0].position} at ${candidate.experience[0].companyName}` : '')}
+                                        </p>
+                                        
+                                        {/* Location */}
+                                        <div className="flex items-center gap-1 mt-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+                                            <span>{candidate.location || "Unknown Location"}</span>
+                                        </div>
                                     </div>
-                                ) : (
-                                    status === 'REJECTED' && (
-                                        <div className="text-xs text-rose-500 italic">No email found</div>
-                                    )
-                                )}
+                                </div>
                             </div>
 
-                            {status === 'REJECTED' && candidate.rejectionReason && (
-                                <div className="p-2 mb-3 rounded bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-300">
-                                    🚫 {candidate.rejectionReason}
-                                </div>
-                            )}
+                            {/* SECTION 2: Info (Center) - Only visible in Single View or if space allows */}
+                            <div className={`${isSingleView ? 'flex-[2] flex flex-col justify-center px-4 border-l border-white/5 border-r' : 'mb-3 space-y-2 mt-3'}`}>
+                                {/* Professional Context */}
+                                <div className="space-y-2">
+                                    {/* Current/Past Role Badge */}
+                                    {candidate.experience?.[0] && (
+                                        <div className="flex items-center gap-2 text-xs text-slate-300">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500/50"></span>
+                                            <span className="font-medium">{candidate.experience[0].position}</span>
+                                            <span className="text-slate-500">at</span>
+                                            <span className="text-slate-400 truncate max-w-[150px]">{candidate.experience[0].companyName}</span>
+                                        </div>
+                                    )}
 
-                            {/* Actions */}
-                            <div className="flex gap-2 pt-2 border-t border-white/5">
+                                    {/* Skills - Badge Row */}
+                                    {candidate.skills && candidate.skills.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {candidate.skills.slice(0, isSingleView ? 5 : 3).map((skill: string, idx: number) => (
+                                                <span key={idx} className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap">
+                                                    {skill}
+                                                </span>
+                                            ))}
+                                            {candidate.skills.length > (isSingleView ? 5 : 3) && (
+                                                <span className="px-1.5 py-0.5 text-[9px] text-slate-600">+{candidate.skills.length - (isSingleView ? 5 : 3)}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Links */}
+                                    <div className="flex gap-4 pt-1">
+                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors">
+                                            <Linkedin className="w-3 h-3" /> <span className="underline decoration-teal-400/30 underline-offset-2">LinkedIn Profile</span>
+                                        </a>
+                                        {candidate.email && (
+                                            <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                                                <Mail className="w-3 h-3" /> {candidate.email}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* SECTION 3: Actions (Right) */}
+                            <div className={`${isSingleView ? 'flex-1 flex justify-end gap-2 items-center' : 'flex gap-2 pt-2 border-t border-white/5'}`}>
                                 {status === 'READY' && (
                                     <Button 
-                                        size="xs" 
-                                        className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white" 
+                                        size="sm" 
+                                        className="bg-teal-600 hover:bg-teal-500 text-white h-7 text-xs" 
                                         onClick={() => {
                                             setSelectedCandidate(candidate);
                                             setConnectDialogOpen(true);
@@ -227,15 +324,31 @@ export default function CandidateBoard() {
                                 )}
                                 
                                 {status === 'NEEDS_REVIEW' && (
-                                    <Button size="xs" variant="outline" className="flex-1 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10" onClick={() => updateStatus(candidate._id, 'READY')}>
+                                    <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10" onClick={() => updateStatus(candidate._id, 'READY')}>
                                         <CheckCircle className="w-3 h-3 mr-1" /> Approve
                                     </Button>
                                 )}
 
                                 {status === 'LINKEDIN_SENT' && (
-                                    <div className="w-full text-center text-xs text-emerald-400 font-medium py-1">
+                                    <div className="text-center text-xs text-emerald-400 font-medium py-1">
                                         <CheckCircle className="w-3 h-3 inline mr-1" /> Sent
                                     </div>
+                                )}
+
+                                {/* Menu uses Dropdown in Single View too, but placed at end */}
+                                {isSingleView && (
+                                     <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <button className="text-slate-500 hover:text-white transition-colors p-1">
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="bg-[#0B1120] border-white/10 text-slate-200">
+                                            <DropdownMenuItem className="text-rose-400 cursor-pointer" onClick={() => handleDelete(candidate._id)}>
+                                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 )}
                             </div>
                         </div>
@@ -256,10 +369,17 @@ export default function CandidateBoard() {
                 <Button variant="ghost" className="gap-2 text-slate-400 hover:text-white" onClick={() => navigate("/hr-portal/recruitment")}>
                     <ArrowLeft className="w-4 h-4" /> Back to Jobs
                 </Button>
+
+                {loading && (
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-medium animate-in fade-in slide-in-from-left-4 duration-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm tracking-wide">Syncing data...</span>
+                    </div>
+                )}
                 
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button id="add-candidate-trigger" className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">
+                        <Button id="add-candidate-trigger" className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20">
                             + Add Candidates
                         </Button>
                     </DialogTrigger>
@@ -284,7 +404,7 @@ export default function CandidateBoard() {
                                         <Label>LinkedIn URL</Label>
                                         <Input name="linkedinUrl" required className="bg-white/5 border-white/10 text-white" placeholder="https://linkedin.com/in/..." />
                                     </div>
-                                    <Button type="submit" disabled={isAdding} className="w-full bg-indigo-600 hover:bg-indigo-500">
+                                    <Button type="submit" disabled={isAdding} className="w-full bg-teal-600 hover:bg-teal-500">
                                         {isAdding ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Candidate"}
                                     </Button>
                                 </form>
@@ -296,14 +416,14 @@ export default function CandidateBoard() {
                                         <Label>Paste LinkedIn URLs (One per line)</Label>
                                         <textarea 
                                             id="bulk-urls"
-                                            className="w-full h-48 bg-white/5 border border-white/10 rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            className="w-full h-48 bg-white/5 border border-white/10 rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                                             placeholder="https://linkedin.com/in/user1&#10;https://linkedin.com/in/user2"
                                         />
                                     </div>
                                     <Button 
                                         onClick={handleBulkImport} 
                                         disabled={isAdding} 
-                                        className="w-full bg-indigo-600 hover:bg-indigo-500"
+                                        className="w-full bg-teal-600 hover:bg-teal-500"
                                     >
                                         {isAdding ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Send className="w-4 h-4 mr-2" />}
                                         Import All Candidates
@@ -315,25 +435,54 @@ export default function CandidateBoard() {
                 </Dialog>
             </div>
 
-            <div className="flex-1 flex gap-6 overflow-x-auto pb-4 px-1">
-                {renderColumn('ENRICHING')}
-                {renderColumn('READY')}
-                {renderColumn('NEEDS_REVIEW')}
-                {renderColumn('LINKEDIN_SENT')}
-                {renderColumn('REJECTED')}
+            <div className={`flex-1 overflow-hidden pb-4 px-1 min-h-0`}>
+                {loading && candidates.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center gap-6 text-slate-500 animate-in fade-in zoom-in-95 duration-500">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-teal-500/20 blur-xl rounded-full animate-pulse" />
+                            <Loader2 className="w-16 h-16 animate-spin text-teal-500 relative z-10" />
+                        </div>
+                        <div className="text-center space-y-2">
+                            <p className="text-lg font-bold text-white tracking-tight">Syncing Candidate Pipeline</p>
+                            <p className="text-sm text-slate-400 font-medium">Fetching the latest candidate data for you...</p>
+                        </div>
+                    </div>
+                ) : visibleStatuses.length > 0 ? (
+                    <div className={`grid gap-4 h-full ${
+                        isSingleView ? 'grid-cols-1 max-w-5xl mx-auto w-full' : `grid-cols-${visibleStatuses.length}`
+                    }`}>
+                        {visibleStatuses.map(status => renderColumn(status))}
+                    </div>
+                ) : (
+                    <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-4 text-slate-500 bg-white/[0.02]">
+                        <div className="p-4 rounded-full bg-slate-900 border border-white/10">
+                            <ArrowLeft className="w-8 h-8 opacity-20" />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-lg font-bold text-slate-400">No candidates yet</p>
+                            <p className="text-sm">Click "+ Add Candidates" to get started</p>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            <CandidateDetailsDialog 
+                candidate={selectedCandidate} 
+                open={detailsOpen} 
+                onOpenChange={setDetailsOpen} 
+            />
             {/* Connection Outreach Dialog */}
             <Dialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
                 <DialogContent className="bg-[#0B1120] border-white/10 text-slate-200 max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="text-white flex items-center gap-2">
-                            <Linkedin className="w-5 h-5 text-indigo-400" /> Outreach to {selectedCandidate?.name}
+                            <Linkedin className="w-5 h-5 text-teal-400" /> Outreach to {selectedCandidate?.name}
                         </DialogTitle>
                     </DialogHeader>
                     
                     {selectedCandidate && (
                         <div className="space-y-6 mt-4">
-                            <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10 text-[10px] text-indigo-300">
+                            <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/10 text-[10px] text-teal-300">
                                 💡 Step 1: Open Profile &rarr; Step 2: Copy Note &rarr; Step 3: Mark as Sent
                             </div>
 
@@ -343,8 +492,8 @@ export default function CandidateBoard() {
                                         <Label className="text-slate-400">1. Connection Request Note</Label>
                                         <Button 
                                             variant="ghost" 
-                                            size="xs" 
-                                            className="h-7 text-indigo-400 hover:text-indigo-300"
+                                            size="sm" 
+                                            className="h-7 text-teal-400 hover:text-teal-300"
                                             onClick={() => {
                                                 navigator.clipboard.writeText(getTemplates(selectedCandidate).connect);
                                                 toast.success("Note copied!");
@@ -364,7 +513,7 @@ export default function CandidateBoard() {
                                         <Button 
                                             variant="ghost" 
                                             size="xs" 
-                                            className="h-7 text-indigo-400 hover:text-indigo-300"
+                                            className="h-7 text-teal-400 hover:text-teal-300"
                                             onClick={() => {
                                                 navigator.clipboard.writeText(getTemplates(selectedCandidate).followUp);
                                                 toast.success("Follow-up copied!");
@@ -387,10 +536,21 @@ export default function CandidateBoard() {
                                     <Linkedin className="w-4 h-4 mr-2" /> Open Profile
                                 </Button>
                                 <Button 
-                                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white"
+                                    className="flex-1 bg-teal-600 hover:bg-teal-500 text-white"
                                     onClick={() => handleConnectDone(selectedCandidate._id)}
+                                    disabled={isSending}
                                 >
-                                    <CheckCircle className="w-4 h-4 mr-2" /> Mark as Sent
+                                    {isSending ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                            Mark as Sent
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>

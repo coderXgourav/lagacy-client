@@ -35,6 +35,7 @@ import {
   Laptop,
   Upload,
   Users,
+  Share2,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -133,6 +134,16 @@ export default function OfferingsPage() {
       icon: Users,
       available: true,
       route: "/hr-portal",
+    },
+    {
+      id: "social-media",
+      title: "Social Media Automation",
+      description:
+        "Automate your social media presence with intelligent scheduling and multi-platform posting",
+      icon: Share2,
+      available: true,
+      route: "/social-media",
+      beta: true,
     },
   ];
 

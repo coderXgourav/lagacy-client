@@ -46,6 +46,7 @@ import HrEmployeeDirectory from "./pages/hrportal/HrEmployeeDirectory";
 import HrRecruitment from "./pages/hrportal/HrRecruitment";
 import HrJobRequest from "./pages/hrportal/recruitment/HrJobRequest";
 import CandidateBoard from "./pages/hrportal/recruitment/CandidateBoard";
+import SocialMediaDashboard from "./pages/socialmedia/SocialMediaDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -112,6 +113,7 @@ const App = () => (
                 <Route path="recruitment/new" element={<HrJobRequest />} />
                 <Route path="recruitment/board/:jobId" element={<CandidateBoard />} />
               </Route>
+              <Route path="/social-media" element={<ProtectedRoute><SocialMediaDashboard /></ProtectedRoute>} />
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

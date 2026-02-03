@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, MapPin, Calendar, Clock, ArrowRight, Briefcase } from "lucide-react";
+import { Plus, Search, MapPin, Calendar, Clock, ArrowRight, Briefcase, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import { notification } from "antd";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -12,6 +14,7 @@ export default function HrRecruitment() {
     const navigate = useNavigate();
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchJobs();
@@ -28,6 +31,28 @@ export default function HrRecruitment() {
         }
     };
 
+    const handleNavigate = (id: string) => {
+        setNavigatingId(id);
+        navigate(`/hr-portal/recruitment/board/${id}`);
+    };
+
+    const handleDeleteJob = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation(); // Prevent card click
+        if (!window.confirm("Are you sure? This will delete the job and ALL its candidates.")) return;
+
+        try {
+            await axios.delete(`${API_URL}/hr/jobs/${id}`);
+            toast.success("Job deleted successfully");
+            setJobs(jobs.filter((j: any) => j._id !== id));
+        } catch (error) {
+            notification.error({
+                message: 'Deletion Failed',
+                description: 'Failed to delete job. Please try again later.',
+                placement: 'topRight'
+            });
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -37,7 +62,7 @@ export default function HrRecruitment() {
                 </div>
                 <Button 
                     onClick={() => navigate("/hr-portal/recruitment/new")}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                    className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20"
                 >
                     <Plus className="w-4 h-4 mr-2" /> New Job Request
                 </Button>
@@ -48,23 +73,38 @@ export default function HrRecruitment() {
                 {jobs.map((job: any) => (
                     <div 
                         key={job._id}
-                        className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md p-6 hover:bg-white/[0.04] transition-all duration-300 hover:border-indigo-500/20 cursor-pointer"
-                        onClick={() => navigate(`/hr-portal/recruitment/board/${job._id}`)}
+                        className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 backdrop-blur-md p-6 cursor-pointer ${
+                            navigatingId === job._id 
+                                ? 'bg-teal-500/5 border-teal-500/50 scale-[0.99] shadow-inner' 
+                                : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-teal-500/20'
+                        }`}
+                        onClick={() => handleNavigate(job._id)}
                     >
                         <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                                <Briefcase className="w-6 h-6" />
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                                    <Briefcase className="w-6 h-6" />
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
+                                    job.urgency === 'High' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    job.urgency === 'Low' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                                }`}>
+                                    {job.urgency} Priority
+                                </span>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                                job.urgency === 'High' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                                job.urgency === 'Low' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                'bg-sky-500/10 text-sky-400 border-sky-500/20'
-                            }`}>
-                                {job.urgency} Priority
-                            </span>
+                            
+                            <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors z-10"
+                                onClick={(e) => handleDeleteJob(e, job._id)}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
                         </div>
 
-                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors">
+                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-teal-400 transition-colors">
                             {job.title}
                         </h3>
                         
@@ -89,8 +129,17 @@ export default function HrRecruitment() {
                                     +
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 text-sm font-semibold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                                View Board <ArrowRight className="w-4 h-4" />
+                            <div className="flex items-center gap-2 text-sm font-semibold text-teal-400 group-hover:translate-x-1 transition-transform">
+                                {navigatingId === job._id ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Loading...
+                                    </>
+                                ) : (
+                                    <>
+                                        View Board <ArrowRight className="w-4 h-4" />
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -106,7 +155,7 @@ export default function HrRecruitment() {
                         <p className="text-slate-400 mt-1 max-w-sm">Create a new job request to start the AI sourcing agent.</p>
                         <Button 
                             variant="outline" 
-                            className="mt-6 border-indigo-500/50 text-indigo-400 hover:bg-indigo-950"
+                            className="mt-6 border-teal-500/50 text-teal-400 hover:bg-teal-950"
                             onClick={() => navigate("/hr-portal/recruitment/new")}
                         >
                             Create Job
