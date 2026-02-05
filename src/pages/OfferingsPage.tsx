@@ -36,6 +36,7 @@ import {
   Upload,
   Users,
   Share2,
+  TrendingUp,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -144,6 +145,24 @@ export default function OfferingsPage() {
       available: true,
       route: "/social-media",
       beta: true,
+    },
+    {
+      id: "source-site-owners",
+      title: "Source Existing Site Owners",
+      description:
+        "Find and connect with owners of existing websites to expand your business reach",
+      icon: Search,
+      available: true,
+      route: "/source-site-owners",
+    },
+    {
+      id: "lead-capture",
+      title: "Lead Capture (Meta + Google)",
+      description:
+        "Website Conversion using ads",
+      icon: Sparkles,
+      available: true,
+      route: "/lead-capture",
     },
   ];
 
