@@ -37,6 +37,7 @@ import {
   Users,
   Share2,
   TrendingUp,
+  Activity,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -163,6 +164,15 @@ export default function OfferingsPage() {
       icon: Sparkles,
       available: true,
       route: "/lead-capture",
+    },
+    {
+      id: "pain-signal",
+      title: "Pain Signal",
+      description:
+        "Identify and track customer pain points to tailor your outreach and solutions effectively",
+      icon: Activity,
+      available: true,
+      route: "/pain-signal",
     },
   ];
 

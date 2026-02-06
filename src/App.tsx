@@ -50,6 +50,7 @@ import SocialMediaDashboard from "./pages/socialmedia/SocialMediaDashboard";
 import SourceSiteOwnersPage from "./pages/SourceSiteOwnersPage";
 import LeadCapturePage from "./pages/LeadCapturePage";
 import LeadDashboardPage from "./pages/LeadDashboardPage";
+import PainSignalPage from "./pages/PainSignalPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -120,6 +121,7 @@ const App = () => (
               <Route path="/source-site-owners" element={<ProtectedRoute><SourceSiteOwnersPage /></ProtectedRoute>} />
               <Route path="/lead-capture" element={<ProtectedRoute><LeadCapturePage /></ProtectedRoute>} />
               <Route path="/lead-dashboard" element={<ProtectedRoute><LeadDashboardPage /></ProtectedRoute>} />
+              <Route path="/pain-signal" element={<ProtectedRoute><PainSignalPage /></ProtectedRoute>} />
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
