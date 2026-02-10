@@ -79,6 +79,13 @@ interface PainSignal {
   enrichedDomain: string;
   createdAt: string;
   topicTags: string[];
+  enrichedCompany?: {
+    name?: string;
+    industry?: string;
+    location?: string;
+    description?: string;
+  };
+  techStack?: string[];
 }
 
 interface Stats {
@@ -132,6 +139,17 @@ export default function PainSignalPage() {
   const [newTwitterQuery, setNewTwitterQuery] = useState("");
   const [twitterSortBy, setTwitterSortBy] = useState("Latest");
   const [twitterMaxTweets, setTwitterMaxTweets] = useState(50);
+
+  // Apify Configuration - Facebook
+  const [facebookSearchQueries, setFacebookSearchQueries] = useState<string[]>(["website is not working"]);
+  const [newFacebookQuery, setNewFacebookQuery] = useState("");
+  const [facebookMaxPosts, setFacebookMaxPosts] = useState(10);
+  const [facebookRecentPosts, setFacebookRecentPosts] = useState(false);
+
+  // Product Hunt Configuration
+  const [phMaxPosts, setPhMaxPosts] = useState(20);
+  const [phTopic, setPhTopic] = useState("");
+  const [phOrder, setPhOrder] = useState("RANKING");
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -205,11 +223,22 @@ export default function PainSignalPage() {
     setTwitterSearchQueries(twitterSearchQueries.filter((_, i) => i !== index));
   };
 
+  const addFacebookQuery = () => {
+    if (newFacebookQuery.trim() && !facebookSearchQueries.includes(newFacebookQuery.trim())) {
+      setFacebookSearchQueries([...facebookSearchQueries, newFacebookQuery.trim()]);
+      setNewFacebookQuery("");
+    }
+  };
+
+  const removeFacebookQuery = (index: number) => {
+    setFacebookSearchQueries(facebookSearchQueries.filter((_, i) => i !== index));
+  };
+
   const runPipeline = async () => {
     try {
       setPipelineRunning(true);
       
-      const payload: any = {};
+      const payload: Record<string, unknown> = {};
       
       if (selectedPlatform === 'reddit') {
         payload.searchQueries = apifySearchQueries;
@@ -223,6 +252,18 @@ export default function PainSignalPage() {
           sort: twitterSortBy,
           maxItems: twitterMaxTweets
         };
+      } else if (selectedPlatform === 'facebook') {
+        payload.facebookConfig = {
+          searchQueries: facebookSearchQueries,
+          maxPosts: facebookMaxPosts,
+          recent_posts: facebookRecentPosts
+        };
+      } else if (selectedPlatform === 'producthunt') {
+        payload.producthuntConfig = {
+          maxPosts: phMaxPosts,
+          topic: phTopic || undefined,
+          order: phOrder
+        };
       }
 
       const response = await fetch(`${API_URL}/pain-signals/run`, {
@@ -232,7 +273,7 @@ export default function PainSignalPage() {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Pipeline started for ${selectedPlatform === 'reddit' ? 'Reddit' : 'Twitter'}`);
+        toast.success(`Pipeline started for ${selectedPlatform === 'reddit' ? 'Reddit' : selectedPlatform === 'twitter' ? 'Twitter' : selectedPlatform === 'facebook' ? 'Facebook' : 'Product Hunt'}`);
         setShowConfigPanel(false);
         
         // Poll for completion
@@ -417,6 +458,8 @@ export default function PainSignalPage() {
         return "𝕏";
       case "producthunt":
         return "🔶";
+      case "facebook":
+        return "🔵";
       default:
         return "🌐";
     }
@@ -483,9 +526,11 @@ export default function PainSignalPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="reddit" value={selectedPlatform} onValueChange={setSelectedPlatform} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="reddit">Reddit Scraper</TabsTrigger>
-                  <TabsTrigger value="twitter">Twitter Scraper</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="reddit">Reddit</TabsTrigger>
+                  <TabsTrigger value="twitter">Twitter</TabsTrigger>
+                  <TabsTrigger value="facebook">Facebook</TabsTrigger>
+                  <TabsTrigger value="producthunt">Product Hunt</TabsTrigger>
                 </TabsList>
 
                 {/* Reddit Tab */}
@@ -654,6 +699,123 @@ export default function PainSignalPage() {
                     </div>
                   </div>
                 </TabsContent>
+
+                {/* Facebook Tab */}
+                <TabsContent value="facebook" className="space-y-6">
+                  <div className="p-4 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-200 flex items-center gap-2">
+                    <span>ℹ️ Using Apify Actor: <strong>Facebook Search PPR (l6CUZt8H0214D3I0N)</strong></span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Search Queries</label>
+                    <div className="space-y-2">
+                      {facebookSearchQueries.map((query, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <Input
+                            value={query}
+                            onChange={(e) => {
+                              const newQueries = [...facebookSearchQueries];
+                              newQueries[index] = e.target.value;
+                              setFacebookSearchQueries(newQueries);
+                            }}
+                            className="flex-1 border-blue-200 focus-visible:ring-blue-400"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFacebookQuery(index)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. website is not working"
+                        value={newFacebookQuery}
+                        onChange={(e) => setNewFacebookQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addFacebookQuery()}
+                        className="flex-1"
+                      />
+                      <Button onClick={addFacebookQuery} variant="secondary" className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Max Posts</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={facebookMaxPosts}
+                        onChange={(e) => setFacebookMaxPosts(parseInt(e.target.value) || 10)}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2 pt-8">
+                      <Checkbox 
+                        id="recent-posts" 
+                        checked={facebookRecentPosts}
+                        onCheckedChange={(checked) => setFacebookRecentPosts(checked as boolean)}
+                      />
+                      <label 
+                        htmlFor="recent-posts"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Recent posts only
+                      </label>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Product Hunt Tab */}
+                <TabsContent value="producthunt" className="space-y-6">
+                  <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
+                    <span>🔶 Using Product Hunt GraphQL API v2 (direct API access)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Topic Filter (optional)</label>
+                      <Input
+                        placeholder="e.g. developer-tools, saas"
+                        value={phTopic}
+                        onChange={(e) => setPhTopic(e.target.value)}
+                        className="border-orange-200 focus-visible:ring-orange-400"
+                      />
+                      <p className="text-xs text-muted-foreground">Leave empty for all topics</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Max Posts</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="50"
+                        value={phMaxPosts}
+                        onChange={(e) => setPhMaxPosts(parseInt(e.target.value) || 20)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Sort Order</label>
+                    <Select value={phOrder} onValueChange={setPhOrder}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RANKING">Ranking (Popular)</SelectItem>
+                        <SelectItem value="NEWEST">Newest First</SelectItem>
+                        <SelectItem value="VOTES">Most Votes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
@@ -743,6 +905,7 @@ export default function PainSignalPage() {
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="reddit">Reddit</SelectItem>
                   <SelectItem value="twitter">Twitter/X</SelectItem>
+                  <SelectItem value="facebook">Facebook</SelectItem>
                   <SelectItem value="producthunt">ProductHunt</SelectItem>
                 </SelectContent>
               </Select>
