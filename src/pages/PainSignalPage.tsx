@@ -151,6 +151,20 @@ export default function PainSignalPage() {
   const [phTopic, setPhTopic] = useState("");
   const [phOrder, setPhOrder] = useState("RANKING");
 
+  // Quora Configuration
+  const [quoraSearchQueries, setQuoraSearchQueries] = useState<string[]>(["need a website", "lead generation help"]);
+  const [newQuoraQuery, setNewQuoraQuery] = useState("");
+
+  // G2 Configuration
+  const [g2SearchQueries, setG2SearchQueries] = useState<string[]>(["outdated UI", "slow", "buggy", "bad onboarding", "support terrible"]);
+  const [newG2Query, setNewG2Query] = useState("");
+  const [g2Location, setG2Location] = useState("United States");
+
+  // Capterra Configuration
+  const [capterraSearchQueries, setCapterraSearchQueries] = useState<string[]>(["outdated UI", "slow", "buggy", "bad onboarding", "support terrible"]);
+  const [newCapterraQuery, setNewCapterraQuery] = useState("");
+  const [capterraLocation, setCapterraLocation] = useState("United States");
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     return {
@@ -234,6 +248,39 @@ export default function PainSignalPage() {
     setFacebookSearchQueries(facebookSearchQueries.filter((_, i) => i !== index));
   };
 
+  const addQuoraQuery = () => {
+    if (newQuoraQuery.trim() && !quoraSearchQueries.includes(newQuoraQuery.trim())) {
+      setQuoraSearchQueries([...quoraSearchQueries, newQuoraQuery.trim()]);
+      setNewQuoraQuery("");
+    }
+  };
+
+  const removeQuoraQuery = (index: number) => {
+    setQuoraSearchQueries(quoraSearchQueries.filter((_, i) => i !== index));
+  };
+
+  const addG2Query = () => {
+    if (newG2Query.trim() && !g2SearchQueries.includes(newG2Query.trim())) {
+      setG2SearchQueries([...g2SearchQueries, newG2Query.trim()]);
+      setNewG2Query("");
+    }
+  };
+
+  const removeG2Query = (index: number) => {
+    setG2SearchQueries(g2SearchQueries.filter((_, i) => i !== index));
+  };
+  
+  const addCapterraQuery = () => {
+    if (newCapterraQuery.trim() && !capterraSearchQueries.includes(newCapterraQuery.trim())) {
+      setCapterraSearchQueries([...capterraSearchQueries, newCapterraQuery.trim()]);
+      setNewCapterraQuery("");
+    }
+  };
+
+  const removeCapterraQuery = (index: number) => {
+    setCapterraSearchQueries(capterraSearchQueries.filter((_, i) => i !== index));
+  };
+
   const runPipeline = async () => {
     try {
       setPipelineRunning(true);
@@ -258,12 +305,39 @@ export default function PainSignalPage() {
           maxPosts: facebookMaxPosts,
           recent_posts: facebookRecentPosts
         };
-      } else if (selectedPlatform === 'producthunt') {
         payload.producthuntConfig = {
           maxPosts: phMaxPosts,
           topic: phTopic || undefined,
           order: phOrder
         };
+      } else if (selectedPlatform === 'quora') {
+        // For Quora, we might want to run sequentially for each keyword
+        // usage of the /scrape endpoint or a new structure in backend
+        // For now, let's assume valid scraping of the first keyword or pass all
+        // The backend runPipeline adaptation for Quora needs to be handled. 
+        // IF the backend only supports runPipeline with specific configs, we might need to adjust.
+        // But the user asked for "check by putting this keyword".
+        // Let's invoke the /scrape endpoint directly for immediate results OR 
+        // integrate into the pipeline if the backend supports it.
+        // THE CURRENT BACKEND PIPELINE (painSignalScheduler) does NOT seem to support Quora yet.
+        // It only supports apify/twitter/facebook/ph.
+        // So for Quora, we likely want an "Immediate Search" feature or add it to scheduler.
+        // Given the request "add in frontend as well so that i can by putting this keyword in order to check",
+        // immediate check seems appropriate.
+        
+        // HOWEVER, "runPipeline" implies a background job.
+        // Let's stick to the pattern but maybe trigger immediate search for Quora commands?
+        // Or better yet, just pass the config and let backend handle (needs backend scheduler update).
+        
+        // Since I only updated /scrape endpoint (synchronous), I should probably 
+        // add a specific "Search Quora" button or handle it here by calling 
+        // the scrape endpoint for each keyword.
+        
+        // Let's call the synchronous endpoint for now as a "Quick Check" 
+        // inside the UI specific to Quora, or modify this runPipeline to handle it.
+        
+        // Let's add a specialized handler for Quora in the UI tab instead of generic pipeline.
+        return; 
       }
 
       const response = await fetch(`${API_URL}/pain-signals/run`, {
@@ -460,6 +534,12 @@ export default function PainSignalPage() {
         return "🔶";
       case "facebook":
         return "🔵";
+      case "quora":
+        return "📖";
+      case "g2":
+        return "🔶";
+      case "capterra":
+        return "💜";
       default:
         return "🌐";
     }
@@ -526,11 +606,14 @@ export default function PainSignalPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="reddit" value={selectedPlatform} onValueChange={setSelectedPlatform} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsList className="grid w-full grid-cols-7 mb-6">
                   <TabsTrigger value="reddit">Reddit</TabsTrigger>
                   <TabsTrigger value="twitter">Twitter</TabsTrigger>
                   <TabsTrigger value="facebook">Facebook</TabsTrigger>
                   <TabsTrigger value="producthunt">Product Hunt</TabsTrigger>
+                  <TabsTrigger value="quora">Quora</TabsTrigger>
+                  <TabsTrigger value="g2">G2</TabsTrigger>
+                  <TabsTrigger value="capterra">Capterra</TabsTrigger>
                 </TabsList>
 
                 {/* Reddit Tab */}
@@ -816,6 +899,292 @@ export default function PainSignalPage() {
                     </Select>
                   </div>
                 </TabsContent>
+
+                {/* Quora Tab */}
+                <TabsContent value="quora" className="space-y-6">
+                   <div className="p-4 bg-red-50 text-red-800 rounded-md text-sm border border-red-200 flex items-center gap-2">
+                    <span>🔴 <strong>Quora Search</strong>: Searches Quora directly using ScrapingBee. Results appear immediately below.</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Search Keywords</label>
+                    <div className="space-y-2">
+                      {quoraSearchQueries.map((query, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <Input
+                            value={query}
+                            onChange={(e) => {
+                              const newQueries = [...quoraSearchQueries];
+                              newQueries[index] = e.target.value;
+                              setQuoraSearchQueries(newQueries);
+                            }}
+                            className="flex-1 border-red-200 focus-visible:ring-red-400"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeQuoraQuery(index)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                toast.info(`Searching Quora for: ${query}...`);
+                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
+                                  method: 'POST',
+                                  headers: getAuthHeaders(),
+                                  body: JSON.stringify({ keywords: query })
+                                });
+                                const data = await res.json();
+                                if (data.success && data.data.parsedPosts) {
+                                  // Refresh the main list to show new signals
+                                  await fetchSignals();
+                                  await fetchStats();
+                                  
+                                  const savedCount = data.data.savedCount || 0;
+                                  if (savedCount > 0) {
+                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                  } else {
+                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts. No new signals found.`);
+                                  }
+                                  console.log(data.data.parsedPosts);
+                                } else {
+                                  toast.error('No results found.');
+                                }
+                              } catch (e) {
+                                toast.error('Search failed');
+                                console.error(e);
+                              }
+                            }}
+                          >
+                            Scan
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. need a website, leads help"
+                        value={newQuoraQuery}
+                        onChange={(e) => setNewQuoraQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addQuoraQuery()}
+                        className="flex-1"
+                      />
+                      <Button onClick={addQuoraQuery} variant="secondary" className="gap-1 bg-red-100 text-red-800 hover:bg-red-200">
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* G2 Tab */}
+                <TabsContent value="g2" className="space-y-6">
+                  <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
+                    <span>🔶 <strong>G2 Search</strong>: Uses search engine scraping to find negative reviews on G2.</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                      <label className="text-sm font-medium">Target Location</label>
+                      <Select value={g2Location} onValueChange={setG2Location}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="United States">United States</SelectItem>
+                          <SelectItem value="Canada">Canada</SelectItem>
+                          <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                          <SelectItem value="Dubai">Dubai (UAE)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Pain Keywords</label>
+                    <div className="space-y-2">
+                      {g2SearchQueries.map((query, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <Input
+                            value={query}
+                            onChange={(e) => {
+                              const newQueries = [...g2SearchQueries];
+                              newQueries[index] = e.target.value;
+                              setG2SearchQueries(newQueries);
+                            }}
+                            className="flex-1 border-orange-200 focus-visible:ring-orange-400"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeG2Query(index)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                           <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                toast.info(`Searching G2 for: ${query} in ${g2Location}...`);
+                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
+                                  method: 'POST',
+                                  headers: getAuthHeaders(),
+                                  body: JSON.stringify({ 
+                                    keywords: query,
+                                    source: 'g2',
+                                    location: g2Location
+                                  })
+                                });
+                                const data = await res.json();
+                                if (data.success && data.data.parsedPosts) {
+                                  // Refresh the main list to show new signals
+                                  await fetchSignals();
+                                  await fetchStats();
+                                  
+                                  const savedCount = data.data.savedCount || 0;
+                                  if (savedCount > 0) {
+                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                  } else {
+                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts. No new signals found.`);
+                                  }
+                                } else {
+                                  toast.error('No results found.');
+                                }
+                              } catch (e) {
+                                toast.error('Search failed');
+                                console.error(e);
+                              }
+                            }}
+                          >
+                            Scan
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. outdated UI, costly"
+                        value={newG2Query}
+                        onChange={(e) => setNewG2Query(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addG2Query()}
+                        className="flex-1"
+                      />
+                      <Button onClick={addG2Query} variant="secondary" className="gap-1 bg-orange-100 text-orange-800 hover:bg-orange-200">
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Capterra Tab */}
+                <TabsContent value="capterra" className="space-y-6">
+                  <div className="p-4 bg-purple-50 text-purple-800 rounded-md text-sm border border-purple-200 flex items-center gap-2">
+                    <span>💜 <strong>Capterra Search</strong>: Uses search engine scraping to find negative reviews on Capterra.</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                      <label className="text-sm font-medium">Target Location</label>
+                      <Select value={capterraLocation} onValueChange={setCapterraLocation}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="United States">United States</SelectItem>
+                          <SelectItem value="Canada">Canada</SelectItem>
+                          <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                          <SelectItem value="Dubai">Dubai (UAE)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Pain Keywords</label>
+                    <div className="space-y-2">
+                      {capterraSearchQueries.map((query, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <Input
+                            value={query}
+                            onChange={(e) => {
+                              const newQueries = [...capterraSearchQueries];
+                              newQueries[index] = e.target.value;
+                              setCapterraSearchQueries(newQueries);
+                            }}
+                            className="flex-1 border-purple-200 focus-visible:ring-purple-400"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeCapterraQuery(index)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                           <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                toast.info(`Searching Capterra for: ${query} in ${capterraLocation}...`);
+                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
+                                  method: 'POST',
+                                  headers: getAuthHeaders(),
+                                  body: JSON.stringify({ 
+                                    keywords: query,
+                                    source: 'capterra',
+                                    location: capterraLocation
+                                  })
+                                });
+                                const data = await res.json();
+                                if (data.success && data.data.parsedPosts) {
+                                  // Refresh the main list to show new signals
+                                  await fetchSignals();
+                                  await fetchStats();
+                                  
+                                  const savedCount = data.data.savedCount || 0;
+                                  if (savedCount > 0) {
+                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                  } else {
+                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts. No new signals found.`);
+                                  }
+                                } else {
+                                  toast.error('No results found.');
+                                }
+                              } catch (e) {
+                                toast.error('Search failed');
+                                console.error(e);
+                              }
+                            }}
+                          >
+                            Scan
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. outdated UI, costly"
+                        value={newCapterraQuery}
+                        onChange={(e) => setNewCapterraQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addCapterraQuery()}
+                        className="flex-1"
+                      />
+                      <Button onClick={addCapterraQuery} variant="secondary" className="gap-1 bg-purple-100 text-purple-800 hover:bg-purple-200">
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
@@ -907,6 +1276,7 @@ export default function PainSignalPage() {
                   <SelectItem value="twitter">Twitter/X</SelectItem>
                   <SelectItem value="facebook">Facebook</SelectItem>
                   <SelectItem value="producthunt">ProductHunt</SelectItem>
+                  <SelectItem value="quora">Quora</SelectItem>
                 </SelectContent>
               </Select>
               <Input
