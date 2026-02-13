@@ -165,6 +165,14 @@ export default function PainSignalPage() {
   const [newCapterraQuery, setNewCapterraQuery] = useState("");
   const [capterraLocation, setCapterraLocation] = useState("United States");
 
+  // IndieHackers Configuration
+  const [ihSearchQueries, setIHSearchQueries] = useState<string[]>(["website is not working", "looking for a developer"]);
+  const [newIHQuery, setNewIHQuery] = useState("");
+
+  // Blog Configuration
+  const [blogSearchQueries, setBlogSearchQueries] = useState<string[]>(["customer pain points", "website review"]);
+  const [newBlogQuery, setNewBlogQuery] = useState("");
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
     return {
@@ -279,6 +287,28 @@ export default function PainSignalPage() {
 
   const removeCapterraQuery = (index: number) => {
     setCapterraSearchQueries(capterraSearchQueries.filter((_, i) => i !== index));
+  };
+
+  const addIHQuery = () => {
+    if (newIHQuery.trim() && !ihSearchQueries.includes(newIHQuery.trim())) {
+      setIHSearchQueries([...ihSearchQueries, newIHQuery.trim()]);
+      setNewIHQuery("");
+    }
+  };
+
+  const removeIHQuery = (index: number) => {
+    setIHSearchQueries(ihSearchQueries.filter((_, i) => i !== index));
+  };
+
+  const addBlogQuery = () => {
+    if (newBlogQuery.trim() && !blogSearchQueries.includes(newBlogQuery.trim())) {
+      setBlogSearchQueries([...blogSearchQueries, newBlogQuery.trim()]);
+      setNewBlogQuery("");
+    }
+  };
+
+  const removeBlogQuery = (index: number) => {
+    setBlogSearchQueries(blogSearchQueries.filter((_, i) => i !== index));
   };
 
   const runPipeline = async () => {
@@ -536,6 +566,10 @@ export default function PainSignalPage() {
         return "🔵";
       case "quora":
         return "📖";
+      case "indiehackers":
+        return "👨‍💻";
+      case "blog":
+        return "📰";
       case "g2":
         return "🔶";
       case "capterra":
@@ -612,6 +646,8 @@ export default function PainSignalPage() {
                   <TabsTrigger value="facebook">Facebook</TabsTrigger>
                   <TabsTrigger value="producthunt">Product Hunt</TabsTrigger>
                   <TabsTrigger value="quora">Quora</TabsTrigger>
+                  <TabsTrigger value="indiehackers">IndieHackers</TabsTrigger>
+                  <TabsTrigger value="blog">Blogs</TabsTrigger>
                   <TabsTrigger value="g2">G2</TabsTrigger>
                   <TabsTrigger value="capterra">Capterra</TabsTrigger>
                 </TabsList>
@@ -1185,6 +1221,160 @@ export default function PainSignalPage() {
                     </div>
                   </div>
                 </TabsContent>
+
+                {/* IndieHackers Tab */}
+                <TabsContent value="indiehackers" className="space-y-6">
+                   <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
+                    <span>👨‍💻 <strong>IndieHackers Search</strong>: Searches IndieHackers directly using ScrapingBee.</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Search Keywords</label>
+                    <div className="space-y-2">
+                      {ihSearchQueries.map((query, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <Input
+                            value={query}
+                            onChange={(e) => {
+                              const newQueries = [...ihSearchQueries];
+                              newQueries[index] = e.target.value;
+                              setIHSearchQueries(newQueries);
+                            }}
+                            className="flex-1 border-orange-200 focus-visible:ring-orange-400"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeIHQuery(index)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                toast.info(`Searching IndieHackers for: ${query}...`);
+                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
+                                  method: 'POST',
+                                  headers: getAuthHeaders(),
+                                  body: JSON.stringify({ 
+                                    keywords: query,
+                                    source: 'indiehackers'
+                                  })
+                                });
+                                const data = await res.json();
+                                if (data.success && data.data.parsedPosts) {
+                                  await fetchSignals();
+                                  await fetchStats();
+                                  const savedCount = data.data.savedCount || 0;
+                                  toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                } else {
+                                  toast.error('No results found.');
+                                }
+                              } catch (e) {
+                                toast.error('Search failed');
+                              }
+                            }}
+                          >
+                            Scan
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. website is not working, leads help"
+                        value={newIHQuery}
+                        onChange={(e) => setNewIHQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addIHQuery()}
+                        className="flex-1"
+                      />
+                      <Button onClick={addIHQuery} variant="secondary" className="gap-1 bg-orange-100 text-orange-800 hover:bg-orange-200">
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Blog Tab */}
+                <TabsContent value="blog" className="space-y-6">
+                   <div className="p-4 bg-green-50 text-green-800 rounded-md text-sm border border-green-200 flex items-center gap-2">
+                    <span>📰 <strong>Blog Search</strong>: Searches for relevant blog posts using ScrapingBee.</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Search Keywords</label>
+                    <div className="space-y-2">
+                      {blogSearchQueries.map((query, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <Input
+                            value={query}
+                            onChange={(e) => {
+                              const newQueries = [...blogSearchQueries];
+                              newQueries[index] = e.target.value;
+                              setBlogSearchQueries(newQueries);
+                            }}
+                            className="flex-1 border-green-200 focus-visible:ring-green-400"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeBlogQuery(index)}
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                          >
+                            ×
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                toast.info(`Searching Blogs for: ${query}...`);
+                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
+                                  method: 'POST',
+                                  headers: getAuthHeaders(),
+                                  body: JSON.stringify({ 
+                                    keywords: query,
+                                    source: 'blog'
+                                  })
+                                });
+                                const data = await res.json();
+                                if (data.success && data.data.parsedPosts) {
+                                  await fetchSignals();
+                                  await fetchStats();
+                                  const savedCount = data.data.savedCount || 0;
+                                  toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                } else {
+                                  toast.error('No results found.');
+                                }
+                              } catch (e) {
+                                toast.error('Search failed');
+                              }
+                            }}
+                          >
+                            Scan
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g. website review, pain points"
+                        value={newBlogQuery}
+                        onChange={(e) => setNewBlogQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addBlogQuery()}
+                        className="flex-1"
+                      />
+                      <Button onClick={addBlogQuery} variant="secondary" className="gap-1 bg-green-100 text-green-800 hover:bg-green-200">
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
@@ -1277,6 +1467,8 @@ export default function PainSignalPage() {
                   <SelectItem value="facebook">Facebook</SelectItem>
                   <SelectItem value="producthunt">ProductHunt</SelectItem>
                   <SelectItem value="quora">Quora</SelectItem>
+                  <SelectItem value="indiehackers">IndieHackers</SelectItem>
+                  <SelectItem value="blog">Blogs</SelectItem>
                 </SelectContent>
               </Select>
               <Input
