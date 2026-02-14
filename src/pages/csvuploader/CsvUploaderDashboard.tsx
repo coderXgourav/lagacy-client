@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
-import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2 } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import * as XLSX from 'xlsx';
+import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,7 +142,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 </body>
 </html>`);
     const [isSending, setIsSending] = useState(false);
-    const [sendResults, setSendResults] = useState<EmailResult[] | null>(null);
+    const [sendResults, setSendResults] = useState<any[] | null>(null);
+    const [stats, setStats] = useState<any>(null);
     const { toast } = useToast();
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -154,51 +156,65 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setIsDragging(false);
     }, []);
 
-    const parseCSV = (text: string): Contact[] => {
-        const lines = text.split('\n').filter(line => line.trim());
-        if (lines.length < 2) return [];
-
-        // Auto-detect delimiter by checking which one appears most in the header
-        const firstLine = lines[0];
-        const commaCount = (firstLine.match(/,/g) || []).length;
-        const tabCount = (firstLine.match(/\t/g) || []).length;
-        const semicolonCount = (firstLine.match(/;/g) || []).length;
-        
-        let delimiter = ',';
-        if (tabCount > commaCount && tabCount > semicolonCount) {
-            delimiter = '\t';
-        } else if (semicolonCount > commaCount && semicolonCount > tabCount) {
-            delimiter = ';';
+    const fetchStats = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setStats(data.stats);
+                
+                // If sequence just finished, turn off isSending
+                if (data.stats.currentAction === "Sequence Finished Successfully" && isSending) {
+                    setIsSending(false);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching stats:', error);
         }
+    }, [isSending]);
 
-        const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
-        
-        // Find column indexes - check for various column name formats
-        const nameIndex = headers.findIndex(h => 
-            h === 'name' || h === 'registrant_name' || h === 'contact_name' || h === 'full_name' || h === 'fullname'
-        );
-        const emailIndex = headers.findIndex(h => 
-            h === 'email' || h === 'email_address' || h === 'emailaddress' || h === 'e-mail'
-        );
-        const numberIndex = headers.findIndex(h => 
-            h === 'number' || h === 'phone' || h === 'phone_number' || h === 'phonenumber' || h === 'mobile' || h === 'telephone'
-        );
-        const countryIndex = headers.findIndex(h => 
-            h === 'country' || h === 'registrant_country' || h === 'country_code' || h === 'countrycode'
-        );
+    useEffect(() => {
+        fetchStats();
+        const interval = setInterval(() => {
+            if (isSending || (stats?.sequences?.active > 0)) {
+                fetchStats();
+            }
+        }, 2000);
+        return () => clearInterval(interval);
+    }, [isSending, stats?.sequences?.active, fetchStats]);
 
-        console.log('CSV Parsing Debug:', { delimiter, headers, nameIndex, emailIndex, numberIndex, countryIndex });
+    const findColumnIndex = (headers: string[], keywords: string[]) => {
+        return headers.findIndex(h => 
+            keywords.some(k => h.includes(k))
+        );
+    };
+
+    const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
+        const nameKeywords = ['name', 'registrant', 'contact', 'full', 'person'];
+        const emailKeywords = ['email', 'e-mail', 'mail'];
+        const numberKeywords = ['number', 'phone', 'mobile', 'tel'];
+        const countryKeywords = ['country', 'registrant_country', 'country_code'];
+
+        const nameIndex = findColumnIndex(headers, nameKeywords);
+        const emailIndex = findColumnIndex(headers, emailKeywords);
+        const numberIndex = findColumnIndex(headers, numberKeywords);
+        const countryIndex = findColumnIndex(headers, countryKeywords);
+
+        console.log('Mapping Debug:', { headers, nameIndex, emailIndex, numberIndex, countryIndex });
 
         const extractedContacts: Contact[] = [];
 
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(delimiter).map(v => v.trim().replace(/"/g, ''));
+        for (const values of rows) {
+            if (!values || values.length === 0) continue;
             
             const contact: Contact = {
-                name: nameIndex >= 0 ? (values[nameIndex] || '').trim() : '',
-                email: emailIndex >= 0 ? (values[emailIndex] || '').trim() : '',
-                number: numberIndex >= 0 ? (values[numberIndex] || '').trim() : '',
-                country: countryIndex >= 0 ? (values[countryIndex] || '').trim() : ''
+                name: nameIndex >= 0 ? String(values[nameIndex] || '').trim() : '',
+                email: emailIndex >= 0 ? String(values[emailIndex] || '').trim() : '',
+                number: numberIndex >= 0 ? String(values[numberIndex] || '').trim() : '',
+                country: countryIndex >= 0 ? String(values[countryIndex] || '').trim() : ''
             };
 
             // Only add if has valid email
@@ -210,28 +226,83 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         return extractedContacts;
     };
 
+    const parseCSV = (text: string): Contact[] => {
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) return [];
+
+        const firstLine = lines[0];
+        const commaCount = (firstLine.match(/,/g) || []).length;
+        const tabCount = (firstLine.match(/\t/g) || []).length;
+        const semicolonCount = (firstLine.match(/;/g) || []).length;
+        
+        let delimiter = ',';
+        if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
+        else if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
+
+        const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const rows = lines.slice(1).map(line => line.split(delimiter).map(v => v.trim().replace(/"/g, '')));
+        
+        return extractContactsFromData(headers, rows);
+    };
+
+    const parseExcel = (data: ArrayBuffer): Contact[] => {
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        if (jsonData.length < 2) return [];
+
+        const headers = jsonData[0].map(h => String(h || '').trim().toLowerCase());
+        const rows = jsonData.slice(1);
+
+        return extractContactsFromData(headers, rows);
+    };
+
     const processFile = (file: File) => {
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
         const reader = new FileReader();
+
         reader.onload = (e) => {
-            const text = e.target?.result as string;
-            const extracted = parseCSV(text);
-            setContacts(extracted);
-            setFileName(file.name);
-            setSendResults(null);
-            
-            toast({
-                title: "CSV Parsed Successfully",
-                description: `Found ${extracted.length} contacts with valid emails`,
-            });
+            try {
+                let extracted: Contact[] = [];
+                if (isExcel) {
+                    extracted = parseExcel(e.target?.result as ArrayBuffer);
+                } else {
+                    extracted = parseCSV(e.target?.result as string);
+                }
+
+                setContacts(extracted);
+                setFileName(file.name);
+                setSendResults(null);
+                
+                toast({
+                    title: `${isExcel ? 'Excel' : 'CSV'} Parsed Successfully`,
+                    description: `Found ${extracted.length} contacts with valid emails`,
+                });
+            } catch (error) {
+                console.error('File parsing error:', error);
+                toast({
+                    title: "Parsing Error",
+                    description: "Failed to parse the file structure",
+                    variant: "destructive"
+                });
+            }
         };
+
         reader.onerror = () => {
             toast({
                 title: "Error",
-                description: "Failed to read the CSV file",
+                description: "Failed to read the file",
                 variant: "destructive"
             });
         };
-        reader.readAsText(file);
+
+        if (isExcel) {
+            reader.readAsArrayBuffer(file);
+        } else {
+            reader.readAsText(file);
+        }
     };
 
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -239,17 +310,27 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setIsDragging(false);
 
         const files = Array.from(e.dataTransfer.files);
-        const csvFile = files.find(f => f.name.endsWith('.csv'));
-        if (csvFile) {
-            processFile(csvFile);
+        const validFile = files.find(f => 
+            f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
+        );
+        if (validFile) {
+            processFile(validFile);
+        } else {
+            toast({
+                title: "Invalid File",
+                description: "Please upload a CSV or Excel file",
+                variant: "destructive"
+            });
         }
-    }, []);
+    }, [processFile, toast]);
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const csvFile = files.find(f => f.name.endsWith('.csv'));
-        if (csvFile) {
-            processFile(csvFile);
+        const validFile = files.find(f => 
+            f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
+        );
+        if (validFile) {
+            processFile(validFile);
         }
     };
 
@@ -358,7 +439,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">CSV Uploader Pro</h1>
                 <p className="text-muted-foreground mt-1">
-                    Upload CSV files, extract contacts, and send bulk emails
+                    Upload CSV or Excel files, extract contacts, and send bulk emails
                 </p>
             </div>
 
@@ -367,10 +448,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Upload className="h-5 w-5" />
-                        Upload CSV File
+                        Upload File
                     </CardTitle>
                     <CardDescription>
-                        Upload a CSV file with columns: name, email, number
+                        Upload a CSV or Excel file with columns: name, email, number
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -387,7 +468,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                     >
                         <input
                             type="file"
-                            accept=".csv"
+                            accept=".csv,.xlsx,.xls"
                             onChange={handleFileInput}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
@@ -403,7 +484,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                             </div>
                             <div className="space-y-2">
                                 <p className="text-lg font-semibold">
-                                    {isDragging ? "Drop your file here" : "Drag & Drop CSV file"}
+                                    {isDragging ? "Drop your file here" : "Drag & Drop CSV or Excel file"}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
                                     or click to browse from your computer
@@ -420,6 +501,77 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 </CardContent>
             </Card>
 
+            {/* Live Sequence Progress */}
+            {(isSending || (stats?.sequences?.active > 0)) && (
+                <Card className="border-primary/50 bg-primary/5 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-primary">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            Live Sequence Progress
+                        </CardTitle>
+                        <CardDescription>
+                            Real-time updates from the communication server
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-background/50 p-4 rounded-xl border">
+                                <p className="text-sm text-muted-foreground">Emails</p>
+                                <p className="text-2xl font-bold">{stats?.emails?.sent} / {stats?.emails?.sent + stats?.emails?.pending}</p>
+                                <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-blue-500 transition-all duration-500" 
+                                        style={{ width: `${(stats?.emails?.sent / (stats?.emails?.sent + stats?.emails?.pending || 1)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-background/50 p-4 rounded-xl border">
+                                <p className="text-sm text-muted-foreground">SMS</p>
+                                <p className="text-2xl font-bold">{stats?.sms?.sent} / {stats?.sms?.sent + stats?.sms?.pending}</p>
+                                <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-purple-500 transition-all duration-500" 
+                                        style={{ width: `${(stats?.sms?.sent / (stats?.sms?.sent + stats?.sms?.pending || 1)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="bg-background/50 p-4 rounded-xl border">
+                                <p className="text-sm text-muted-foreground">Vapi Calls</p>
+                                <p className="text-2xl font-bold">{stats?.calls?.sent} / {stats?.calls?.sent + stats?.calls?.pending}</p>
+                                <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-green-500 transition-all duration-500" 
+                                        style={{ width: `${(stats?.calls?.sent / (stats?.calls?.sent + stats?.calls?.pending || 1)) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+                                    <Activity className="h-5 w-5 text-primary relative" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-primary">Current Action</p>
+                                    <p className="text-lg font-bold tracking-tight">{stats?.currentAction || 'Initializing...'}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Status</p>
+                                <p className="text-sm font-bold text-green-600 dark:text-green-400">ACTIVE</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
+                            <Clock className="h-3 w-3" />
+                            Last update: {new Date(stats?.lastUpdated).toLocaleTimeString()}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Contacts Table */}
             {contacts.length > 0 && (
                 <Card>
@@ -430,7 +582,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 Extracted Contacts ({contacts.length})
                             </CardTitle>
                             <CardDescription>
-                                Contacts extracted from your CSV file
+                                Contacts extracted from your file
                             </CardDescription>
                         </div>
                         <Button variant="outline" size="sm" onClick={clearData}>
@@ -531,7 +683,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 ) : (
                                     <>
                                         <Send className="h-5 w-5 mr-2" />
-                                        Send Single Email
+                                        Send Bulk Emails (Email Only)
                                     </>
                                 )}
                             </Button>
@@ -544,19 +696,24 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 {isSending ? (
                                     <>
                                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                        Starting...
+                                        Starting Sequence...
                                     </>
                                 ) : (
                                     <>
-                                        <Mail className="h-5 w-5 mr-2" />
-                                        Send 4-Email Sequence
+                                        <Zap className="h-5 w-5 mr-2" />
+                                        Start 4-Stage Automated Sequence
                                     </>
                                 )}
                             </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground text-center mt-2">
-                            Sequence: Sends 4 emails to each contact with 2-minute delays between each
-                        </p>
+                        <div className="flex flex-col gap-1 items-center mt-2">
+                             <p className="text-xs text-muted-foreground text-center">
+                                <b>Bulk Emails:</b> Sends 1 email now to every row (fast).
+                            </p>
+                             <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
+                                <b>Automated Sequence:</b> Sends Email 1 → 2m Wait → SMS 1 → 3m Wait → Call 1 → Then next row.
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
             )}

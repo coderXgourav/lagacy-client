@@ -43,6 +43,7 @@ interface Stats {
         active: number;
         completed: number;
     };
+    currentAction?: string;
     lastUpdated: string;
 }
 
@@ -95,8 +96,8 @@ export default function CsvUploaderStats() {
 
     useEffect(() => {
         fetchStats();
-        // Refresh stats every 10 seconds
-        const interval = setInterval(fetchStats, 10000);
+        // Refresh stats every 2 seconds for real-time tracking
+        const interval = setInterval(fetchStats, 2000);
         return () => clearInterval(interval);
     }, []);
 
@@ -158,6 +159,29 @@ export default function CsvUploaderStats() {
                     </Button>
                 </div>
             </div>
+
+            {/* Real-time Status Alert */}
+            {stats?.currentAction && stats.currentAction !== "Idle" && (
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+                            <Activity className="h-5 w-5 text-primary relative" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-primary">Current Server Action</p>
+                            <p className="text-lg font-bold tracking-tight">{stats.currentAction}</p>
+                        </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-bold text-sm">
+                            <Zap className="h-4 w-4 fill-current" />
+                            LIVE SEQUENCE ACTIVE
+                        </div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Polling every 2s</p>
+                    </div>
+                </div>
+            )}
 
             {error ? (
                 <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
