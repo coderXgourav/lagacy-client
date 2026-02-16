@@ -9,7 +9,12 @@ import {
     BarChart3,
     Activity,
     TrendingUp,
-    Zap
+    Zap,
+    ChevronDown,
+    ChevronUp,
+    Phone,
+    Layers,
+    Ban
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,8 +52,22 @@ interface Stats {
     lastUpdated: string;
 }
 
+interface StageInfo {
+    id: string;
+    stage: number;
+    status: string;
+    totalContacts: number;
+    processedContacts: number;
+    currentAction: string;
+    nextScheduledTime: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export default function CsvUploaderStats() {
     const [stats, setStats] = useState<Stats | null>(null);
+    const [stages, setStages] = useState<StageInfo[]>([]);
+    const [stagesExpanded, setStagesExpanded] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +95,42 @@ export default function CsvUploaderStats() {
         }
     };
 
+    const fetchStages = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/sequence-status`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setStages(data.stages);
+            }
+        } catch (err) {
+            console.error('Failed to fetch stages:', err);
+        }
+    };
+
+    const cancelAllSequences = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/cancel-sequences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                fetchStages();
+                fetchStats();
+            }
+        } catch (err) {
+            console.error('Failed to cancel sequences:', err);
+        }
+    };
+
     const resetStats = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -96,8 +151,11 @@ export default function CsvUploaderStats() {
 
     useEffect(() => {
         fetchStats();
-        // Refresh stats every 2 seconds for real-time tracking
-        const interval = setInterval(fetchStats, 2000);
+        fetchStages();
+        const interval = setInterval(() => {
+            fetchStats();
+            fetchStages();
+        }, 2000);
         return () => clearInterval(interval);
     }, []);
 
@@ -127,6 +185,39 @@ export default function CsvUploaderStats() {
         </div>
     );
 
+    const getStageStatusConfig = (status: string) => {
+        switch (status) {
+            case 'completed':
+                return { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/30', label: 'Completed' };
+            case 'active':
+                return { icon: Zap, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30', label: 'In Progress' };
+            case 'cancelled':
+                return { icon: Ban, color: 'text-gray-500', bg: 'bg-gray-500/10', border: 'border-gray-500/30', label: 'Cancelled' };
+            default:
+                return { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', label: 'Scheduled' };
+        }
+    };
+
+    const getTimeUntil = (dateStr: string) => {
+        const diff = new Date(dateStr).getTime() - Date.now();
+        if (diff <= 0) return 'Due now';
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        if (days > 0) return `${days}d ${hours}h`;
+        if (hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
+    };
+
+    // Group stages by most recent batch (latest createdAt)
+    const latestBatchStages = (() => {
+        if (stages.length === 0) return [];
+        const latestTime = Math.max(...stages.map(s => new Date(s.createdAt).getTime()));
+        return stages.filter(s => Math.abs(new Date(s.createdAt).getTime() - latestTime) < 60000);
+    })();
+
+    const hasActiveStages = latestBatchStages.some(s => s.status === 'active');
+
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
@@ -142,7 +233,7 @@ export default function CsvUploaderStats() {
                 <div className="flex gap-2">
                     <Button 
                         variant="outline" 
-                        onClick={fetchStats} 
+                        onClick={() => { fetchStats(); fetchStages(); }} 
                         disabled={loading}
                         className="gap-2"
                     >
@@ -191,6 +282,167 @@ export default function CsvUploaderStats() {
                 </Card>
             ) : stats ? (
                 <>
+                    {/* ============ STAGE PROGRESS PANEL ============ */}
+                    {latestBatchStages.length > 0 && (
+                        <Card className="border-2 border-indigo-200 dark:border-indigo-800 overflow-hidden">
+                            <CardHeader 
+                                className="cursor-pointer select-none hover:bg-muted/30 transition-colors"
+                                onClick={() => setStagesExpanded(!stagesExpanded)}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-indigo-500/10">
+                                            <Layers className="w-6 h-6 text-indigo-500" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg">
+                                                4-Stage Sequence Progress
+                                            </CardTitle>
+                                            <CardDescription className="mt-1">
+                                                {latestBatchStages.filter(s => s.status === 'completed').length}/4 stages completed
+                                                {hasActiveStages && ' • Processing...'}
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {hasActiveStages && (
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-red-500 border-red-300 hover:bg-red-50"
+                                                onClick={(e) => { e.stopPropagation(); cancelAllSequences(); }}
+                                            >
+                                                <Ban className="w-4 h-4 mr-1" />
+                                                Cancel All
+                                            </Button>
+                                        )}
+                                        {stagesExpanded ? (
+                                            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                                        ) : (
+                                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Mini progress bar indicators */}
+                                <div className="flex gap-2 mt-4">
+                                    {[1, 2, 3, 4].map(stageNum => {
+                                        const stage = latestBatchStages.find(s => s.stage === stageNum);
+                                        const cfg = getStageStatusConfig(stage?.status || 'waiting');
+                                        return (
+                                            <div key={stageNum} className="flex-1">
+                                                <div className={cn("h-2 rounded-full transition-all", 
+                                                    stage?.status === 'completed' ? "bg-green-500" :
+                                                    stage?.status === 'active' ? "bg-blue-500 animate-pulse" :
+                                                    stage?.status === 'cancelled' ? "bg-gray-400" :
+                                                    "bg-gray-200 dark:bg-gray-700"
+                                                )} />
+                                                <p className={cn("text-xs mt-1 text-center font-medium", cfg.color)}>
+                                                    S{stageNum}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardHeader>
+
+                            {/* Expanded stage details */}
+                            {stagesExpanded && (
+                                <CardContent className="pt-0">
+                                    <div className="space-y-4">
+                                        {[1, 2, 3, 4].map(stageNum => {
+                                            const stage = latestBatchStages.find(s => s.stage === stageNum);
+                                            if (!stage) return null;
+                                            const cfg = getStageStatusConfig(stage.status);
+                                            const StatusIcon = cfg.icon;
+                                            const progress = stage.totalContacts > 0 
+                                                ? Math.round((stage.processedContacts / stage.totalContacts) * 100) 
+                                                : 0;
+                                            const isScheduled = new Date(stage.nextScheduledTime).getTime() > Date.now() && stage.status === 'active' && stage.processedContacts === 0;
+
+                                            return (
+                                                <div 
+                                                    key={stage.id} 
+                                                    className={cn("rounded-xl border-2 p-5 transition-all", cfg.border, cfg.bg)}
+                                                >
+                                                    {/* Stage header */}
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <StatusIcon className={cn("w-6 h-6", cfg.color)} />
+                                                            <div>
+                                                                <h3 className="font-bold text-lg">Stage {stage.stage}</h3>
+                                                                <span className={cn("text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full", cfg.bg, cfg.color)}>
+                                                                    {cfg.label}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-2xl font-bold">{stage.processedContacts}/{stage.totalContacts}</p>
+                                                            <p className="text-xs text-muted-foreground">contacts processed</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Progress bar */}
+                                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
+                                                        <div 
+                                                            className={cn(
+                                                                "h-3 rounded-full transition-all duration-500",
+                                                                stage.status === 'completed' ? "bg-green-500" :
+                                                                stage.status === 'active' ? "bg-blue-500" :
+                                                                stage.status === 'cancelled' ? "bg-gray-400" :
+                                                                "bg-yellow-500"
+                                                            )}
+                                                            style={{ width: `${progress}%` }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Stage channel details */}
+                                                    <div className="grid grid-cols-3 gap-3 text-sm">
+                                                        <div className="flex items-center gap-2">
+                                                            <Mail className="w-4 h-4 text-blue-400" />
+                                                            <span className="text-muted-foreground">
+                                                                {stage.status === 'active' && stage.currentAction === 'email' ? (
+                                                                    <span className="text-blue-500 font-medium">📧 Sending...</span>
+                                                                ) : stage.status === 'completed' ? '✅ Done' : 'Email'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <MessageSquare className="w-4 h-4 text-purple-400" />
+                                                            <span className="text-muted-foreground">
+                                                                {stage.status === 'active' && stage.currentAction === 'sms' ? (
+                                                                    <span className="text-purple-500 font-medium">💬 Sending...</span>
+                                                                ) : stage.status === 'completed' ? '✅ Done' : 'SMS'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="w-4 h-4 text-indigo-400" />
+                                                            <span className="text-muted-foreground">
+                                                                {stage.status === 'active' && stage.currentAction === 'call' ? (
+                                                                    <span className="text-indigo-500 font-medium">📞 Calling...</span>
+                                                                ) : stage.status === 'completed' ? '✅ Done' : 'Call'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Scheduled time countdown */}
+                                                    {isScheduled && (
+                                                        <div className="mt-3 pt-3 border-t border-dashed flex items-center gap-2 text-sm">
+                                                            <Clock className="w-4 h-4 text-yellow-500" />
+                                                            <span className="text-muted-foreground">
+                                                                Starts in <span className="font-bold text-yellow-600">{getTimeUntil(stage.nextScheduledTime)}</span>
+                                                                {' '}({new Date(stage.nextScheduledTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            )}
+                        </Card>
+                    )}
+
                     <div className="grid grid-cols-1 gap-6">
                         {/* Email Stats */}
                         <Card>
@@ -375,7 +627,7 @@ export default function CsvUploaderStats() {
                     <div className="text-center text-sm text-muted-foreground">
                         Last updated: {new Date(stats.lastUpdated).toLocaleString()}
                         <span className="mx-2">•</span>
-                        Auto-refreshes every 10 seconds
+                        Auto-refreshes every 2 seconds
                     </div>
                 </>
             ) : (

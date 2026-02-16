@@ -27,8 +27,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function CsvUploaderDashboard() {
     const [isDragging, setIsDragging] = useState(false);
-    const [fileName, setFileName] = useState<string | null>(null);
-    const [contacts, setContacts] = useState<Contact[]>([]);
+    const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem('csv_uploader_filename'));
+    const [contacts, setContacts] = useState<Contact[]>(() => {
+        const saved = localStorage.getItem('csv_uploader_contacts');
+        return saved ? JSON.parse(saved) : [];
+    });
     const [subject, setSubject] = useState("Quick System Check - Kyptronix");
     const [body, setBody] = useState(`<!DOCTYPE html>
 <html lang="en">
@@ -186,22 +189,64 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         return () => clearInterval(interval);
     }, [isSending, stats?.sequences?.active, fetchStats]);
 
-    const findColumnIndex = (headers: string[], keywords: string[]) => {
-        return headers.findIndex(h => 
-            keywords.some(k => h.includes(k))
+    // Persistence effects
+    useEffect(() => {
+        if (contacts.length > 0) {
+            localStorage.setItem('csv_uploader_contacts', JSON.stringify(contacts));
+        } else {
+            localStorage.removeItem('csv_uploader_contacts');
+        }
+    }, [contacts]);
+
+    useEffect(() => {
+        if (fileName) {
+            localStorage.setItem('csv_uploader_filename', fileName);
+        } else {
+            localStorage.removeItem('csv_uploader_filename');
+        }
+    }, [fileName]);
+
+    const findColumnIndex = (headers: string[], includeKeywords: string[], excludeKeywords: string[] = []) => {
+        // 1. Priority: Exact matches first
+        const exactMatch = headers.findIndex(h => 
+            includeKeywords.some(k => h === k)
         );
+        if (exactMatch >= 0) return exactMatch;
+
+        // 2. Priority: Starts with includeKeyword + No excludeKeywords
+        const startsWithMatch = headers.findIndex(h => 
+            includeKeywords.some(k => h.startsWith(k)) && 
+            !excludeKeywords.some(k => h.includes(k))
+        );
+        if (startsWithMatch >= 0) return startsWithMatch;
+
+        // 3. Match that contains includeKeyword but NO excludeKeyword
+        const filteredMatch = headers.findIndex(h => 
+            includeKeywords.some(k => h.includes(k)) && 
+            !excludeKeywords.some(k => h.includes(k))
+        );
+        if (filteredMatch >= 0) return filteredMatch;
+
+        return -1;
     };
 
     const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
-        const nameKeywords = ['name', 'registrant', 'contact', 'full', 'person'];
-        const emailKeywords = ['email', 'e-mail', 'mail'];
-        const numberKeywords = ['number', 'phone', 'mobile', 'tel'];
-        const countryKeywords = ['country', 'registrant_country', 'country_code'];
+        const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person'];
+        const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization'];
+        
+        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email'];
+        const emailExcludes = ['domain', 'host'];
 
-        const nameIndex = findColumnIndex(headers, nameKeywords);
-        const emailIndex = findColumnIndex(headers, emailKeywords);
-        const numberIndex = findColumnIndex(headers, numberKeywords);
-        const countryIndex = findColumnIndex(headers, countryKeywords);
+        const numberKeywords = ['number', 'phone', 'mobile', 'tel', 'contact_phone', 'registrant_phone'];
+        const numberExcludes = ['fax', 'extension', 'office'];
+
+        const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation'];
+        const countryExcludes = ['code', 'domain'];
+
+        const nameIndex = findColumnIndex(headers, nameKeywords, nameExcludes);
+        const emailIndex = findColumnIndex(headers, emailKeywords, emailExcludes);
+        const numberIndex = findColumnIndex(headers, numberKeywords, numberExcludes);
+        const countryIndex = findColumnIndex(headers, countryKeywords, countryExcludes);
 
         console.log('Mapping Debug:', { headers, nameIndex, emailIndex, numberIndex, countryIndex });
 
@@ -432,6 +477,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setContacts([]);
         setFileName(null);
         setSendResults(null);
+        localStorage.removeItem('csv_uploader_contacts');
+        localStorage.removeItem('csv_uploader_filename');
     };
 
     return (
