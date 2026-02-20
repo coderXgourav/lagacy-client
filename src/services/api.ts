@@ -516,6 +516,15 @@ export const csvFilterApi = {
   }
 };
 
+// Kyptronix Leads API
+export const kyptronixApi = {
+  getLeads: (source?: string) => {
+    const queryParams = new URLSearchParams();
+    if (source) queryParams.append('source', source);
+    return apiCall(`/kyptronix-leads?${queryParams.toString()}`);
+  }
+};
+
 export default {
   auth: authApi,
   settings: settingsApi,
@@ -528,4 +537,5 @@ export default {
   newBusinessFinder: newBusinessApi,
   domainScraper: domainScraperApi,
   csvFilter: csvFilterApi,
+  kyptronixLeads: kyptronixApi,
 };

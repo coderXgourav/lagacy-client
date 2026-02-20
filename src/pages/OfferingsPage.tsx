@@ -174,6 +174,22 @@ export default function OfferingsPage() {
       available: true,
       route: "/pain-signal",
     },
+    {
+      id: "kyptronix-form",
+      title: "Kyptronix Form",
+      description: "All four form data",
+      icon: FileText,
+      available: true,
+      route: "/kyptronix-form",
+    },
+    {
+      id: "system-role",
+      title: "SYSTEM ROLE",
+      description: "You are the Kyptronix Growth Intelligence Agent.",
+      icon: User,
+      available: true,
+      route: "/system-role",
+    },
   ];
 
   return (
