@@ -52,6 +52,7 @@ import LeadCapturePage from "./pages/LeadCapturePage";
 import LeadDashboardPage from "./pages/LeadDashboardPage";
 import PainSignalPage from "./pages/PainSignalPage";
 import KyptronixFormPage from "./pages/KyptronixFormPage";
+import KyptronixFormDetailsPage from "./pages/KyptronixFormDetailsPage";
 import SystemRoleDashboard from "./pages/SystemRoleDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -125,6 +126,7 @@ const App = () => (
               <Route path="/lead-dashboard" element={<ProtectedRoute><LeadDashboardPage /></ProtectedRoute>} />
               <Route path="/pain-signal" element={<ProtectedRoute><PainSignalPage /></ProtectedRoute>} />
               <Route path="/kyptronix-form" element={<ProtectedRoute><KyptronixFormPage /></ProtectedRoute>} />
+              <Route path="/kyptronix-form/:formId" element={<ProtectedRoute><KyptronixFormDetailsPage /></ProtectedRoute>} />
               <Route path="/system-role" element={<ProtectedRoute><SystemRoleDashboard /></ProtectedRoute>} />
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />

@@ -518,9 +518,11 @@ export const csvFilterApi = {
 
 // Kyptronix Leads API
 export const kyptronixApi = {
-  getLeads: (source?: string) => {
+  getLeads: (source?: string, page: number = 1, limit: number = 10) => {
     const queryParams = new URLSearchParams();
     if (source) queryParams.append('source', source);
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
     return apiCall(`/kyptronix-leads?${queryParams.toString()}`);
   }
 };
