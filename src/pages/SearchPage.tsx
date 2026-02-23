@@ -32,7 +32,7 @@ export default function SearchPage() {
     city: '',
     state: '',
     country: 'United States',
-    radius: 5000, // Fixed at 5km
+    radius: 10000, // Fixed at 10km
     businessCategory: 'restaurants',
     domainYear: '2020',
     filterMode: 'before', // 'before' or 'after'
@@ -298,7 +298,7 @@ export default function SearchPage() {
               <div className="animate-fade-in relative z-0">
                 <LocationMap
                   onLocationSelect={handleLocationSelect}
-                  radius={5000}
+                  radius={10000}
                 />
               </div>
             )}
@@ -349,7 +349,7 @@ export default function SearchPage() {
                       <MapPin className="h-4 w-4 text-blue-500" />
                       Use Map Location
                     </Label>
-                    <p className="text-xs text-muted-foreground">Pinpoint exact location on map (5km radius)</p>
+                    <p className="text-xs text-muted-foreground">Pinpoint exact location on map (10km radius)</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
