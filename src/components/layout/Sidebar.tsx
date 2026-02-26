@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Search, 
+import {
+  LayoutDashboard,
+  Search,
   Database,
   Settings,
   Sparkles,
@@ -20,15 +20,15 @@ const navItems = [
 
 export function Sidebar() {
   const navigate = useNavigate();
-  
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/");
   };
-  
+
   return (
-    <aside className="w-64 min-h-screen bg-gradient-to-b from-sidebar-background to-sidebar-background/95 border-r border-sidebar-border flex flex-col shadow-xl">
+    <aside className="w-64 h-full bg-gradient-to-b from-sidebar-background to-sidebar-background/95 border-r border-sidebar-border flex flex-col shadow-xl overflow-hidden">
       <div className="p-6 border-b border-sidebar-border bg-gradient-to-br from-primary/5 to-transparent">
         <div className="flex items-center gap-3">
           <div className="relative">

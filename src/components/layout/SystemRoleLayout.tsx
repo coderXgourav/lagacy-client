@@ -1,11 +1,11 @@
 import { Outlet } from "react-router-dom";
-import { HrPortalSidebar } from "./HrPortalSidebar";
 import { Header } from "./Header";
+import { SystemRoleSidebar } from "./SystemRoleSidebar";
 
-export const HrPortalLayout = () => {
+export const SystemRoleLayout = () => {
     return (
         <div className="flex h-screen overflow-hidden bg-background">
-            <HrPortalSidebar />
+            <SystemRoleSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header />
                 <main className="flex-1 overflow-y-auto">

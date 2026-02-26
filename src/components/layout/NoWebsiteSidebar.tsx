@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Search, 
+import {
+  LayoutDashboard,
+  Search,
   Database,
   Settings,
   Globe,

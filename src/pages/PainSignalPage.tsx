@@ -42,6 +42,7 @@ import {
   MoreHorizontal,
   Archive,
   Eye,
+  Target,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -114,7 +115,7 @@ export default function PainSignalPage() {
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState<PainSignal | null>(null);
   const [showConfigPanel, setShowConfigPanel] = useState(false);
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -277,7 +278,7 @@ export default function PainSignalPage() {
   const removeG2Query = (index: number) => {
     setG2SearchQueries(g2SearchQueries.filter((_, i) => i !== index));
   };
-  
+
   const addCapterraQuery = () => {
     if (newCapterraQuery.trim() && !capterraSearchQueries.includes(newCapterraQuery.trim())) {
       setCapterraSearchQueries([...capterraSearchQueries, newCapterraQuery.trim()]);
@@ -314,9 +315,9 @@ export default function PainSignalPage() {
   const runPipeline = async () => {
     try {
       setPipelineRunning(true);
-      
+
       const payload: Record<string, unknown> = {};
-      
+
       if (selectedPlatform === 'reddit') {
         payload.searchQueries = apifySearchQueries;
         payload.sort = apifySortBy;
@@ -354,20 +355,20 @@ export default function PainSignalPage() {
         // So for Quora, we likely want an "Immediate Search" feature or add it to scheduler.
         // Given the request "add in frontend as well so that i can by putting this keyword in order to check",
         // immediate check seems appropriate.
-        
+
         // HOWEVER, "runPipeline" implies a background job.
         // Let's stick to the pattern but maybe trigger immediate search for Quora commands?
         // Or better yet, just pass the config and let backend handle (needs backend scheduler update).
-        
+
         // Since I only updated /scrape endpoint (synchronous), I should probably 
         // add a specific "Search Quora" button or handle it here by calling 
         // the scrape endpoint for each keyword.
-        
+
         // Let's call the synchronous endpoint for now as a "Quick Check" 
         // inside the UI specific to Quora, or modify this runPipeline to handle it.
-        
+
         // Let's add a specialized handler for Quora in the UI tab instead of generic pipeline.
-        return; 
+        return;
       }
 
       const response = await fetch(`${API_URL}/pain-signals/run`, {
@@ -379,13 +380,13 @@ export default function PainSignalPage() {
       if (data.success) {
         toast.success(`Pipeline started for ${selectedPlatform === 'reddit' ? 'Reddit' : selectedPlatform === 'twitter' ? 'Twitter' : selectedPlatform === 'facebook' ? 'Facebook' : 'Product Hunt'}`);
         setShowConfigPanel(false);
-        
+
         // Poll for completion
         const pollInterval = setInterval(async () => {
           await fetchStats();
           await fetchSignals();
         }, 10000);
-        
+
         // Stop polling after 3 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
@@ -502,7 +503,7 @@ export default function PainSignalPage() {
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (!confirm(`Are you sure you want to delete ${selectedIds.length} signals?`)) return;
-    
+
     try {
       toast.info(`Deleting ${selectedIds.length} signals...`);
       const response = await fetch(`${API_URL}/pain-signals/bulk`, {
@@ -581,49 +582,35 @@ export default function PainSignalPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-6">
-      <div className="container mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/offerings")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Activity className="h-8 w-8 text-primary" />
+      <div className="container mx-auto max-w-[1600px] space-y-6">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-8 md:p-12 mb-2">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-4 flex-1">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
+                  <Target className="h-7 w-7 text-white" />
+                </div>
+                <Badge className="bg-primary/20 text-primary border-primary/30">Intent Detection</Badge>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
                 Pain Signal Detection
               </h1>
-              <p className="text-muted-foreground">
-                AI-powered buying intent signals from social media
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                AI-powered buying intent signals from social media. Auto-detect and qualify high-value leads based on their problems.
               </p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button size="lg" className="gap-2 shadow-lg" onClick={runPipeline} disabled={pipelineRunning}>
+                  {pipelineRunning ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  {pipelineRunning ? "Running Pipeline..." : "Run Pipeline Now"}
+                </Button>
+                <Button size="lg" variant="outline" className="gap-2 bg-background/50 backdrop-blur-sm shadow-sm" onClick={() => setShowConfigPanel(!showConfigPanel)}>
+                  <Filter className="h-4 w-4" />
+                  {showConfigPanel ? "Hide Sources Config" : "Configure Sources"}
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowConfigPanel(!showConfigPanel)}
-              className="gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              {showConfigPanel ? "Hide Config" : "Configure"}
-            </Button>
-            <Button
-              onClick={runPipeline}
-              disabled={pipelineRunning}
-              className="gap-2"
-            >
-              {pipelineRunning ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Running...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4" />
-                  Run Pipeline
-                </>
-              )}
-            </Button>
           </div>
         </div>
 
@@ -877,12 +864,12 @@ export default function PainSignalPage() {
                       />
                     </div>
                     <div className="flex items-center space-x-2 pt-8">
-                      <Checkbox 
-                        id="recent-posts" 
+                      <Checkbox
+                        id="recent-posts"
                         checked={facebookRecentPosts}
                         onCheckedChange={(checked) => setFacebookRecentPosts(checked as boolean)}
                       />
-                      <label 
+                      <label
                         htmlFor="recent-posts"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
@@ -938,7 +925,7 @@ export default function PainSignalPage() {
 
                 {/* Quora Tab */}
                 <TabsContent value="quora" className="space-y-6">
-                   <div className="p-4 bg-red-50 text-red-800 rounded-md text-sm border border-red-200 flex items-center gap-2">
+                  <div className="p-4 bg-red-50 text-red-800 rounded-md text-sm border border-red-200 flex items-center gap-2">
                     <span>🔴 <strong>Quora Search</strong>: Searches Quora directly using ScrapingBee. Results appear immediately below.</span>
                   </div>
 
@@ -965,8 +952,8 @@ export default function PainSignalPage() {
                           >
                             ×
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={async () => {
                               try {
@@ -981,7 +968,7 @@ export default function PainSignalPage() {
                                   // Refresh the main list to show new signals
                                   await fetchSignals();
                                   await fetchStats();
-                                  
+
                                   const savedCount = data.data.savedCount || 0;
                                   if (savedCount > 0) {
                                     toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
@@ -1025,7 +1012,7 @@ export default function PainSignalPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                       <label className="text-sm font-medium">Target Location</label>
                       <Select value={g2Location} onValueChange={setG2Location}>
                         <SelectTrigger>
@@ -1064,8 +1051,8 @@ export default function PainSignalPage() {
                           >
                             ×
                           </Button>
-                           <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={async () => {
                               try {
@@ -1073,7 +1060,7 @@ export default function PainSignalPage() {
                                 const res = await fetch(`${API_URL}/pain-signals/scrape`, {
                                   method: 'POST',
                                   headers: getAuthHeaders(),
-                                  body: JSON.stringify({ 
+                                  body: JSON.stringify({
                                     keywords: query,
                                     source: 'g2',
                                     location: g2Location
@@ -1084,7 +1071,7 @@ export default function PainSignalPage() {
                                   // Refresh the main list to show new signals
                                   await fetchSignals();
                                   await fetchStats();
-                                  
+
                                   const savedCount = data.data.savedCount || 0;
                                   if (savedCount > 0) {
                                     toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
@@ -1127,7 +1114,7 @@ export default function PainSignalPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                       <label className="text-sm font-medium">Target Location</label>
                       <Select value={capterraLocation} onValueChange={setCapterraLocation}>
                         <SelectTrigger>
@@ -1166,8 +1153,8 @@ export default function PainSignalPage() {
                           >
                             ×
                           </Button>
-                           <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={async () => {
                               try {
@@ -1175,7 +1162,7 @@ export default function PainSignalPage() {
                                 const res = await fetch(`${API_URL}/pain-signals/scrape`, {
                                   method: 'POST',
                                   headers: getAuthHeaders(),
-                                  body: JSON.stringify({ 
+                                  body: JSON.stringify({
                                     keywords: query,
                                     source: 'capterra',
                                     location: capterraLocation
@@ -1186,7 +1173,7 @@ export default function PainSignalPage() {
                                   // Refresh the main list to show new signals
                                   await fetchSignals();
                                   await fetchStats();
-                                  
+
                                   const savedCount = data.data.savedCount || 0;
                                   if (savedCount > 0) {
                                     toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
@@ -1224,7 +1211,7 @@ export default function PainSignalPage() {
 
                 {/* IndieHackers Tab */}
                 <TabsContent value="indiehackers" className="space-y-6">
-                   <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
+                  <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
                     <span>👨‍💻 <strong>IndieHackers Search</strong>: Searches IndieHackers directly using ScrapingBee.</span>
                   </div>
 
@@ -1251,8 +1238,8 @@ export default function PainSignalPage() {
                           >
                             ×
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={async () => {
                               try {
@@ -1260,7 +1247,7 @@ export default function PainSignalPage() {
                                 const res = await fetch(`${API_URL}/pain-signals/scrape`, {
                                   method: 'POST',
                                   headers: getAuthHeaders(),
-                                  body: JSON.stringify({ 
+                                  body: JSON.stringify({
                                     keywords: query,
                                     source: 'indiehackers'
                                   })
@@ -1301,7 +1288,7 @@ export default function PainSignalPage() {
 
                 {/* Blog Tab */}
                 <TabsContent value="blog" className="space-y-6">
-                   <div className="p-4 bg-green-50 text-green-800 rounded-md text-sm border border-green-200 flex items-center gap-2">
+                  <div className="p-4 bg-green-50 text-green-800 rounded-md text-sm border border-green-200 flex items-center gap-2">
                     <span>📰 <strong>Blog Search</strong>: Searches for relevant blog posts using ScrapingBee.</span>
                   </div>
 
@@ -1328,8 +1315,8 @@ export default function PainSignalPage() {
                           >
                             ×
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={async () => {
                               try {
@@ -1337,7 +1324,7 @@ export default function PainSignalPage() {
                                 const res = await fetch(`${API_URL}/pain-signals/scrape`, {
                                   method: 'POST',
                                   headers: getAuthHeaders(),
-                                  body: JSON.stringify({ 
+                                  body: JSON.stringify({
                                     keywords: query,
                                     source: 'blog'
                                   })
@@ -1380,52 +1367,33 @@ export default function PainSignalPage() {
           </Card>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">Total Signals</div>
-              <div className="text-2xl font-bold">{stats?.overview.total || 0}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">Qualified</div>
-              <div className="text-2xl font-bold text-green-600">
-                {stats?.overview.qualified || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">Enriched</div>
-              <div className="text-2xl font-bold text-purple-600">
-                {stats?.overview.enriched || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">Contacted</div>
-              <div className="text-2xl font-bold text-amber-600">
-                {stats?.overview.contacted || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">Today</div>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats?.overview.todayNew || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-sm text-muted-foreground">Avg Score</div>
-              <div className="text-2xl font-bold">{stats?.overview.avgScore || 0}</div>
-            </CardContent>
-          </Card>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            { title: "Total Signals", value: stats?.overview.total || 0, icon: Activity, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500" },
+            { title: "Qualified", value: stats?.overview.qualified || 0, icon: Target, color: "text-green-500", bg: "bg-green-500/10", border: "border-green-500" },
+            { title: "Enriched", value: stats?.overview.enriched || 0, icon: Building, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500" },
+            { title: "Contacted", value: stats?.overview.contacted || 0, icon: Mail, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500" },
+            { title: "Today New", value: stats?.overview.todayNew || 0, icon: TrendingUp, color: "text-indigo-500", bg: "bg-indigo-500/10", border: "border-indigo-500" },
+            { title: "Avg Score", value: stats?.overview.avgScore || 0, icon: Target, color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500" }
+          ].map((stat) => (
+            <Card
+              key={stat.title}
+              className={`shadow-md hover:shadow-lg transition-all duration-300 border-0 border-l-4 ${stat.border} hover:scale-105 cursor-pointer`}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {stat.title}
+                </CardTitle>
+                <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center shadow-inner`}>
+                  <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <div className="text-3xl font-bold text-foreground">{stat.value}</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Filters */}
@@ -1512,7 +1480,7 @@ export default function PainSignalPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[40px]">
-                      <Checkbox 
+                      <Checkbox
                         checked={selectedIds.length === signals.length && signals.length > 0}
                         onCheckedChange={toggleSelectAll}
                       />
@@ -1528,12 +1496,12 @@ export default function PainSignalPage() {
                 </TableHeader>
                 <TableBody>
                   {signals.map((signal) => (
-                    <TableRow 
-                      key={signal._id} 
+                    <TableRow
+                      key={signal._id}
                       className={`cursor-pointer hover:bg-muted/50 ${selectedIds.includes(signal._id) ? 'bg-muted/50' : ''}`}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox 
+                        <Checkbox
                           checked={selectedIds.includes(signal._id)}
                           onCheckedChange={() => toggleSelect(signal._id)}
                         />
@@ -1639,9 +1607,9 @@ export default function PainSignalPage() {
             </div>
             <div className="h-6 w-[1px] bg-border" />
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="gap-2 text-purple-600 border-purple-200 hover:bg-purple-50"
                 onClick={bulkEnrich}
                 disabled={enrichingBulk}
@@ -1649,18 +1617,18 @@ export default function PainSignalPage() {
                 {enrichingBulk ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Building className="h-4 w-4" />}
                 Enrich Leads
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="gap-2 text-amber-600 border-amber-200 hover:bg-amber-50"
                 onClick={bulkArchive}
               >
                 <Archive className="h-4 w-4" />
                 Archive
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
                 onClick={bulkDelete}
               >
@@ -1849,8 +1817,8 @@ export default function PainSignalPage() {
                     )}
 
                     {!selectedSignal.enrichedDomain && (
-                      <Button 
-                        onClick={() => enrichSignal(selectedSignal._id)} 
+                      <Button
+                        onClick={() => enrichSignal(selectedSignal._id)}
                         className="w-full h-12 rounded-xl bg-purple-600 hover:bg-purple-700 text-white"
                       >
                         <Building className="h-4 w-4 mr-2" />

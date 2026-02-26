@@ -1,11 +1,11 @@
 import { Outlet } from "react-router-dom";
-import { HrPortalSidebar } from "./HrPortalSidebar";
 import { Header } from "./Header";
+import { SocialMediaSidebar } from "./SocialMediaSidebar";
 
-export const HrPortalLayout = () => {
+export const SocialMediaLayout = () => {
     return (
         <div className="flex h-screen overflow-hidden bg-background">
-            <HrPortalSidebar />
+            <SocialMediaSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header />
                 <main className="flex-1 overflow-y-auto">

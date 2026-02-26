@@ -168,7 +168,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             const data = await response.json();
             if (data.success) {
                 setStats(data.stats);
-                
+
                 // If sequence just finished, turn off isSending
                 if (data.stats.currentAction === "Sequence Finished Successfully" && isSending) {
                     setIsSending(false);
@@ -208,21 +208,21 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
     const findColumnIndex = (headers: string[], includeKeywords: string[], excludeKeywords: string[] = []) => {
         // 1. Priority: Exact matches first
-        const exactMatch = headers.findIndex(h => 
+        const exactMatch = headers.findIndex(h =>
             includeKeywords.some(k => h === k)
         );
         if (exactMatch >= 0) return exactMatch;
 
         // 2. Priority: Starts with includeKeyword + No excludeKeywords
-        const startsWithMatch = headers.findIndex(h => 
-            includeKeywords.some(k => h.startsWith(k)) && 
+        const startsWithMatch = headers.findIndex(h =>
+            includeKeywords.some(k => h.startsWith(k)) &&
             !excludeKeywords.some(k => h.includes(k))
         );
         if (startsWithMatch >= 0) return startsWithMatch;
 
         // 3. Match that contains includeKeyword but NO excludeKeyword
-        const filteredMatch = headers.findIndex(h => 
-            includeKeywords.some(k => h.includes(k)) && 
+        const filteredMatch = headers.findIndex(h =>
+            includeKeywords.some(k => h.includes(k)) &&
             !excludeKeywords.some(k => h.includes(k))
         );
         if (filteredMatch >= 0) return filteredMatch;
@@ -233,7 +233,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
         const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person'];
         const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization'];
-        
+
         const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email'];
         const emailExcludes = ['domain', 'host'];
 
@@ -254,7 +254,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         for (const values of rows) {
             if (!values || values.length === 0) continue;
-            
+
             const contact: Contact = {
                 name: nameIndex >= 0 ? String(values[nameIndex] || '').trim() : '',
                 email: emailIndex >= 0 ? String(values[emailIndex] || '').trim() : '',
@@ -279,14 +279,14 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const commaCount = (firstLine.match(/,/g) || []).length;
         const tabCount = (firstLine.match(/\t/g) || []).length;
         const semicolonCount = (firstLine.match(/;/g) || []).length;
-        
+
         let delimiter = ',';
         if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
         else if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
 
         const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
         const rows = lines.slice(1).map(line => line.split(delimiter).map(v => v.trim().replace(/"/g, '')));
-        
+
         return extractContactsFromData(headers, rows);
     };
 
@@ -294,7 +294,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        
+
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
         if (jsonData.length < 2) return [];
 
@@ -320,7 +320,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 setContacts(extracted);
                 setFileName(file.name);
                 setSendResults(null);
-                
+
                 toast({
                     title: `${isExcel ? 'Excel' : 'CSV'} Parsed Successfully`,
                     description: `Found ${extracted.length} contacts with valid emails`,
@@ -355,7 +355,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setIsDragging(false);
 
         const files = Array.from(e.dataTransfer.files);
-        const validFile = files.find(f => 
+        const validFile = files.find(f =>
             f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
         );
         if (validFile) {
@@ -371,7 +371,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const validFile = files.find(f => 
+        const validFile = files.find(f =>
             f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
         );
         if (validFile) {
@@ -566,8 +566,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <p className="text-sm text-muted-foreground">Emails</p>
                                 <p className="text-2xl font-bold">{stats?.emails?.sent} / {stats?.emails?.sent + stats?.emails?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-blue-500 transition-all duration-500" 
+                                    <div
+                                        className="h-full bg-blue-500 transition-all duration-500"
                                         style={{ width: `${(stats?.emails?.sent / (stats?.emails?.sent + stats?.emails?.pending || 1)) * 100}%` }}
                                     />
                                 </div>
@@ -576,8 +576,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <p className="text-sm text-muted-foreground">SMS</p>
                                 <p className="text-2xl font-bold">{stats?.sms?.sent} / {stats?.sms?.sent + stats?.sms?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-purple-500 transition-all duration-500" 
+                                    <div
+                                        className="h-full bg-purple-500 transition-all duration-500"
                                         style={{ width: `${(stats?.sms?.sent / (stats?.sms?.sent + stats?.sms?.pending || 1)) * 100}%` }}
                                     />
                                 </div>
@@ -586,8 +586,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <p className="text-sm text-muted-foreground">Vapi Calls</p>
                                 <p className="text-2xl font-bold">{stats?.calls?.sent} / {stats?.calls?.sent + stats?.calls?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-green-500 transition-all duration-500" 
+                                    <div
+                                        className="h-full bg-green-500 transition-all duration-500"
                                         style={{ width: `${(stats?.calls?.sent / (stats?.calls?.sent + stats?.calls?.pending || 1)) * 100}%` }}
                                     />
                                 </div>
@@ -754,10 +754,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                             </Button>
                         </div>
                         <div className="flex flex-col gap-1 items-center mt-2">
-                             <p className="text-xs text-muted-foreground text-center">
+                            <p className="text-xs text-muted-foreground text-center">
                                 <b>Bulk Emails:</b> Sends 1 email now to every row (fast).
                             </p>
-                             <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
+                            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
                                 <b>Automated Sequence:</b> Sends Email 1 → 2m Wait → SMS 1 → 3m Wait → Call 1 → Then next row.
                             </p>
                         </div>

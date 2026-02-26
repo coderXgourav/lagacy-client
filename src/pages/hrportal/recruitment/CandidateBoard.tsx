@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { notification } from "antd";
 import axios from "axios";
-import { CandidateDetailsDialog } from "./CandidateDetailsDialog"; 
+import { CandidateDetailsDialog } from "./CandidateDetailsDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
     DropdownMenu,
@@ -21,13 +21,13 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Status Colors & Labels
 const STATUS_CONFIG = {
-    NEW: { label: "New", color: "bg-slate-500/10 text-slate-400 border-slate-500/20" },
-    ENRICHING: { label: "Enriching...", color: "bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse" },
-    READY: { label: "Ready", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-    NEEDS_REVIEW: { label: "Needs Review", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-    LINKEDIN_SENT: { label: "LinkedIn Sent", color: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
-    VAPI_CALLED: { label: "Vapi Call Initiated", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
-    REJECTED: { label: "Rejected", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" }
+    NEW: { label: "New", color: "bg-slate-500/10 text-slate-600 border-slate-500/20" },
+    ENRICHING: { label: "Enriching...", color: "bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse" },
+    READY: { label: "Ready", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+    NEEDS_REVIEW: { label: "Needs Review", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+    LINKEDIN_SENT: { label: "LinkedIn Sent", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
+    VAPI_CALLED: { label: "Vapi Call Initiated", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+    REJECTED: { label: "Rejected", color: "bg-rose-500/10 text-rose-600 border-rose-500/20" }
 };
 
 export default function CandidateBoard() {
@@ -109,7 +109,7 @@ export default function CandidateBoard() {
             await axios.post(`${API_URL}/hr/candidates`, newCandidate);
             toast.success("Candidate added. Enrichment starting...");
             fetchCandidates();
-            (document.getElementById("add-candidate-trigger") as HTMLButtonElement)?.click(); 
+            (document.getElementById("add-candidate-trigger") as HTMLButtonElement)?.click();
         } catch (error: any) {
             if (error.response?.data?.skipped) {
                 toast.info("Candidate already exists (Skipped)");
@@ -141,7 +141,7 @@ export default function CandidateBoard() {
                 jobId,
                 urls: urls.slice(0, 50)
             });
-            
+
             toast.success(`Import complete! Created: ${res.data.created}, Skipped: ${res.data.skipped}`);
             fetchCandidates();
             (document.getElementById("add-candidate-trigger") as HTMLButtonElement)?.click();
@@ -165,7 +165,7 @@ export default function CandidateBoard() {
         const firstName = candidate.name.split(' ')[0];
         const title = jobTitle || "your field";
         const calendarLink = "https://calendar.app.google/4nwNSZdtumvdNJgm7";
-        
+
         return {
             connect: `Hi ${firstName}, liked your work in ${title}. We're hiring a ${title} & want to discuss your career growth. Book here: ${calendarLink} - Paromita P, HR Manager`,
             followUp: `Hi ${firstName}, I came across your profile and reviewed your work; it truly stood out. We currently have an opening for a ${title} and are connecting with professionals who are genuinely looking for career growth, ownership, and long-term opportunities. If this aligns with what you're looking for, I'd like to schedule a quick interview to discuss the role and growth path. Book here: ${calendarLink} - Best regards, Paromita Pututunda, HR Manager, Kyptronix LLP`
@@ -191,10 +191,10 @@ export default function CandidateBoard() {
 
     // Calculate visible columns once
     const visibleStatuses = (['ENRICHING', 'READY', 'NEEDS_REVIEW', 'VAPI_CALLED', 'LINKEDIN_SENT', 'REJECTED'] as const).filter(status => {
-         if (status === 'ENRICHING') {
-             return candidates.some((c: any) => c.status === 'ENRICHING' || c.status === 'NEW');
-         }
-         return candidates.some((c: any) => c.status === status);
+        if (status === 'ENRICHING') {
+            return candidates.some((c: any) => c.status === 'ENRICHING' || c.status === 'NEW');
+        }
+        return candidates.some((c: any) => c.status === status);
     });
 
     const isSingleView = visibleStatuses.length === 1;
@@ -202,8 +202,8 @@ export default function CandidateBoard() {
     const renderColumn = (status: keyof typeof STATUS_CONFIG) => {
         let items = candidates.filter((c: any) => c.status === status);
         if (status === 'ENRICHING') {
-             const newItems = candidates.filter((c: any) => c.status === 'NEW');
-             items = [...items, ...newItems];
+            const newItems = candidates.filter((c: any) => c.status === 'NEW');
+            items = [...items, ...newItems];
         }
         const config = STATUS_CONFIG[status];
 
@@ -216,91 +216,87 @@ export default function CandidateBoard() {
 
                 <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
                     {items.map((candidate: any) => (
-                        <div 
-                            key={candidate._id} 
+                        <div
+                            key={candidate._id}
                             onClick={() => handleCardClick(candidate)}
-                            className={`rounded-xl border border-white/5 bg-[#0F172A]/40 backdrop-blur-sm hover:border-teal-500/30 hover:bg-[#0F172A]/60 cursor-pointer transition-all group relative ${isSingleView ? 'p-3 flex items-center justify-between gap-4' : 'p-4'}`}
+                            className={`rounded-xl border border-border bg-card hover:border-indigo-500/30 hover:bg-muted/50 cursor-pointer transition-all group relative ${isSingleView ? 'p-3 flex items-center justify-between gap-4' : 'p-4 shadow-sm'}`}
                         >
-                            
+
                             {/* SECTION 1: Identity (Left) */}
                             <div className={`${isSingleView ? 'flex-1 min-w-[300px]' : 'mb-2'}`}>
                                 <div className="flex gap-4 items-start">
                                     {/* Avatar */}
                                     {candidate.profilePicture ? (
-                                        <img src={candidate.profilePicture} alt={candidate.name} className="w-12 h-12 rounded-full object-cover border-2 border-teal-500/20" />
+                                        <img src={candidate.profilePicture} alt={candidate.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/20" />
                                     ) : (
-                                        <div className="w-12 h-12 rounded-full bg-teal-500/10 flex items-center justify-center text-teal-400 font-bold border border-teal-500/20 text-lg">
+                                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-bold border border-indigo-500/20 text-lg">
                                             {candidate.name.charAt(0)}
                                         </div>
                                     )}
-                                    
+
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start">
-                                            <h4 className="font-bold text-slate-100 text-base truncate pr-2" title={candidate.name}>{candidate.name}</h4>
+                                            <h4 className="font-bold text-foreground text-base truncate pr-2" title={candidate.name}>{candidate.name}</h4>
                                             {!isSingleView && (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <button className="text-slate-500 hover:text-white transition-colors">
+                                                        <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                                                             <MoreHorizontal className="w-4 h-4" />
                                                         </button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="bg-[#0B1120] border-white/10 text-slate-200">
-                                                        <DropdownMenuItem className="text-rose-400 cursor-pointer" onClick={() => handleDelete(candidate._id)}>
+                                                    <DropdownMenuContent className="bg-popover border-border text-popover-foreground">
+                                                        <DropdownMenuItem className="text-destructive cursor-pointer" onClick={(e) => { e.stopPropagation(); handleDelete(candidate._id); }}>
                                                             <Trash2 className="w-4 h-4 mr-2" /> Delete
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             )}
                                         </div>
-                                        
+
                                         {/* Headline / Current Role */}
-                                        <p className="text-xs text-teal-300 line-clamp-2 mt-0.5" title={candidate.headline}>
+                                        <p className="text-xs text-indigo-600 line-clamp-2 mt-0.5" title={candidate.headline}>
                                             {candidate.headline || (candidate.experience?.[0] ? `${candidate.experience[0].position} at ${candidate.experience[0].companyName}` : '')}
                                         </p>
-                                        
+
                                         {/* Location */}
-                                        <div className="flex items-center gap-1 mt-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+                                        <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
                                             <span>{candidate.location || "Unknown Location"}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* SECTION 2: Info (Center) - Only visible in Single View or if space allows */}
-                            <div className={`${isSingleView ? 'flex-[2] flex flex-col justify-center px-4 border-l border-white/5 border-r' : 'mb-3 space-y-2 mt-3'}`}>
-                                {/* Professional Context */}
+                            {/* SECTION 2: Info (Center) */}
+                            <div className={`${isSingleView ? 'flex-[2] flex flex-col justify-center px-4 border-l border-border border-r' : 'mb-3 space-y-2 mt-3'}`}>
                                 <div className="space-y-2">
-                                    {/* Current/Past Role Badge */}
                                     {candidate.experience?.[0] && (
-                                        <div className="flex items-center gap-2 text-xs text-slate-300">
+                                        <div className="flex items-center gap-2 text-xs text-foreground/80">
                                             <span className="w-2 h-2 rounded-full bg-emerald-500/50"></span>
                                             <span className="font-medium">{candidate.experience[0].position}</span>
-                                            <span className="text-slate-500">at</span>
-                                            <span className="text-slate-400 truncate max-w-[150px]">{candidate.experience[0].companyName}</span>
+                                            <span className="text-muted-foreground">at</span>
+                                            <span className="text-foreground/70 truncate max-w-[150px]">{candidate.experience[0].companyName}</span>
                                         </div>
                                     )}
 
-                                    {/* Skills - Badge Row */}
                                     {candidate.skills && candidate.skills.length > 0 && (
                                         <div className="flex flex-wrap gap-1.5">
                                             {candidate.skills.slice(0, isSingleView ? 5 : 3).map((skill: string, idx: number) => (
-                                                <span key={idx} className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap">
+                                                <span key={idx} className="px-2 py-0.5 rounded text-[10px] bg-muted text-muted-foreground border border-border whitespace-nowrap">
                                                     {skill}
                                                 </span>
                                             ))}
                                             {candidate.skills.length > (isSingleView ? 5 : 3) && (
-                                                <span className="px-1.5 py-0.5 text-[9px] text-slate-600">+{candidate.skills.length - (isSingleView ? 5 : 3)}</span>
+                                                <span className="px-1.5 py-0.5 text-[9px] text-muted-foreground/60">+{candidate.skills.length - (isSingleView ? 5 : 3)}</span>
                                             )}
                                         </div>
                                     )}
-                                    
-                                    {/* Links */}
+
                                     <div className="flex gap-4 pt-1">
-                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 transition-colors">
-                                            <Linkedin className="w-3 h-3" /> <span className="underline decoration-teal-400/30 underline-offset-2">LinkedIn Profile</span>
+                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-500 transition-colors" onClick={(e) => e.stopPropagation()}>
+                                            <Linkedin className="w-3 h-3" /> <span className="underline decoration-indigo-600/30 underline-offset-2">LinkedIn</span>
                                         </a>
                                         {candidate.email && (
-                                            <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                                            <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                                                 <Mail className="w-3 h-3" /> {candidate.email}
                                             </div>
                                         )}
@@ -309,12 +305,13 @@ export default function CandidateBoard() {
                             </div>
 
                             {/* SECTION 3: Actions (Right) */}
-                            <div className={`${isSingleView ? 'flex-1 flex justify-end gap-2 items-center' : 'flex gap-2 pt-2 border-t border-white/5'}`}>
+                            <div className={`${isSingleView ? 'flex-1 flex justify-end gap-2 items-center' : 'flex gap-2 pt-2 border-t border-border'}`}>
                                 {status === 'READY' && (
-                                    <Button 
-                                        size="sm" 
-                                        className="bg-teal-600 hover:bg-teal-500 text-white h-7 text-xs" 
-                                        onClick={() => {
+                                    <Button
+                                        size="sm"
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white h-7 text-xs"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setSelectedCandidate(candidate);
                                             setConnectDialogOpen(true);
                                         }}
@@ -322,29 +319,28 @@ export default function CandidateBoard() {
                                         <Send className="w-3 h-3 mr-1" /> Connect
                                     </Button>
                                 )}
-                                
+
                                 {status === 'NEEDS_REVIEW' && (
-                                    <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10" onClick={() => updateStatus(candidate._id, 'READY')}>
+                                    <Button size="sm" variant="outline" className="h-7 text-xs border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10" onClick={(e) => { e.stopPropagation(); updateStatus(candidate._id, 'READY'); }}>
                                         <CheckCircle className="w-3 h-3 mr-1" /> Approve
                                     </Button>
                                 )}
 
                                 {status === 'LINKEDIN_SENT' && (
-                                    <div className="text-center text-xs text-emerald-400 font-medium py-1">
+                                    <div className="text-center text-xs text-emerald-600 font-medium py-1">
                                         <CheckCircle className="w-3 h-3 inline mr-1" /> Sent
                                     </div>
                                 )}
 
-                                {/* Menu uses Dropdown in Single View too, but placed at end */}
                                 {isSingleView && (
-                                     <DropdownMenu>
+                                    <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <button className="text-slate-500 hover:text-white transition-colors p-1">
+                                            <button className="text-muted-foreground hover:text-foreground transition-colors p-1" onClick={(e) => e.stopPropagation()}>
                                                 <MoreHorizontal className="w-4 h-4" />
                                             </button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="bg-[#0B1120] border-white/10 text-slate-200">
-                                            <DropdownMenuItem className="text-rose-400 cursor-pointer" onClick={() => handleDelete(candidate._id)}>
+                                        <DropdownMenuContent className="bg-popover border-border text-popover-foreground">
+                                            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={(e) => { e.stopPropagation(); handleDelete(candidate._id); }}>
                                                 <Trash2 className="w-4 h-4 mr-2" /> Delete
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
@@ -354,8 +350,8 @@ export default function CandidateBoard() {
                         </div>
                     ))}
                     {items.length === 0 && (
-                        <div className="h-24 rounded-xl border border-dashed border-white/5 flex items-center justify-center text-slate-600 text-sm">
-                            Empty
+                        <div className="h-24 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground text-sm bg-muted/20">
+                            No candidates in this stage
                         </div>
                     )}
                 </div>
@@ -364,136 +360,163 @@ export default function CandidateBoard() {
     };
 
     return (
-        <div className="h-[calc(100vh-100px)] flex flex-col">
-            <div className="flex items-center justify-between mb-6 px-1">
-                <Button variant="ghost" className="gap-2 text-slate-400 hover:text-white" onClick={() => navigate("/hr-portal/recruitment")}>
-                    <ArrowLeft className="w-4 h-4" /> Back to Jobs
-                </Button>
+        <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-muted/20 p-6 flex flex-col">
+            <div className="container mx-auto max-w-[1600px] space-y-6 flex-1 flex flex-col">
 
-                {loading && (
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-medium animate-in fade-in slide-in-from-left-4 duration-500">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm tracking-wide">Syncing data...</span>
-                    </div>
-                )}
-                
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button id="add-candidate-trigger" className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20">
-                            + Add Candidates
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-[#0B1120] border-white/10 text-slate-200 max-w-2xl">
-                        <DialogHeader>
-                            <DialogTitle className="text-white">Add Candidates</DialogTitle>
-                        </DialogHeader>
-                        
-                        <Tabs defaultValue="single" className="w-full mt-4">
-                            <TabsList className="bg-white/5 border-white/10 w-full mb-4">
-                                <TabsTrigger value="single" className="flex-1">Single Entry</TabsTrigger>
-                                <TabsTrigger value="bulk" className="flex-1">Bulk Paste (URLs)</TabsTrigger>
-                            </TabsList>
+                {/* Header/Back Button */}
+                <div className="flex items-center justify-between">
+                    <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/hr-portal/recruitment")}>
+                        <ArrowLeft className="w-4 h-4" /> Back to Jobs
+                    </Button>
 
-                            <TabsContent value="single">
-                                <form onSubmit={handleAddCandidate} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label>Candidate Name</Label>
-                                        <Input name="name" required className="bg-white/5 border-white/10 text-white" placeholder="e.g. John Doe" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>LinkedIn URL</Label>
-                                        <Input name="linkedinUrl" required className="bg-white/5 border-white/10 text-white" placeholder="https://linkedin.com/in/..." />
-                                    </div>
-                                    <Button type="submit" disabled={isAdding} className="w-full bg-teal-600 hover:bg-teal-500">
-                                        {isAdding ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Candidate"}
-                                    </Button>
-                                </form>
-                            </TabsContent>
+                    {loading && (
+                        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 font-medium ">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">Syncing data...</span>
+                        </div>
+                    )}
+                </div>
 
-                            <TabsContent value="bulk">
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label>Paste LinkedIn URLs (One per line)</Label>
-                                        <textarea 
-                                            id="bulk-urls"
-                                            className="w-full h-48 bg-white/5 border border-white/10 rounded-md p-3 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                            placeholder="https://linkedin.com/in/user1&#10;https://linkedin.com/in/user2"
-                                        />
-                                    </div>
-                                    <Button 
-                                        onClick={handleBulkImport} 
-                                        disabled={isAdding} 
-                                        className="w-full bg-teal-600 hover:bg-teal-500"
-                                    >
-                                        {isAdding ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-                                        Import All Candidates
-                                    </Button>
+                {/* Hero Section */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-indigo-500/5 to-transparent border border-indigo-500/20 p-8 md:p-10 mb-2">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg">
+                                    <CheckCircle className="h-6 w-6 text-white" />
                                 </div>
-                            </TabsContent>
-                        </Tabs>
-                    </DialogContent>
-                </Dialog>
+                                <div className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 text-xs font-semibold tracking-wide uppercase">
+                                    Candidate Pipeline
+                                </div>
+                            </div>
+                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                                {jobTitle || "Candidate Pipeline"}
+                            </h1>
+                            <p className="text-lg text-muted-foreground max-w-2xl">
+                                Manage and track candidates through your recruitment workflow stages.
+                            </p>
+                        </div>
+
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button id="add-candidate-trigger" size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20">
+                                    <Plus className="w-4 h-4 mr-2" /> Add Candidates
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-popover border-border text-popover-foreground max-w-2xl">
+                                <DialogHeader>
+                                    <DialogTitle>Add Candidates</DialogTitle>
+                                </DialogHeader>
+
+                                <Tabs defaultValue="single" className="w-full mt-4">
+                                    <TabsList className="bg-muted border-border w-full mb-4">
+                                        <TabsTrigger value="single" className="flex-1">Single Entry</TabsTrigger>
+                                        <TabsTrigger value="bulk" className="flex-1">Bulk Paste (URLs)</TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="single">
+                                        <form onSubmit={handleAddCandidate} className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>Candidate Name</Label>
+                                                <Input name="name" required placeholder="e.g. John Doe" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>LinkedIn URL</Label>
+                                                <Input name="linkedinUrl" required placeholder="https://linkedin.com/in/..." />
+                                            </div>
+                                            <Button type="submit" disabled={isAdding} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                                                {isAdding ? <Loader2 className="animate-spin w-4 h-4" /> : "Save Candidate"}
+                                            </Button>
+                                        </form>
+                                    </TabsContent>
+
+                                    <TabsContent value="bulk">
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>Paste LinkedIn URLs (One per line)</Label>
+                                                <textarea
+                                                    id="bulk-urls"
+                                                    className="w-full h-48 bg-background border border-border rounded-md p-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    placeholder="https://linkedin.com/in/user1&#10;https://linkedin.com/in/user2"
+                                                />
+                                            </div>
+                                            <Button
+                                                onClick={handleBulkImport}
+                                                disabled={isAdding}
+                                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                                            >
+                                                {isAdding ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                                                Import All Candidates
+                                            </Button>
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-hidden pb-4 min-h-0 mt-4">
+                    {loading && candidates.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center gap-6 text-muted-foreground">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full animate-pulse" />
+                                <Loader2 className="w-16 h-16 animate-spin text-indigo-600 relative z-10" />
+                            </div>
+                            <div className="text-center space-y-2">
+                                <p className="text-lg font-bold text-foreground tracking-tight">Syncing Pipeline</p>
+                                <p className="text-sm font-medium">Fetching candidate data...</p>
+                            </div>
+                        </div>
+                    ) : visibleStatuses.length > 0 ? (
+                        <div className={`grid gap-4 h-full ${isSingleView ? 'grid-cols-1 max-w-5xl mx-auto w-full' : `grid-cols-${visibleStatuses.length}`
+                            }`}>
+                            {visibleStatuses.map(status => renderColumn(status))}
+                        </div>
+                    ) : (
+                        <div className="h-full border-2 border-dashed border-border rounded-3xl flex flex-col items-center justify-center gap-4 text-muted-foreground bg-muted/20">
+                            <div className="p-4 rounded-full bg-muted border border-border">
+                                <ArrowLeft className="w-8 h-8 opacity-20" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-lg font-bold">No candidates yet</p>
+                                <p className="text-sm">Click "+ Add Candidates" to get started</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className={`flex-1 overflow-hidden pb-4 px-1 min-h-0`}>
-                {loading && candidates.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-6 text-slate-500 animate-in fade-in zoom-in-95 duration-500">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-teal-500/20 blur-xl rounded-full animate-pulse" />
-                            <Loader2 className="w-16 h-16 animate-spin text-teal-500 relative z-10" />
-                        </div>
-                        <div className="text-center space-y-2">
-                            <p className="text-lg font-bold text-white tracking-tight">Syncing Candidate Pipeline</p>
-                            <p className="text-sm text-slate-400 font-medium">Fetching the latest candidate data for you...</p>
-                        </div>
-                    </div>
-                ) : visibleStatuses.length > 0 ? (
-                    <div className={`grid gap-4 h-full ${
-                        isSingleView ? 'grid-cols-1 max-w-5xl mx-auto w-full' : `grid-cols-${visibleStatuses.length}`
-                    }`}>
-                        {visibleStatuses.map(status => renderColumn(status))}
-                    </div>
-                ) : (
-                    <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-4 text-slate-500 bg-white/[0.02]">
-                        <div className="p-4 rounded-full bg-slate-900 border border-white/10">
-                            <ArrowLeft className="w-8 h-8 opacity-20" />
-                        </div>
-                        <div className="text-center">
-                            <p className="text-lg font-bold text-slate-400">No candidates yet</p>
-                            <p className="text-sm">Click "+ Add Candidates" to get started</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <CandidateDetailsDialog 
-                candidate={selectedCandidate} 
-                open={detailsOpen} 
-                onOpenChange={setDetailsOpen} 
+            <CandidateDetailsDialog
+                candidate={selectedCandidate}
+                open={detailsOpen}
+                onOpenChange={setDetailsOpen}
             />
+
             {/* Connection Outreach Dialog */}
             <Dialog open={connectDialogOpen} onOpenChange={setConnectDialogOpen}>
-                <DialogContent className="bg-[#0B1120] border-white/10 text-slate-200 max-w-lg">
+                <DialogContent className="bg-popover border-border text-popover-foreground max-w-lg">
                     <DialogHeader>
-                        <DialogTitle className="text-white flex items-center gap-2">
-                            <Linkedin className="w-5 h-5 text-teal-400" /> Outreach to {selectedCandidate?.name}
+                        <DialogTitle className="flex items-center gap-2">
+                            <Linkedin className="w-5 h-5 text-indigo-600" /> Outreach to {selectedCandidate?.name}
                         </DialogTitle>
                     </DialogHeader>
-                    
+
                     {selectedCandidate && (
                         <div className="space-y-6 mt-4">
-                            <div className="p-3 rounded-lg bg-teal-500/5 border border-teal-500/10 text-[10px] text-teal-300">
+                            <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10 text-[10px] text-indigo-600 font-medium uppercase tracking-tight">
                                 💡 Step 1: Open Profile &rarr; Step 2: Copy Note &rarr; Step 3: Mark as Sent
                             </div>
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <Label className="text-slate-400">1. Connection Request Note</Label>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-7 text-teal-400 hover:text-teal-300"
+                                        <Label className="text-muted-foreground">1. Connection Request Note</Label>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-indigo-600 hover:text-indigo-700"
                                             onClick={() => {
                                                 navigator.clipboard.writeText(getTemplates(selectedCandidate).connect);
                                                 toast.success("Note copied!");
@@ -502,18 +525,18 @@ export default function CandidateBoard() {
                                             Copy
                                         </Button>
                                     </div>
-                                    <div className="p-3 rounded-md bg-white/5 border border-white/10 text-sm text-slate-300 italic">
+                                    <div className="p-4 rounded-md bg-muted border border-border text-sm italic leading-relaxed">
                                         "{getTemplates(selectedCandidate).connect}"
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center">
-                                        <Label className="text-slate-400">2. Follow-up DM (Post-Connection)</Label>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="xs" 
-                                            className="h-7 text-teal-400 hover:text-teal-300"
+                                        <Label className="text-muted-foreground">2. Follow-up DM (Post-Connection)</Label>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-indigo-600 hover:text-indigo-700"
                                             onClick={() => {
                                                 navigator.clipboard.writeText(getTemplates(selectedCandidate).followUp);
                                                 toast.success("Follow-up copied!");
@@ -522,21 +545,21 @@ export default function CandidateBoard() {
                                             Copy
                                         </Button>
                                     </div>
-                                    <div className="p-3 rounded-md bg-white/5 border border-white/10 text-sm text-slate-300 italic">
+                                    <div className="p-4 rounded-md bg-muted border border-border text-sm italic leading-relaxed">
                                         "{getTemplates(selectedCandidate).followUp}"
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex gap-3">
-                                <Button 
-                                    className="flex-1 bg-white/5 hover:bg-white/10 border-white/10 text-white"
+                                <Button
+                                    className="flex-1 bg-muted hover:bg-muted/80 border-border text-foreground"
                                     onClick={() => window.open(selectedCandidate.linkedinUrl, '_blank')}
                                 >
                                     <Linkedin className="w-4 h-4 mr-2" /> Open Profile
                                 </Button>
-                                <Button 
-                                    className="flex-1 bg-teal-600 hover:bg-teal-500 text-white"
+                                <Button
+                                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
                                     onClick={() => handleConnectDone(selectedCandidate._id)}
                                     disabled={isSending}
                                 >

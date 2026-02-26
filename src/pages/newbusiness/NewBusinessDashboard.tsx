@@ -18,7 +18,7 @@ export default function NewBusinessDashboard() {
     try {
       const response = await newBusinessApi.getRecentSearches(10);
       const searches = response.searches || response.data || [];
-      
+
       if (searches.length > 0) {
         const avgTime = calculateAvgResponseTime(searches);
         setStats({

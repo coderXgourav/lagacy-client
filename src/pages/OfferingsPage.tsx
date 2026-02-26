@@ -260,15 +260,13 @@ export default function OfferingsPage() {
             return (
               <Card
                 key={offering.id}
-                className={`h-[280px] flex flex-col shadow-xl border overflow-hidden transition-all duration-300 relative ${
-                  offering.available
+                className={`h-[280px] flex flex-col shadow-xl border overflow-hidden transition-all duration-300 relative ${offering.available
                     ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
                     : "opacity-60 cursor-not-allowed"
-                } ${
-                  offering.beta
+                  } ${offering.beta
                     ? "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800"
                     : "bg-gradient-to-br from-card via-card to-card/50 border-transparent"
-                }`}
+                  }`}
                 onClick={() =>
                   offering.available &&
                   offering.route &&
@@ -288,22 +286,20 @@ export default function OfferingsPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-2">
                     <div
-                      className={`p-3 rounded-xl ${
-                        offering.available
+                      className={`p-3 rounded-xl ${offering.available
                           ? offering.beta
                             ? "bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
                             : "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
                           : "bg-muted"
-                      }`}
+                        }`}
                     >
                       <Icon
-                        className={`h-6 w-6 ${
-                          offering.available
+                        className={`h-6 w-6 ${offering.available
                             ? offering.beta
                               ? "text-amber-600 dark:text-amber-400"
                               : "text-primary"
                             : "text-muted-foreground"
-                        }`}
+                          }`}
                       />
                     </div>
                   </div>

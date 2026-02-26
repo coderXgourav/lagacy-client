@@ -1,17 +1,17 @@
 import { Outlet } from "react-router-dom";
-import { DomainScraperSidebar } from "./DomainScraperSidebar";
 import { Header } from "./Header";
+import { DomainScraperSidebar } from "./DomainScraperSidebar";
 
-export function DomainScraperLayout() {
+export const DomainScraperLayout = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="flex">
-        <DomainScraperSidebar />
-        <main className="flex-1">
+    <div className="flex h-screen overflow-hidden bg-background">
+      <DomainScraperSidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto scrollbar-hide">
           <Outlet />
         </main>
       </div>
     </div>
   );
-}
+};

@@ -10,7 +10,6 @@ import { NoWebsiteLayout } from "./components/layout/NoWebsiteLayout";
 import { LowRatingLayout } from "./components/layout/LowRatingLayout";
 import NewDomainLayout from "./components/layout/NewDomainLayout";
 import NewBusinessLayout from "./components/layout/NewBusinessLayout";
-import { DomainScraperLayout } from "./components/layout/DomainScraperLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import SearchPage from "./pages/SearchPage";
@@ -55,6 +54,13 @@ import KyptronixFormPage from "./pages/KyptronixFormPage";
 import KyptronixFormDetailsPage from "./pages/KyptronixFormDetailsPage";
 import SystemRoleDashboard from "./pages/SystemRoleDashboard";
 import NotFound from "./pages/NotFound";
+import { SystemRoleLayout } from "./components/layout/SystemRoleLayout";
+import { PainSignalLayout } from "./components/layout/PainSignalLayout";
+import { SocialMediaLayout } from "./components/layout/SocialMediaLayout";
+import { SourceSiteOwnersLayout } from "./components/layout/SourceSiteOwnersLayout";
+import { LeadCaptureLayout } from "./components/layout/LeadCaptureLayout";
+import { KyptronixFormLayout } from "./components/layout/KyptronixFormLayout";
+import { DomainScraperLayout } from "./components/layout/DomainScraperLayout";
 
 const queryClient = new QueryClient();
 
@@ -120,14 +126,26 @@ const App = () => (
                 <Route path="recruitment/new" element={<HrJobRequest />} />
                 <Route path="recruitment/board/:jobId" element={<CandidateBoard />} />
               </Route>
-              <Route path="/social-media" element={<ProtectedRoute><SocialMediaDashboard /></ProtectedRoute>} />
-              <Route path="/source-site-owners" element={<ProtectedRoute><SourceSiteOwnersPage /></ProtectedRoute>} />
-              <Route path="/lead-capture" element={<ProtectedRoute><LeadCapturePage /></ProtectedRoute>} />
-              <Route path="/lead-dashboard" element={<ProtectedRoute><LeadDashboardPage /></ProtectedRoute>} />
-              <Route path="/pain-signal" element={<ProtectedRoute><PainSignalPage /></ProtectedRoute>} />
-              <Route path="/kyptronix-form" element={<ProtectedRoute><KyptronixFormPage /></ProtectedRoute>} />
-              <Route path="/kyptronix-form/:formId" element={<ProtectedRoute><KyptronixFormDetailsPage /></ProtectedRoute>} />
-              <Route path="/system-role" element={<ProtectedRoute><SystemRoleDashboard /></ProtectedRoute>} />
+              <Route path="/social-media" element={<ProtectedRoute><SocialMediaLayout /></ProtectedRoute>}>
+                <Route index element={<SocialMediaDashboard />} />
+              </Route>
+              <Route path="/source-site-owners" element={<ProtectedRoute><SourceSiteOwnersLayout /></ProtectedRoute>}>
+                <Route index element={<SourceSiteOwnersPage />} />
+              </Route>
+              <Route path="/lead-capture" element={<ProtectedRoute><LeadCaptureLayout /></ProtectedRoute>}>
+                <Route index element={<LeadCapturePage />} />
+                <Route path="dashboard" element={<LeadDashboardPage />} />
+              </Route>
+              <Route path="/pain-signal" element={<ProtectedRoute><PainSignalLayout /></ProtectedRoute>}>
+                <Route index element={<PainSignalPage />} />
+              </Route>
+              <Route path="/kyptronix-form" element={<ProtectedRoute><KyptronixFormLayout /></ProtectedRoute>}>
+                <Route index element={<KyptronixFormPage />} />
+                <Route path=":formId" element={<KyptronixFormDetailsPage />} />
+              </Route>
+              <Route path="/system-role" element={<ProtectedRoute><SystemRoleLayout /></ProtectedRoute>}>
+                <Route index element={<SystemRoleDashboard />} />
+              </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

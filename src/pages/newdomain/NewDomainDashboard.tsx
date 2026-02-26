@@ -18,7 +18,7 @@ export default function NewDomainDashboard() {
     try {
       const response = await newDomainApi.getRecentSearches(10);
       const searches = response.searches || response.data || [];
-      
+
       if (searches.length > 0) {
         const avgTime = calculateAvgResponseTime(searches);
         setStats({
