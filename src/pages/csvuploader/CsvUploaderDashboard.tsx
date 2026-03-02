@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -231,22 +232,52 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     };
 
     const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
-        const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person'];
+        const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person', 'first', 'last'];
         const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization'];
         
-        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email'];
-        const emailExcludes = ['domain', 'host'];
+        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'address'];
+        const emailExcludes = ['postal', 'physical'];
 
-        const numberKeywords = ['number', 'phone', 'mobile', 'tel', 'contact_phone', 'registrant_phone'];
+        const numberKeywords = ['number', 'phone', 'mobile', 'tel', 'contact_phone', 'registrant_phone', 'cell'];
         const numberExcludes = ['fax', 'extension', 'office'];
 
-        const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation'];
+        const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation', 'location'];
         const countryExcludes = ['code', 'domain'];
 
-        const nameIndex = findColumnIndex(headers, nameKeywords, nameExcludes);
-        const emailIndex = findColumnIndex(headers, emailKeywords, emailExcludes);
-        const numberIndex = findColumnIndex(headers, numberKeywords, numberExcludes);
-        const countryIndex = findColumnIndex(headers, countryKeywords, countryExcludes);
+        let nameIndex = findColumnIndex(headers, nameKeywords, nameExcludes);
+        let emailIndex = findColumnIndex(headers, emailKeywords, emailExcludes);
+        let numberIndex = findColumnIndex(headers, numberKeywords, numberExcludes);
+        let countryIndex = findColumnIndex(headers, countryKeywords, countryExcludes);
+
+        // Fallback: If no email header found, the headers might be the first data row, or headers are unrecognized.
+        // Guess by regex.
+        if (emailIndex === -1 && rows.length > 0) {
+            // Check if headers themselves are actually data
+            const headerIsEmail = headers.findIndex(h => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h));
+            if (headerIsEmail >= 0) {
+                emailIndex = headerIsEmail;
+                rows.unshift(headers); // Push headers back as data
+                
+                // Try to find phone in headers
+                if (numberIndex === -1) {
+                    nameIndex = headers.findIndex(h => /^[a-zA-Z\s]{3,20}$/.test(h) && !h.includes('@'));
+                    numberIndex = headers.findIndex(h => /^[\+\d\s\-\(\)]{7,20}$/.test(h) && /\d{5}/.test(h));
+                }
+            } else {
+                // Check first few rows to guess columns
+                for (let i = 0; i < Math.min(3, rows.length); i++) {
+                    const row = rows[i] || [];
+                    if (emailIndex === -1) {
+                         const idx = row.findIndex(v => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()));
+                         if (idx >= 0) emailIndex = idx;
+                    }
+                    if (numberIndex === -1) {
+                         const idx = row.findIndex(v => typeof v === 'string' && /^[\+\d\s\-\(\)]{7,20}$/.test(v.trim()) && /\d{5}/.test(v));
+                         if (idx >= 0) numberIndex = idx;
+                    }
+                }
+            }
+        }
 
         console.log('Mapping Debug:', { headers, nameIndex, emailIndex, numberIndex, countryIndex });
 
@@ -272,22 +303,21 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     };
 
     const parseCSV = (text: string): Contact[] => {
-        const lines = text.split('\n').filter(line => line.trim());
-        if (lines.length < 2) return [];
+        const result = Papa.parse(text, { skipEmptyLines: true });
+        const rows = result.data as any[][];
+        if (rows.length < 2) {
+             // If there's only 1 row, maybe it's just data with no headers
+             if (rows.length === 1) {
+                 const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+                 return extractContactsFromData(headers, rows);
+             }
+             return [];
+        }
 
-        const firstLine = lines[0];
-        const commaCount = (firstLine.match(/,/g) || []).length;
-        const tabCount = (firstLine.match(/\t/g) || []).length;
-        const semicolonCount = (firstLine.match(/;/g) || []).length;
+        const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+        const dataRows = rows.slice(1);
         
-        let delimiter = ',';
-        if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
-        else if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
-
-        const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
-        const rows = lines.slice(1).map(line => line.split(delimiter).map(v => v.trim().replace(/"/g, '')));
-        
-        return extractContactsFromData(headers, rows);
+        return extractContactsFromData(headers, dataRows);
     };
 
     const parseExcel = (data: ArrayBuffer): Contact[] => {
@@ -295,7 +325,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
         if (jsonData.length < 2) return [];
 
         const headers = jsonData[0].map(h => String(h || '').trim().toLowerCase());
@@ -305,7 +335,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     };
 
     const processFile = (file: File) => {
-        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+        const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
         const reader = new FileReader();
 
         reader.onload = (e) => {
@@ -317,14 +347,23 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                     extracted = parseCSV(e.target?.result as string);
                 }
 
+                if (extracted.length === 0) {
+                     toast({
+                        title: "No Contacts Found",
+                        description: "Could not find any rows manually mapping to valid emails.",
+                        variant: "destructive"
+                    });
+                    // Still set state to clear errors
+                } else {
+                    toast({
+                        title: `File Parsed Successfully`,
+                        description: `Found ${extracted.length} contacts with valid emails`,
+                    });
+                }
+                
                 setContacts(extracted);
                 setFileName(file.name);
                 setSendResults(null);
-                
-                toast({
-                    title: `${isExcel ? 'Excel' : 'CSV'} Parsed Successfully`,
-                    description: `Found ${extracted.length} contacts with valid emails`,
-                });
             } catch (error) {
                 console.error('File parsing error:', error);
                 toast({
@@ -350,14 +389,16 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         }
     };
 
-    const handleDrop = useCallback((e: React.DragEvent) => {
+    const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
 
         const files = Array.from(e.dataTransfer.files);
-        const validFile = files.find(f => 
-            f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
-        );
+        const validFile = files.find(f => {
+            const name = f.name.toLowerCase();
+            return name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls');
+        });
+        
         if (validFile) {
             processFile(validFile);
         } else {
@@ -367,16 +408,21 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 variant: "destructive"
             });
         }
-    }, [processFile, toast]);
+    };
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const validFile = files.find(f => 
-            f.name.endsWith('.csv') || f.name.endsWith('.xlsx') || f.name.endsWith('.xls')
-        );
+        const validFile = files.find(f => {
+            const name = f.name.toLowerCase();
+            return name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls');
+        });
+        
         if (validFile) {
             processFile(validFile);
         }
+        
+        // Reset input value to allow uploading the same file again
+        e.target.value = '';
     };
 
     const sendEmails = async () => {
