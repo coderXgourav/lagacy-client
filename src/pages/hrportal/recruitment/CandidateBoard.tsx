@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { notification } from "antd";
@@ -167,8 +167,8 @@ export default function CandidateBoard() {
         const calendarLink = "https://calendar.app.google/4nwNSZdtumvdNJgm7";
         
         return {
-            connect: `Hi ${firstName}, liked your work in ${title}. We're hiring a ${title} & want to discuss your career growth. Book here: ${calendarLink} - Paromita P, HR Manager`,
-            followUp: `Hi ${firstName}, I came across your profile and reviewed your work; it truly stood out. We currently have an opening for a ${title} and are connecting with professionals who are genuinely looking for career growth, ownership, and long-term opportunities. If this aligns with what you're looking for, I'd like to schedule a quick interview to discuss the role and growth path. Book here: ${calendarLink} - Best regards, Paromita Pututunda, HR Manager, Kyptronix LLP`
+            connect: `Hi ${firstName}, I came across your profile and liked your work.\n\nWe currently have an opening for a ${title} and are speaking with candidates who are looking for real career growth, not just another role.\n\nIf you're open to exploring this opportunity, I'd be happy to connect and walk you through the role, expectations, and growth path.\n\nYou can book a quick conversation with me via my calendar here:\n${calendarLink}\n\nLooking forward to connecting.\nParomita Pututunda\nHR Manager`,
+            followUp: `Hi ${firstName}, I came across your profile and reviewed your work; it truly stood out.\n\nWe currently have an opening for a ${title} and are connecting with professionals who are genuinely looking for career growth, ownership, and long-term opportunities.\n\nIf this aligns with what you're looking for, I'd like to schedule a quick interview to discuss the role, expectations, and growth path.\n\nPlease feel free to book a time that works for you using my calendar link below:\n${calendarLink}\n\nLooking forward to connecting.\n\nBest regards,\nParomita Pututunda\nHR Manager\nKyptronix LLP`
         };
     };
 
@@ -187,6 +187,37 @@ export default function CandidateBoard() {
         } catch (error: any) {
             toast.error(error.response?.data?.error || "Delete failed");
         }
+    };
+
+    const handleExportCSV = () => {
+        if (candidates.length === 0) {
+            toast.info("No candidates to export");
+            return;
+        }
+        
+        const headers = ["Name", "LinkedIn URL", "Email", "Phone", "Status", "Job Title", "Location"];
+        const csvContent = [
+            headers.join(","),
+            ...candidates.map((c: any) => [
+                `"${(c.name || '').replace(/"/g, '""')}"`,
+                `"${(c.linkedinUrl || '').replace(/"/g, '""')}"`,
+                `"${(c.email || '').replace(/"/g, '""')}"`,
+                `"${(c.phone || '').replace(/"/g, '""')}"`,
+                `"${(c.status || '').replace(/"/g, '""')}"`,
+                `"${(jobTitle || '').replace(/"/g, '""')}"`,
+                `"${(c.location || 'Unknown').replace(/"/g, '""')}"`
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${(jobTitle || 'candidates').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_candidates.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Calculate visible columns once
@@ -377,12 +408,20 @@ export default function CandidateBoard() {
                     </div>
                 )}
                 
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button id="add-candidate-trigger" className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20">
-                            + Add Candidates
-                        </Button>
-                    </DialogTrigger>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        onClick={handleExportCSV} 
+                        variant="outline" 
+                        className="bg-white/5 border-white/10 hover:bg-white/10 text-slate-200"
+                    >
+                        <Download className="w-4 h-4 mr-2" /> Export CSV
+                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button id="add-candidate-trigger" className="bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20">
+                                + Add Candidates
+                            </Button>
+                        </DialogTrigger>
                     <DialogContent className="bg-[#0B1120] border-white/10 text-slate-200 max-w-2xl">
                         <DialogHeader>
                             <DialogTitle className="text-white">Add Candidates</DialogTitle>
@@ -433,6 +472,7 @@ export default function CandidateBoard() {
                         </Tabs>
                     </DialogContent>
                 </Dialog>
+                </div>
             </div>
 
             <div className={`flex-1 overflow-hidden pb-4 px-1 min-h-0`}>
