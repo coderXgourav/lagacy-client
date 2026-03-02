@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2, Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { notification } from "antd";
@@ -167,8 +167,8 @@ export default function CandidateBoard() {
         const calendarLink = "https://calendar.app.google/4nwNSZdtumvdNJgm7";
 
         return {
-            connect: `Hi ${firstName}, liked your work in ${title}. We're hiring a ${title} & want to discuss your career growth. Book here: ${calendarLink} - Paromita P, HR Manager`,
-            followUp: `Hi ${firstName}, I came across your profile and reviewed your work; it truly stood out. We currently have an opening for a ${title} and are connecting with professionals who are genuinely looking for career growth, ownership, and long-term opportunities. If this aligns with what you're looking for, I'd like to schedule a quick interview to discuss the role and growth path. Book here: ${calendarLink} - Best regards, Paromita Pututunda, HR Manager, Kyptronix LLP`
+            connect: `Hi ${firstName}, I came across your profile and liked your work.\n\nWe currently have an opening for a ${title} and are speaking with candidates who are looking for real career growth, not just another role.\n\nIf you're open to exploring this opportunity, I'd be happy to connect and walk you through the role, expectations, and growth path.\n\nYou can book a quick conversation with me via my calendar here:\n${calendarLink}\n\nLooking forward to connecting.\nParomita Pututunda\nHR Manager`,
+            followUp: `Hi ${firstName}, I came across your profile and reviewed your work; it truly stood out.\n\nWe currently have an opening for a ${title} and are connecting with professionals who are genuinely looking for career growth, ownership, and long-term opportunities.\n\nIf this aligns with what you're looking for, I'd like to schedule a quick interview to discuss the role, expectations, and growth path.\n\nPlease feel free to book a time that works for you using my calendar link below:\n${calendarLink}\n\nLooking forward to connecting.\n\nBest regards,\nParomita Pututunda\nHR Manager\nKyptronix LLP`
         };
     };
 
@@ -187,6 +187,37 @@ export default function CandidateBoard() {
         } catch (error: any) {
             toast.error(error.response?.data?.error || "Delete failed");
         }
+    };
+
+    const handleExportCSV = () => {
+        if (candidates.length === 0) {
+            toast.info("No candidates to export");
+            return;
+        }
+        
+        const headers = ["Name", "LinkedIn URL", "Email", "Phone", "Status", "Job Title", "Location"];
+        const csvContent = [
+            headers.join(","),
+            ...candidates.map((c: any) => [
+                `"${(c.name || '').replace(/"/g, '""')}"`,
+                `"${(c.linkedinUrl || '').replace(/"/g, '""')}"`,
+                `"${(c.email || '').replace(/"/g, '""')}"`,
+                `"${(c.phone || '').replace(/"/g, '""')}"`,
+                `"${(c.status || '').replace(/"/g, '""')}"`,
+                `"${(jobTitle || '').replace(/"/g, '""')}"`,
+                `"${(c.location || 'Unknown').replace(/"/g, '""')}"`
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${(jobTitle || 'candidates').replace(/[^a-z0-9]/gi, '_').toLowerCase()}_candidates.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Calculate visible columns once
@@ -368,13 +399,21 @@ export default function CandidateBoard() {
                     <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/hr-portal/recruitment")}>
                         <ArrowLeft className="w-4 h-4" /> Back to Jobs
                     </Button>
-
-                    {loading && (
-                        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 font-medium ">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">Syncing data...</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {loading && (
+                            <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 font-medium animate-in fade-in slide-in-from-left-4 duration-500">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span className="text-sm tracking-wide">Syncing data...</span>
+                            </div>
+                        )}
+                        <Button 
+                            onClick={handleExportCSV} 
+                            variant="outline" 
+                            className="bg-white/5 border-white/10 hover:bg-white/10 text-slate-200"
+                        >
+                            <Download className="w-4 h-4 mr-2" /> Export CSV
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Hero Section */}
@@ -470,8 +509,14 @@ export default function CandidateBoard() {
                             </div>
                         </div>
                     ) : visibleStatuses.length > 0 ? (
-                        <div className={`grid gap-4 h-full ${isSingleView ? 'grid-cols-1 max-w-5xl mx-auto w-full' : `grid-cols-${visibleStatuses.length}`
-                            }`}>
+                        <div className={`grid gap-4 h-full ${
+                            isSingleView ? 'grid-cols-1 max-w-5xl mx-auto w-full' : 
+                            visibleStatuses.length === 2 ? 'grid-cols-2' :
+                            visibleStatuses.length === 3 ? 'grid-cols-3' :
+                            visibleStatuses.length === 4 ? 'grid-cols-4' :
+                            visibleStatuses.length === 5 ? 'grid-cols-5' :
+                            'grid-cols-6'
+                        }`}>
                             {visibleStatuses.map(status => renderColumn(status))}
                         </div>
                     ) : (
