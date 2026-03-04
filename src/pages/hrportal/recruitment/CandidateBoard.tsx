@@ -257,17 +257,27 @@ export default function CandidateBoard() {
                             <div className={`${isSingleView ? 'flex-1 min-w-[300px]' : 'mb-2'}`}>
                                 <div className="flex gap-4 items-start">
                                     {/* Avatar */}
-                                    {candidate.profilePicture ? (
-                                        <img src={candidate.profilePicture} alt={candidate.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/20" />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-bold border border-indigo-500/20 text-lg">
-                                            {candidate.name.charAt(0)}
-                                        </div>
-                                    )}
+                                    <div className="relative shrink-0 w-12 h-12">
+                                        {candidate.profilePicture ? (
+                                            <img src={candidate.profilePicture} alt={candidate.name} className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/20" />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-600 font-bold border border-indigo-500/20 text-lg">
+                                                {candidate.name.charAt(0)}
+                                            </div>
+                                        )}
+                                        {/* Open To Work Badge Overlay - Removed Absolute Positioning */}
+                                    </div>
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start">
-                                            <h4 className="font-bold text-foreground text-base truncate pr-2" title={candidate.name}>{candidate.name}</h4>
+                                            <div className="flex items-center gap-2 pr-2">
+                                                <h4 className="font-bold text-foreground text-base truncate" title={candidate.name}>{candidate.name}</h4>
+                                                {(candidate.isOpenToWork === true || (candidate.agentNotes && candidate.agentNotes.toLowerCase().includes('#opentowork'))) && (
+                                                    <span className="bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider shadow-sm border border-emerald-400 whitespace-nowrap">
+                                                        #OpenToWork
+                                                    </span>
+                                                )}
+                                            </div>
                                             {!isSingleView && (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
