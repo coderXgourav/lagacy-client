@@ -5,7 +5,8 @@ import {
     ArrowLeft,
     BarChart3,
     FileText,
-    Inbox
+    Inbox,
+    MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ const navItems = [
     { to: "/csv-uploader/stats", label: "Stats", icon: BarChart3 },
     { to: "/csv-uploader/inbox", label: "Inbox", icon: Inbox },
     { to: "/csv-uploader/templates", label: "Templates", icon: FileText },
+    { to: "/csv-uploader/transcripts", label: "Transcripts", icon: MessageCircle },
 ];
 
 export function CsvUploaderSidebar() {

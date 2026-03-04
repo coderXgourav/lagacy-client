@@ -15,6 +15,7 @@ interface Contact {
     email: string;
     number: string;
     country?: string;
+    domainName?: string;
 }
 
 interface EmailResult {
@@ -33,13 +34,13 @@ export default function CsvUploaderDashboard() {
         const saved = localStorage.getItem('csv_uploader_contacts');
         return saved ? JSON.parse(saved) : [];
     });
-    const [subject, setSubject] = useState("Quick System Check - Kyptronix");
+    const [subject, setSubject] = useState("Brutal truth about {{domainName}} new businesses");
     const [body, setBody] = useState(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quick System Check</title>
+<title>Brutal truth about {{domainName}} new businesses</title>
 <style>
 body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
 table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
@@ -77,16 +78,16 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 <tr>
 <td class="mobile-padding" style="padding:40px 50px;color:#374151;font-size:16px;line-height:1.6;">
 <h1 style="margin:0 0 20px;font-size:22px;color:#1F2937;">Hi {{name}},</h1>
-<p>I don't know your setup yet, but I know the pattern.</p>
-<p>We audit a lot of B2B companies in the US &amp; Canada.<br>Different industries. Same problems:</p>
+<p>Most businesses don't fail because the idea is bad.</p>
+<p>They fail because nobody sees them.</p>
 <ul style="padding-left:18px;margin:0 0 20px;">
-<li>Leads show up → nobody follows up fast enough</li>
-<li>Website exists → but it doesn't convert</li>
-<li>Tools exist → but nothing talks to each other</li>
+<li>No systems.</li>
+<li>No automation.</li>
+<li>No lead engine.</li>
 </ul>
-<p>So growth feels random.<br>Some weeks good. Some weeks dead.</p>
-<p style="font-weight:bold;">That's not a traffic issue.<br>That's a system issue.</p>
-<p style="margin-bottom:30px;">If you're open, I can show you what most teams miss in 10 minutes.<br>No pitch. Just clarity.</p>
+<p>A website alone doesn't build a business.</p>
+<p style="font-weight:bold;">At Kyptronix, we install the infrastructure that actually brings customers.<br>Automation. Lead generation. Authority positioning.</p>
+<p style="margin-bottom:30px;">If you're building something serious, we should talk.<br>10 minutes.</p>
 <table cellpadding="0" cellspacing="0">
 <tr>
 <td style="background:#0056b3;border-radius:50px;">
@@ -244,10 +245,14 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation', 'location'];
         const countryExcludes = ['code', 'domain'];
 
+        const domainKeywords = ['domainname', 'domain', 'website', 'url'];
+        const domainExcludes = [];
+
         let nameIndex = findColumnIndex(headers, nameKeywords, nameExcludes);
         let emailIndex = findColumnIndex(headers, emailKeywords, emailExcludes);
         let numberIndex = findColumnIndex(headers, numberKeywords, numberExcludes);
         let countryIndex = findColumnIndex(headers, countryKeywords, countryExcludes);
+        let domainIndex = findColumnIndex(headers, domainKeywords, domainExcludes);
 
         // Fallback: If no email header found, the headers might be the first data row, or headers are unrecognized.
         // Guess by regex.
@@ -290,7 +295,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 name: nameIndex >= 0 ? String(values[nameIndex] || '').trim() : '',
                 email: emailIndex >= 0 ? String(values[emailIndex] || '').trim() : '',
                 number: numberIndex >= 0 ? String(values[numberIndex] || '').trim() : '',
-                country: countryIndex >= 0 ? String(values[countryIndex] || '').trim() : ''
+                country: countryIndex >= 0 ? String(values[countryIndex] || '').trim() : '',
+                domainName: domainIndex >= 0 ? String(values[domainIndex] || '').trim() : ''
             };
 
             // Only add if has valid email
@@ -695,6 +701,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                         <tr>
                                             <th className="text-left p-3 font-medium">Name</th>
                                             <th className="text-left p-3 font-medium">Email</th>
+                                            <th className="text-left p-3 font-medium">Domain</th>
                                             <th className="text-left p-3 font-medium">Number</th>
                                             {sendResults && <th className="text-left p-3 font-medium">Status</th>}
                                         </tr>
@@ -706,6 +713,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                                 <tr key={i} className="border-t">
                                                     <td className="p-3">{contact.name || '-'}</td>
                                                     <td className="p-3 text-muted-foreground">{contact.email}</td>
+                                                    <td className="p-3 text-muted-foreground">{contact.domainName || '-'}</td>
                                                     <td className="p-3 text-muted-foreground">{contact.number || '-'}</td>
                                                     {sendResults && (
                                                         <td className="p-3">

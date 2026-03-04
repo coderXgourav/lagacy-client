@@ -39,6 +39,7 @@ import CsvUploaderDashboard from "./pages/csvuploader/CsvUploaderDashboard";
 import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
 import CsvUploaderInbox from "./pages/csvuploader/CsvUploaderInbox";
 import CsvUploaderTemplates from "./pages/csvuploader/CsvUploaderTemplates";
+import CsvUploaderTranscripts from "./pages/csvuploader/CsvUploaderTranscripts";
 import { HrPortalLayout } from "./components/layout/HrPortalLayout";
 import HrPortalDashboard from "./pages/hrportal/HrPortalDashboard";
 import HrEmployeeDirectory from "./pages/hrportal/HrEmployeeDirectory";
@@ -118,6 +119,7 @@ const App = () => (
                 <Route path="stats" element={<CsvUploaderStats />} />
                 <Route path="inbox" element={<CsvUploaderInbox />} />
                 <Route path="templates" element={<CsvUploaderTemplates />} />
+                <Route path="transcripts" element={<CsvUploaderTranscripts />} />
               </Route>
               <Route path="/hr-portal" element={<ProtectedRoute><HrPortalLayout /></ProtectedRoute>}>
                 <Route index element={<HrPortalDashboard />} />
