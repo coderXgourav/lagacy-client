@@ -335,16 +335,24 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     };
 
     const processFile = (file: File) => {
-        const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
         const reader = new FileReader();
 
         reader.onload = (e) => {
             try {
+                const buffer = e.target?.result as ArrayBuffer;
+                const bytes = new Uint8Array(buffer.slice(0, 4));
+                
+                // Check if file is ZIP (Excel .xlsx files are ZIP archives starting with PK)
+                const isZip = bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04;
+                const isExcelByExt = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
+                const isExcel = isExcelByExt || isZip;
+                
                 let extracted: Contact[] = [];
                 if (isExcel) {
-                    extracted = parseExcel(e.target?.result as ArrayBuffer);
+                    extracted = parseExcel(buffer);
                 } else {
-                    extracted = parseCSV(e.target?.result as string);
+                    const text = new TextDecoder().decode(buffer);
+                    extracted = parseCSV(text);
                 }
 
                 if (extracted.length === 0) {
@@ -382,11 +390,13 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             });
         };
 
-        if (isExcel) {
-            reader.readAsArrayBuffer(file);
-        } else {
-            reader.readAsText(file);
-        }
+        // Always read as ArrayBuffer so we can check magic bytes
+        reader.readAsArrayBuffer(file);
+    };
+
+    const isValidFile = (file: File) => {
+        const name = file.name.toLowerCase();
+        return name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls');
     };
 
     const handleDrop = (e: React.DragEvent) => {
@@ -394,10 +404,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setIsDragging(false);
 
         const files = Array.from(e.dataTransfer.files);
-        const validFile = files.find(f => {
-            const name = f.name.toLowerCase();
-            return name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls');
-        });
+        const validFile = files.find(isValidFile);
         
         if (validFile) {
             processFile(validFile);
@@ -412,10 +419,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const validFile = files.find(f => {
-            const name = f.name.toLowerCase();
-            return name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls');
-        });
+        const validFile = files.find(isValidFile);
         
         if (validFile) {
             processFile(validFile);
