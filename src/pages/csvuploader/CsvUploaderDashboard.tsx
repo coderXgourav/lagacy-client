@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap, StopCircle, Eye, EyeOff } from "lucide-react";
+import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap, StopCircle, Eye, EyeOff, MessageSquare, PhoneCall } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -172,7 +172,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             const data = await response.json();
             if (data.success) {
                 setStats(data.stats);
-                
+
                 // If sequence just finished, turn off isSending
                 if (data.stats.currentAction === "Sequence Finished Successfully" && isSending) {
                     setIsSending(false);
@@ -186,12 +186,12 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     useEffect(() => {
         fetchStats();
         const interval = setInterval(() => {
-            if (isSending || (stats?.sequences?.active > 0)) {
+            if (isSending || (stats?.sequences?.active > 0) || (stats?.currentAction && stats?.currentAction !== 'Idle' && !stats?.currentAction.startsWith('✅') && !stats?.currentAction.startsWith('❌'))) {
                 fetchStats();
             }
         }, 2000);
         return () => clearInterval(interval);
-    }, [isSending, stats?.sequences?.active, fetchStats]);
+    }, [isSending, stats?.sequences?.active, stats?.currentAction, fetchStats]);
 
     // Persistence effects
     useEffect(() => {
@@ -212,21 +212,21 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
     const findColumnIndex = (headers: string[], includeKeywords: string[], excludeKeywords: string[] = []) => {
         // 1. Priority: Exact matches first
-        const exactMatch = headers.findIndex(h => 
+        const exactMatch = headers.findIndex(h =>
             includeKeywords.some(k => h === k)
         );
         if (exactMatch >= 0) return exactMatch;
 
         // 2. Priority: Starts with includeKeyword + No excludeKeywords
-        const startsWithMatch = headers.findIndex(h => 
-            includeKeywords.some(k => h.startsWith(k)) && 
+        const startsWithMatch = headers.findIndex(h =>
+            includeKeywords.some(k => h.startsWith(k)) &&
             !excludeKeywords.some(k => h.includes(k))
         );
         if (startsWithMatch >= 0) return startsWithMatch;
 
         // 3. Match that contains includeKeyword but NO excludeKeyword
-        const filteredMatch = headers.findIndex(h => 
-            includeKeywords.some(k => h.includes(k)) && 
+        const filteredMatch = headers.findIndex(h =>
+            includeKeywords.some(k => h.includes(k)) &&
             !excludeKeywords.some(k => h.includes(k))
         );
         if (filteredMatch >= 0) return filteredMatch;
@@ -237,7 +237,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
         const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person', 'first', 'last'];
         const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization'];
-        
+
         const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'address'];
         const emailExcludes = ['postal', 'physical'];
 
@@ -264,7 +264,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             if (headerIsEmail >= 0) {
                 emailIndex = headerIsEmail;
                 rows.unshift(headers); // Push headers back as data
-                
+
                 // Try to find phone in headers
                 if (numberIndex === -1) {
                     nameIndex = headers.findIndex(h => /^[a-zA-Z\s]{3,20}$/.test(h) && !h.includes('@'));
@@ -275,12 +275,12 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 for (let i = 0; i < Math.min(3, rows.length); i++) {
                     const row = rows[i] || [];
                     if (emailIndex === -1) {
-                         const idx = row.findIndex(v => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()));
-                         if (idx >= 0) emailIndex = idx;
+                        const idx = row.findIndex(v => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()));
+                        if (idx >= 0) emailIndex = idx;
                     }
                     if (numberIndex === -1) {
-                         const idx = row.findIndex(v => typeof v === 'string' && /^[\+\d\s\-\(\)]{7,20}$/.test(v.trim()) && /\d{5}/.test(v));
-                         if (idx >= 0) numberIndex = idx;
+                        const idx = row.findIndex(v => typeof v === 'string' && /^[\+\d\s\-\(\)]{7,20}$/.test(v.trim()) && /\d{5}/.test(v));
+                        if (idx >= 0) numberIndex = idx;
                     }
                 }
             }
@@ -292,7 +292,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         for (const values of rows) {
             if (!values || values.length === 0) continue;
-            
+
             const contact: Contact = {
                 name: nameIndex >= 0 ? String(values[nameIndex] || '').trim() : '',
                 email: emailIndex >= 0 ? String(values[emailIndex] || '').trim() : '',
@@ -314,17 +314,17 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const result = Papa.parse(text, { skipEmptyLines: true });
         const rows = result.data as any[][];
         if (rows.length < 2) {
-             // If there's only 1 row, maybe it's just data with no headers
-             if (rows.length === 1) {
-                 const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
-                 return extractContactsFromData(headers, rows);
-             }
-             return [];
+            // If there's only 1 row, maybe it's just data with no headers
+            if (rows.length === 1) {
+                const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
+                return extractContactsFromData(headers, rows);
+            }
+            return [];
         }
 
         const headers = rows[0].map((h: any) => String(h || '').trim().toLowerCase());
         const dataRows = rows.slice(1);
-        
+
         return extractContactsFromData(headers, dataRows);
     };
 
@@ -332,7 +332,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        
+
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
         if (jsonData.length < 2) return [];
 
@@ -349,12 +349,12 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             try {
                 const buffer = e.target?.result as ArrayBuffer;
                 const bytes = new Uint8Array(buffer.slice(0, 4));
-                
+
                 // Check if file is ZIP (Excel .xlsx files are ZIP archives starting with PK)
                 const isZip = bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04;
                 const isExcelByExt = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
                 const isExcel = isExcelByExt || isZip;
-                
+
                 let extracted: Contact[] = [];
                 if (isExcel) {
                     extracted = parseExcel(buffer);
@@ -364,7 +364,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 }
 
                 if (extracted.length === 0) {
-                     toast({
+                    toast({
                         title: "No Contacts Found",
                         description: "Could not find any rows manually mapping to valid emails.",
                         variant: "destructive"
@@ -376,7 +376,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                         description: `Found ${extracted.length} contacts with valid emails`,
                     });
                 }
-                
+
                 setContacts(extracted);
                 setFileName(file.name);
                 setSendResults(null);
@@ -413,7 +413,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         const files = Array.from(e.dataTransfer.files);
         const validFile = files.find(isValidFile);
-        
+
         if (validFile) {
             processFile(validFile);
         } else {
@@ -428,11 +428,11 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         const validFile = files.find(isValidFile);
-        
+
         if (validFile) {
             processFile(validFile);
         }
-        
+
         // Reset input value to allow uploading the same file again
         e.target.value = '';
     };
@@ -517,6 +517,96 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 toast({
                     title: "Error",
                     description: data.error || "Failed to start sequence",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to connect to server",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const sendEmailAndSms = async () => {
+        if (contacts.length === 0) return;
+
+        setIsSending(true);
+        setSendResults(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/send-email-sms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    contacts,
+                    subject,
+                    body
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast({
+                    title: "📧📱 Email + SMS Started!",
+                    description: `Sending emails and SMS to ${contacts.length} contacts simultaneously.`,
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: data.error || "Failed to start Email + SMS",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to connect to server",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const sendCalls = async () => {
+        if (contacts.length === 0) return;
+
+        setIsSending(true);
+        setSendResults(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/send-calls`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    contacts
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast({
+                    title: "📞 Call Sequence Started!",
+                    description: `Calling ${data.totalCalls} contacts one by one. ${data.skipped > 0 ? `(${data.skipped} skipped - no phone)` : ''} Transcripts will be saved.`,
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: data.error || "Failed to start call sequence",
                     variant: "destructive"
                 });
             }
@@ -636,7 +726,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             </Card>
 
             {/* Live Sequence Progress */}
-            {(isSending || (stats?.sequences?.active > 0)) && (
+            {(isSending || (stats?.sequences?.active > 0) || (stats?.currentAction && stats?.currentAction !== 'Idle' && !stats?.currentAction.startsWith('✅') && !stats?.currentAction.startsWith('❌'))) && (
                 <Card className="border-primary/50 bg-primary/5 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div className="space-y-1">
@@ -648,9 +738,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 Real-time updates from the communication server
                             </CardDescription>
                         </div>
-                        <Button 
-                            variant="destructive" 
-                            size="sm" 
+                        <Button
+                            variant="destructive"
+                            size="sm"
                             onClick={cancelAllSequences}
                             disabled={isCancelling}
                         >
@@ -664,8 +754,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <p className="text-sm text-muted-foreground">Emails</p>
                                 <p className="text-2xl font-bold">{stats?.emails?.sent} / {stats?.emails?.sent + stats?.emails?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-blue-500 transition-all duration-500" 
+                                    <div
+                                        className="h-full bg-blue-500 transition-all duration-500"
                                         style={{ width: `${(stats?.emails?.sent / (stats?.emails?.sent + stats?.emails?.pending || 1)) * 100}%` }}
                                     />
                                 </div>
@@ -674,8 +764,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <p className="text-sm text-muted-foreground">SMS</p>
                                 <p className="text-2xl font-bold">{stats?.sms?.sent} / {stats?.sms?.sent + stats?.sms?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-purple-500 transition-all duration-500" 
+                                    <div
+                                        className="h-full bg-purple-500 transition-all duration-500"
                                         style={{ width: `${(stats?.sms?.sent / (stats?.sms?.sent + stats?.sms?.pending || 1)) * 100}%` }}
                                     />
                                 </div>
@@ -684,8 +774,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <p className="text-sm text-muted-foreground">Vapi Calls</p>
                                 <p className="text-2xl font-bold">{stats?.calls?.sent} / {stats?.calls?.sent + stats?.calls?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                                    <div 
-                                        className="h-full bg-green-500 transition-all duration-500" 
+                                    <div
+                                        className="h-full bg-green-500 transition-all duration-500"
                                         style={{ width: `${(stats?.calls?.sent / (stats?.calls?.sent + stats?.calls?.pending || 1)) * 100}%` }}
                                     />
                                 </div>
@@ -826,7 +916,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 />
                             </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <Button
                                 onClick={sendEmails}
                                 disabled={isSending || contacts.length === 0}
@@ -842,6 +932,42 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                     <>
                                         <Send className="h-5 w-5 mr-2" />
                                         Send Bulk Emails (Email Only)
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                onClick={sendEmailAndSms}
+                                disabled={isSending || contacts.length === 0}
+                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                                size="lg"
+                            >
+                                {isSending ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                        Sending...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MessageSquare className="h-5 w-5 mr-2" />
+                                        Send Email & SMS
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                onClick={sendCalls}
+                                disabled={isSending || contacts.length === 0}
+                                className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                                size="lg"
+                            >
+                                {isSending ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                        Calling...
+                                    </>
+                                ) : (
+                                    <>
+                                        <PhoneCall className="h-5 w-5 mr-2" />
+                                        Call (One by One)
                                     </>
                                 )}
                             </Button>
@@ -865,10 +991,16 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                             </Button>
                         </div>
                         <div className="flex flex-col gap-1 items-center mt-2">
-                             <p className="text-xs text-muted-foreground text-center">
-                                <b>Bulk Emails:</b> Sends 1 email now to every row (fast).
+                            <p className="text-xs text-muted-foreground text-center">
+                                <b>Bulk Emails:</b> Sends 1 email now to every row (fast, email only).
                             </p>
-                             <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold text-center">
+                                <b>Email & SMS:</b> Sends both Email + SMS instantly to every row (no calls).
+                            </p>
+                            <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold text-center">
+                                <b>Call:</b> Calls contacts one by one via VAPI. Transcripts saved automatically.
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
                                 <b>Automated Sequence:</b> Sends Email & SMS instantly → 0.2s Wait → VAPI Call → Then next row.
                             </p>
                         </div>
