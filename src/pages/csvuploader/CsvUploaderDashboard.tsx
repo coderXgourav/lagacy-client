@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap, StopCircle } from "lucide-react";
+import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap, StopCircle, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,7 @@ body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;
 table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
 img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
 body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6; font-family: Helvetica, Arial, sans-serif; }
-@media screen and (max-width:600px){ .mobile-width{width:100%!important} .mobile-padding{padding:20px!important} }
+@media screen and (max-width:600px){ .mobile-width{width:100%!important} .mobile-padding{padding:20px!important} .mobile-menu a{font-size:10px!important;padding:0 4px!important;letter-spacing:0!important} .mobile-menu span{padding:0 2px!important} .mobile-social{display:inline-block!important;margin:0 5px!important} }
 </style>
 </head>
 <body>
@@ -60,16 +60,16 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 <a href="https://kyptronix.us" target="_blank">
 <img src="https://media.designrush.com/agencies/325222/conversions/Kyptronix-logo-profile.jpg" width="180" alt="Kyptronix Logo" style="display:block;">
 </a>
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:25px;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:25px;" class="mobile-menu">
 <tr>
 <td align="center">
-<a href="https://kyptronix.us/about-us" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">About</a>
+<a href="https://kyptronix.us/about-us" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">About</a>
 <span style="color:#e0e0e0;">|</span>
-<a href="https://kyptronix.us/services" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">Services</a>
+<a href="https://kyptronix.us/services" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Services</a>
 <span style="color:#e0e0e0;">|</span>
-<a href="https://kyptronix.us/package-and-pricing" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">Packages</a>
+<a href="https://kyptronix.us/package-and-pricing" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Packages</a>
 <span style="color:#e0e0e0;">|</span>
-<a href="https://kyptronix.us/portfolio" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">Portfolio</a>
+<a href="https://kyptronix.us/portfolio" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Portfolio</a>
 </td>
 </tr>
 </table>
@@ -91,7 +91,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 <table cellpadding="0" cellspacing="0">
 <tr>
 <td style="background:#0056b3;border-radius:50px;">
-<a href="https://calendar.google.com/calendar/appointments/schedules/AcZssZ24sXquo3Xas7XXgzFZEtpmXfVwd7mtXXGuLRmeg4oJn2ZiZe4bvCefsq3gaMbiLICLSKBOpVqc?gv=true" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:bold;text-decoration:none;">Book Free 10-Min System Check</a>
+<a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1kzqqp92tBVNRFyNSo_sdyCg68VzzRMbv947cCXtze9o3lML1qr7B-xhYMp8myDqwLR4vbhrr2" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:bold;text-decoration:none;">Book Free 10-Min System Check</a>
 </td>
 </tr>
 </table>
@@ -118,11 +118,11 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 <table width="100%" cellpadding="0" cellspacing="0">
 <tr>
 <td align="center" style="padding-bottom:25px;">
-<a href="https://www.facebook.com/kyptronixllp/" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/145/145802.png" width="32" height="32"></a>
-<a href="https://x.com/Kyptronixus" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/5969/5969020.png" width="32" height="32"></a>
-<a href="https://www.linkedin.com/company/kyptronixllp/" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="32" height="32"></a>
-<a href="https://www.instagram.com/kyptronix_llp/" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/3955/3955024.png" width="32" height="32"></a>
-<a href="https://www.youtube.com/@kyptronixllp2467" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="32" height="32"></a>
+<a href="https://www.facebook.com/kyptronixllp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/145/145802.png" width="32" height="32"></a>
+<a href="https://x.com/Kyptronixus" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/5969/5969020.png" width="32" height="32"></a>
+<a href="https://www.linkedin.com/company/kyptronixllp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="32" height="32"></a>
+<a href="https://www.instagram.com/kyptronix_llp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/3955/3955024.png" width="32" height="32"></a>
+<a href="https://www.youtube.com/@kyptronixllp2467" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="32" height="32"></a>
 </td>
 </tr>
 <tr>
@@ -130,8 +130,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 <p style="margin:0 0 10px;"><strong>Kyptronix LLP</strong></p>
 <p style="margin:0 0 20px;">Professional digital solutions and automation systems since 2015.<br>Trusted by professionals worldwide.</p>
 <p style="margin:0;">
-<a href="#" style="color:#bbbbbb;text-decoration:none;">Privacy Policy</a> &nbsp;|&nbsp;
-<a href="#" style="color:#bbbbbb;text-decoration:none;">Terms of Service</a> &nbsp;|&nbsp;
+<a href="https://kyptronix.us/PrivacyPolicies" style="color:#bbbbbb;text-decoration:none;">Privacy Policy</a> &nbsp;|&nbsp;
+<a href="https://kyptronix.us/terms-and-conditions" style="color:#bbbbbb;text-decoration:none;">Terms of Service</a> &nbsp;|&nbsp;
 <a href="#" style="color:#bbbbbb;text-decoration:none;">Unsubscribe</a>
 </p>
 <p style="margin-top:20px;font-size:11px;color:#cccccc;">© 2015–2026 Kyptronix LLP. All rights reserved.</p>
@@ -150,6 +150,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     const [isCancelling, setIsCancelling] = useState(false);
     const [sendResults, setSendResults] = useState<any[] | null>(null);
     const [stats, setStats] = useState<any>(null);
+    const [showTemplate, setShowTemplate] = useState(false);
     const { toast } = useToast();
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -812,7 +813,18 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 onChange={(e) => setBody(e.target.value)}
                                 placeholder="Email body..."
                                 rows={6}
+                                className="font-mono text-xs"
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Preview</Label>
+                            <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900">
+                                <iframe
+                                    srcDoc={body.replace('{{name}}', contacts[0]?.name || 'John Doe').replace('{{domainName}}', contacts[0]?.domainName || 'example.com')}
+                                    className="w-full h-[500px] border-0"
+                                    title="Email Preview"
+                                />
+                            </div>
                         </div>
                         <div className="flex gap-3">
                             <Button

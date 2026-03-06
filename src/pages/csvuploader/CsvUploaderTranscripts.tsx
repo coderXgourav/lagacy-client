@@ -174,13 +174,13 @@ export default function CsvUploaderTranscripts() {
                                                         )}
                                                     >
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {filters.dateFrom ? format(parseISO(filters.dateFrom), "PPP") : <span>Pick a date</span>}
+                                                        {filters.dateFrom ? format(new Date(filters.dateFrom), "PP") : <span>Pick a date</span>}
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-auto p-0" align="start">
                                                     <Calendar
                                                         mode="single"
-                                                        selected={filters.dateFrom ? parseISO(filters.dateFrom) : undefined}
+                                                        selected={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
                                                         onSelect={(date) => {
                                                             setFilters(prev => ({ ...prev, dateFrom: date ? format(date, 'yyyy-MM-dd') : '' }));
                                                             setHasSearched(false);
@@ -202,13 +202,13 @@ export default function CsvUploaderTranscripts() {
                                                         )}
                                                     >
                                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {filters.dateTo ? format(parseISO(filters.dateTo), "PPP") : <span>Pick a date</span>}
+                                                        {filters.dateTo ? format(new Date(filters.dateTo), "PP") : <span>Pick a date</span>}
                                                     </Button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-auto p-0" align="start">
                                                     <Calendar
                                                         mode="single"
-                                                        selected={filters.dateTo ? parseISO(filters.dateTo) : undefined}
+                                                        selected={filters.dateTo ? new Date(filters.dateTo) : undefined}
                                                         onSelect={(date) => {
                                                             setFilters(prev => ({ ...prev, dateTo: date ? format(date, 'yyyy-MM-dd') : '' }));
                                                             setHasSearched(false);
@@ -344,7 +344,6 @@ export default function CsvUploaderTranscripts() {
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 hover:bg-muted/50">
                                             <TableHead className="font-semibold">Name</TableHead>
-                                            <TableHead className="font-semibold">Email</TableHead>
                                             <TableHead className="font-semibold">Phone Number</TableHead>
                                             <TableHead className="font-semibold">Duration</TableHead>
                                             <TableHead className="font-semibold">Ended Reason</TableHead>
@@ -357,9 +356,6 @@ export default function CsvUploaderTranscripts() {
                                             <TableRow key={i} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => setSelectedCall(t)}>
                                                 <TableCell className="font-medium">
                                                     {t.contactName || t.customerSettings?.name || "Customer"}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {t.customerSettings?.email || "N/A"}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary" className="font-mono bg-muted/60">
