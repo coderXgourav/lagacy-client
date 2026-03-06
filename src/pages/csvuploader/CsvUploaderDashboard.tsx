@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap } from "lucide-react";
+import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap, StopCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,6 +147,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 </body>
 </html>`);
     const [isSending, setIsSending] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
     const [sendResults, setSendResults] = useState<any[] | null>(null);
     const [stats, setStats] = useState<any>(null);
     const { toast } = useToast();
@@ -508,8 +509,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
             if (data.success) {
                 toast({
-                    title: "🚀 Email Sequence Started!",
-                    description: `4 emails will be sent to ${contacts.length} contacts with 2-min delays. Total: ${data.totalEmails} emails over ~${data.estimatedCompletion}`,
+                    title: "🚀 Sequence Started!",
+                    description: "Automated Sequence: Sends Email & SMS instantly → 0.2s Wait → VAPI Call → Then next row.",
                 });
             } else {
                 toast({
@@ -526,6 +527,35 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             });
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const cancelAllSequences = async () => {
+        setIsCancelling(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/cancel-sequences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                toast({
+                    title: "Sequences Cancelled",
+                    description: "All active background sequences have been stopped.",
+                });
+                fetchStats();
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to cancel sequences",
+                variant: "destructive"
+            });
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -607,14 +637,25 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             {/* Live Sequence Progress */}
             {(isSending || (stats?.sequences?.active > 0)) && (
                 <Card className="border-primary/50 bg-primary/5 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-primary">
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            Live Sequence Progress
-                        </CardTitle>
-                        <CardDescription>
-                            Real-time updates from the communication server
-                        </CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2 text-primary">
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                                Live Sequence Progress
+                            </CardTitle>
+                            <CardDescription>
+                                Real-time updates from the communication server
+                            </CardDescription>
+                        </div>
+                        <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={cancelAllSequences}
+                            disabled={isCancelling}
+                        >
+                            <StopCircle className="h-4 w-4 mr-2" />
+                            Stop All
+                        </Button>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -816,7 +857,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <b>Bulk Emails:</b> Sends 1 email now to every row (fast).
                             </p>
                              <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
-                                <b>Automated Sequence:</b> Sends Email 1 → 2m Wait → SMS 1 → 3m Wait → Call 1 → Then next row.
+                                <b>Automated Sequence:</b> Sends Email & SMS instantly → 0.2s Wait → VAPI Call → Then next row.
                             </p>
                         </div>
                     </CardContent>
