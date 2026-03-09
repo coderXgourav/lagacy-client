@@ -21,6 +21,8 @@ export default function CsvUploaderTranscripts() {
 
     // View state
     const [selectedCall, setSelectedCall] = useState<any | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
 
     // Filters state
     const [filters, setFilters] = useState({
@@ -28,7 +30,7 @@ export default function CsvUploaderTranscripts() {
         dateTo: '',
         name: '',
         phone: '',
-        duration: '', // E.g., min duration, or just a generic text match if duration is a string format
+        duration: 'All', // Represents min minimum duration filter
         endedReason: 'All'
     });
 
@@ -56,10 +58,12 @@ export default function CsvUploaderTranscripts() {
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFilters(prev => ({ ...prev, [name]: value }));
+        setCurrentPage(1);
     };
 
     const handleSelectChange = (value: string, name: string) => {
         setFilters(prev => ({ ...prev, [name]: value }));
+        setCurrentPage(1);
     };
 
     const filteredTranscripts = useMemo(() => {
@@ -72,18 +76,21 @@ export default function CsvUploaderTranscripts() {
             const phone = (t.customerSettings?.number || t.phone || t.customerNumber || "").toLowerCase();
             if (filters.phone && !phone.includes(filters.phone.toLowerCase())) match = false;
 
-            // Simplified duration check (string match for now or consider converting to seconds later if needed)
-            // Failsafe duration calc for filter
+            // Min Duration filter
             let callDuration = parseInt(t.duration as string, 10);
             if (!callDuration || isNaN(callDuration)) {
                 if (t.endedAt && t.createdAt) {
                     callDuration = Math.max(0, Math.floor((new Date(t.endedAt).getTime() - new Date(t.createdAt).getTime()) / 1000));
+                } else {
+                    callDuration = 0;
                 }
             }
-            
-            const durationStr = callDuration ? callDuration.toString() : "0";
-            if (filters.duration && !durationStr.includes(filters.duration)) match = false;
-            
+
+            if (filters.duration !== 'All') {
+                const minDuration = parseInt(filters.duration, 10);
+                if (callDuration < minDuration) match = false;
+            }
+
             const endedReason = t.endedReason || "Unknown";
             if (filters.endedReason !== 'All' && filters.endedReason !== endedReason) match = false;
 
@@ -104,6 +111,13 @@ export default function CsvUploaderTranscripts() {
         });
     }, [transcripts, filters]);
 
+    const paginatedTranscripts = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredTranscripts.slice(start, start + itemsPerPage);
+    }, [filteredTranscripts, currentPage]);
+
+    const totalPages = Math.ceil(filteredTranscripts.length / itemsPerPage);
+
     // Get unique ended reasons for the dropdown
     const uniqueEndedReasons = useMemo(() => {
         const reasons = new Set<string>();
@@ -115,7 +129,7 @@ export default function CsvUploaderTranscripts() {
 
     const formatDuration = (t: any) => {
         let seconds = parseInt(t.duration as string, 10);
-        
+
         // Failsafe for older backend responses where duration might be missing or 0
         if (!seconds || isNaN(seconds)) {
             if (t.endedAt && t.createdAt) {
@@ -219,8 +233,8 @@ export default function CsvUploaderTranscripts() {
                                             </Popover>
                                         </div>
                                         <div className="flex items-end xs:col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-6 mt-2">
-                                            <Button 
-                                                onClick={() => setHasSearched(true)} 
+                                            <Button
+                                                onClick={() => setHasSearched(true)}
                                                 disabled={!filters.dateFrom || !filters.dateTo}
                                                 className="w-full sm:w-auto"
                                             >
@@ -266,18 +280,26 @@ export default function CsvUploaderTranscripts() {
                                             </div>
                                         </div>
                                         <div className="space-y-1.5 focus-within:ring-1 ring-ring rounded-md">
-                                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Duration (s)</label>
-                                            <div className="relative">
-                                                <Clock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                <Input
-                                                    type="text"
-                                                    name="duration"
-                                                    placeholder="E.g. 60"
-                                                    value={filters.duration}
-                                                    onChange={handleFilterChange}
-                                                    className="pl-9 h-9"
-                                                />
-                                            </div>
+                                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Min Duration</label>
+                                            <Select
+                                                value={filters.duration}
+                                                onValueChange={(val) => handleSelectChange(val, 'duration')}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue placeholder="All Durations" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="All">All Durations</SelectItem>
+                                                    <SelectItem value="20">{">"} 20 seconds</SelectItem>
+                                                    <SelectItem value="30">{">"} 30 seconds</SelectItem>
+                                                    <SelectItem value="60">{">"} 1 minute</SelectItem>
+                                                    <SelectItem value="120">{">"} 2 minutes</SelectItem>
+                                                    <SelectItem value="180">{">"} 3 minutes</SelectItem>
+                                                    <SelectItem value="300">{">"} 5 minutes</SelectItem>
+                                                    <SelectItem value="600">{">"} 10 minutes</SelectItem>
+                                                    <SelectItem value="900">{">"} 15 minutes</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-1.5 focus-within:ring-1 ring-ring rounded-md">
                                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ended Reason</label>
@@ -297,12 +319,12 @@ export default function CsvUploaderTranscripts() {
                                             </Select>
                                         </div>
                                         <div className="flex items-end mt-2">
-                                            <Button 
+                                            <Button
                                                 variant="outline"
                                                 onClick={() => {
                                                     setHasSearched(false);
                                                     setFilters(prev => ({ ...prev, name: '', phone: '', duration: '', endedReason: 'All' }));
-                                                }} 
+                                                }}
                                                 className="w-full sm:w-auto"
                                             >
                                                 Change Dates
@@ -327,70 +349,101 @@ export default function CsvUploaderTranscripts() {
                     ) : (
                         <Card className="mt-6">
                             <CardContent className="p-0">
-                            {filteredTranscripts.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-16 text-center">
-                                    <Search className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                                    <p className="text-muted-foreground font-medium">No calls found matching your filters.</p>
-                                    <Button
-                                        variant="link"
-                                        onClick={() => setFilters({ dateFrom: '', dateTo: '', name: '', phone: '', duration: '', endedReason: 'All' })}
-                                        className="mt-2 text-primary"
-                                    >
-                                        Clear Filters
-                                    </Button>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                            <TableHead className="font-semibold">Name</TableHead>
-                                            <TableHead className="font-semibold">Phone Number</TableHead>
-                                            <TableHead className="font-semibold">Duration</TableHead>
-                                            <TableHead className="font-semibold">Ended Reason</TableHead>
-                                            <TableHead className="font-semibold">Date</TableHead>
-                                            <TableHead className="text-right font-semibold">Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredTranscripts.map((t, i) => (
-                                            <TableRow key={i} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => setSelectedCall(t)}>
-                                                <TableCell className="font-medium">
-                                                    {t.contactName || t.customerSettings?.name || "Customer"}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary" className="font-mono bg-muted/60">
-                                                        {t.customerSettings?.number || t.phone || t.customerNumber || "N/A"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1 text-muted-foreground">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <Clock className="w-3.5 h-3.5" />
-                                                            {formatDuration(t)}
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={t.endedReason === 'customer-ended-call' ? 'outline' : 'default'} className="capitalize whitespace-nowrap">
-                                                        {t.endedReason?.replace(/-/g, ' ') || 'Unknown'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground whitespace-nowrap">
-                                                    {new Date(t.endedAt || t.createdAt).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="sm" className="h-8 gap-2 hover:bg-primary/10 hover:text-primary">
-                                                        <Eye className="w-4 h-4" />
-                                                        View
+                                {filteredTranscripts.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <Search className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                                        <p className="text-muted-foreground font-medium">No calls found matching your filters.</p>
+                                        <Button
+                                            variant="link"
+                                            onClick={() => setFilters({ dateFrom: '', dateTo: '', name: '', phone: '', duration: '', endedReason: 'All' })}
+                                            className="mt-2 text-primary"
+                                        >
+                                            Clear Filters
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                                    <TableHead className="font-semibold">Name</TableHead>
+                                                    <TableHead className="font-semibold">Phone Number</TableHead>
+                                                    <TableHead className="font-semibold">Duration</TableHead>
+                                                    <TableHead className="font-semibold">Ended Reason</TableHead>
+                                                    <TableHead className="font-semibold">Date</TableHead>
+                                                    <TableHead className="text-right font-semibold">Action</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {paginatedTranscripts.map((t, i) => (
+                                                    <TableRow key={i} className="cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => setSelectedCall(t)}>
+                                                        <TableCell className="font-medium">
+                                                            {t.contactName || t.customerSettings?.name || "Customer"}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="secondary" className="font-mono bg-muted/60">
+                                                                {t.customerSettings?.number || t.phone || t.customerNumber || "N/A"}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col gap-1 text-muted-foreground">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Clock className="w-3.5 h-3.5" />
+                                                                    {formatDuration(t)}
+                                                                </div>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={t.endedReason === 'customer-ended-call' ? 'outline' : 'default'} className="capitalize whitespace-nowrap">
+                                                                {t.endedReason?.replace(/-/g, ' ') || 'Unknown'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                                                            {new Date(t.endedAt || t.createdAt).toLocaleDateString()}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button variant="ghost" size="sm" className="h-8 gap-2 hover:bg-primary/10 hover:text-primary">
+                                                                <Eye className="w-4 h-4" />
+                                                                View
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+
+                                        {totalPages > 1 && (
+                                            <div className="flex items-center justify-between px-6 py-4 border-t">
+                                                <div className="text-sm text-muted-foreground">
+                                                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTranscripts.length)} of {filteredTranscripts.length} entries
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                                        disabled={currentPage === 1}
+                                                    >
+                                                        Previous
                                                     </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </CardContent>
-                    </Card>
+                                                    <div className="text-sm font-medium px-2">
+                                                        Page {currentPage} of {totalPages}
+                                                    </div>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                                        disabled={currentPage >= totalPages}
+                                                    >
+                                                        Next
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </CardContent>
+                        </Card>
                     )}
                 </>
             ) : (
@@ -506,4 +559,3 @@ export default function CsvUploaderTranscripts() {
         </div>
     );
 }
-

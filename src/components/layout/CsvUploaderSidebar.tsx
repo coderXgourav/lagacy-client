@@ -16,6 +16,8 @@ const navItems = [
     { to: "/csv-uploader/inbox", label: "Inbox", icon: Inbox },
     { to: "/csv-uploader/templates", label: "Templates", icon: FileText },
     { to: "/csv-uploader/transcripts", label: "Transcripts", icon: MessageCircle },
+    { to: "/csv-uploader/sms-logs", label: "SMS Logs", icon: MessageCircle },
+    { to: "/csv-uploader/email-logs", label: "Email Logs", icon: FileText },
 ];
 
 export function CsvUploaderSidebar() {

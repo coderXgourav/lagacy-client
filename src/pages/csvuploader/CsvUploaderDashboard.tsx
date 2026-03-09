@@ -25,7 +25,7 @@ interface EmailResult {
     error?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export default function CsvUploaderDashboard() {
     const [isDragging, setIsDragging] = useState(false);
@@ -445,6 +445,20 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
+            
+            if (!token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "You are not logged in. Please login and try again.",
+                    variant: "destructive"
+                });
+                setIsSending(false);
+                return;
+            }
+
+            console.log('[CSV Uploader] Sending bulk emails to', contacts.length, 'contacts');
+            console.log('[CSV Uploader] API URL:', API_BASE_URL);
+            
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-emails`, {
                 method: 'POST',
                 headers: {
@@ -458,7 +472,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 })
             });
 
+            console.log('[CSV Uploader] Response status:', response.status);
             const data = await response.json();
+            console.log('[CSV Uploader] Response data:', data);
 
             if (data.success) {
                 setSendResults(data.results);
@@ -474,9 +490,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 });
             }
         } catch (error) {
+            console.error('[CSV Uploader] Error:', error);
             toast({
                 title: "Error",
-                description: "Failed to connect to server",
+                description: `Failed to connect to server: ${error.message}`,
                 variant: "destructive"
             });
         } finally {
@@ -492,6 +509,19 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
+            
+            if (!token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "You are not logged in. Please login and try again.",
+                    variant: "destructive"
+                });
+                setIsSending(false);
+                return;
+            }
+
+            console.log('[CSV Uploader] Starting 4-stage sequence for', contacts.length, 'contacts');
+            
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-sequence`, {
                 method: 'POST',
                 headers: {
@@ -506,7 +536,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 })
             });
 
+            console.log('[CSV Uploader] Sequence response status:', response.status);
             const data = await response.json();
+            console.log('[CSV Uploader] Sequence response data:', data);
 
             if (data.success) {
                 toast({
@@ -521,9 +553,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 });
             }
         } catch (error) {
+            console.error('[CSV Uploader] Sequence error:', error);
             toast({
                 title: "Error",
-                description: "Failed to connect to server",
+                description: `Failed to connect to server: ${error.message}`,
                 variant: "destructive"
             });
         } finally {
@@ -539,6 +572,19 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
+            
+            if (!token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "You are not logged in. Please login and try again.",
+                    variant: "destructive"
+                });
+                setIsSending(false);
+                return;
+            }
+
+            console.log('[CSV Uploader] Sending Email + SMS to', contacts.length, 'contacts');
+            
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-email-sms`, {
                 method: 'POST',
                 headers: {
@@ -552,7 +598,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 })
             });
 
+            console.log('[CSV Uploader] Email+SMS response status:', response.status);
             const data = await response.json();
+            console.log('[CSV Uploader] Email+SMS response data:', data);
 
             if (data.success) {
                 toast({
@@ -567,9 +615,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 });
             }
         } catch (error) {
+            console.error('[CSV Uploader] Email+SMS error:', error);
             toast({
                 title: "Error",
-                description: "Failed to connect to server",
+                description: `Failed to connect to server: ${error.message}`,
                 variant: "destructive"
             });
         } finally {
@@ -585,6 +634,19 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
+            
+            if (!token) {
+                toast({
+                    title: "Authentication Error",
+                    description: "You are not logged in. Please login and try again.",
+                    variant: "destructive"
+                });
+                setIsSending(false);
+                return;
+            }
+
+            console.log('[CSV Uploader] Starting call sequence for', contacts.length, 'contacts');
+            
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-calls`, {
                 method: 'POST',
                 headers: {
@@ -596,7 +658,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 })
             });
 
+            console.log('[CSV Uploader] Calls response status:', response.status);
             const data = await response.json();
+            console.log('[CSV Uploader] Calls response data:', data);
 
             if (data.success) {
                 toast({
@@ -611,9 +675,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 });
             }
         } catch (error) {
+            console.error('[CSV Uploader] Calls error:', error);
             toast({
                 title: "Error",
-                description: "Failed to connect to server",
+                description: `Failed to connect to server: ${error.message}`,
                 variant: "destructive"
             });
         } finally {
