@@ -234,6 +234,14 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         return -1;
     };
 
+    const getValue = (val: any): string => {
+        if (!val) return '';
+        if (typeof val === 'object') {
+            return String(val.text || val.result || JSON.stringify(val)).trim();
+        }
+        return String(val).trim();
+    };
+
     const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
         const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person', 'first', 'last'];
         const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization'];
@@ -250,39 +258,27 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const domainKeywords = ['domainname', 'domain', 'website', 'url'];
         const domainExcludes = [];
 
-        let nameIndex = findColumnIndex(headers, nameKeywords, nameExcludes);
-        let emailIndex = findColumnIndex(headers, emailKeywords, emailExcludes);
-        let numberIndex = findColumnIndex(headers, numberKeywords, numberExcludes);
-        let countryIndex = findColumnIndex(headers, countryKeywords, countryExcludes);
-        let domainIndex = findColumnIndex(headers, domainKeywords, domainExcludes);
+        // Helper to find index with priority
+        const findBestIndex = (keywords: string[], excludes: string[] = []) => {
+            for (const k of keywords) {
+                const idx = headers.findIndex(h => h.toLowerCase() === k.toLowerCase());
+                if (idx >= 0) return idx;
+            }
+            return findColumnIndex(headers, keywords, excludes);
+        };
 
-        // Fallback: If no email header found, the headers might be the first data row, or headers are unrecognized.
-        // Guess by regex.
+        let nameIndex = findBestIndex(nameKeywords, nameExcludes);
+        let emailIndex = findBestIndex(emailKeywords, emailExcludes);
+        let numberIndex = findBestIndex(numberKeywords, numberExcludes);
+        let countryIndex = findBestIndex(countryKeywords, countryExcludes);
+        let domainIndex = findBestIndex(domainKeywords, domainExcludes);
+
+        // Fallback: If no email header found, the headers might be the first data row...
         if (emailIndex === -1 && rows.length > 0) {
-            // Check if headers themselves are actually data
             const headerIsEmail = headers.findIndex(h => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h));
             if (headerIsEmail >= 0) {
                 emailIndex = headerIsEmail;
-                rows.unshift(headers); // Push headers back as data
-
-                // Try to find phone in headers
-                if (numberIndex === -1) {
-                    nameIndex = headers.findIndex(h => /^[a-zA-Z\s]{3,20}$/.test(h) && !h.includes('@'));
-                    numberIndex = headers.findIndex(h => /^[\+\d\s\-\(\)]{7,20}$/.test(h) && /\d{5}/.test(h));
-                }
-            } else {
-                // Check first few rows to guess columns
-                for (let i = 0; i < Math.min(3, rows.length); i++) {
-                    const row = rows[i] || [];
-                    if (emailIndex === -1) {
-                        const idx = row.findIndex(v => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()));
-                        if (idx >= 0) emailIndex = idx;
-                    }
-                    if (numberIndex === -1) {
-                        const idx = row.findIndex(v => typeof v === 'string' && /^[\+\d\s\-\(\)]{7,20}$/.test(v.trim()) && /\d{5}/.test(v));
-                        if (idx >= 0) numberIndex = idx;
-                    }
-                }
+                rows.unshift(headers);
             }
         }
 
@@ -294,11 +290,11 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             if (!values || values.length === 0) continue;
 
             const contact: Contact = {
-                name: nameIndex >= 0 ? String(values[nameIndex] || '').trim() : '',
-                email: emailIndex >= 0 ? String(values[emailIndex] || '').trim() : '',
-                number: numberIndex >= 0 ? String(values[numberIndex] || '').trim() : '',
-                country: countryIndex >= 0 ? String(values[countryIndex] || '').trim() : '',
-                domainName: domainIndex >= 0 ? String(values[domainIndex] || '').trim() : ''
+                name: nameIndex >= 0 ? getValue(values[nameIndex]) : '',
+                email: emailIndex >= 0 ? getValue(values[emailIndex]) : '',
+                number: numberIndex >= 0 ? getValue(values[numberIndex]) : '',
+                country: countryIndex >= 0 ? getValue(values[countryIndex]) : '',
+                domainName: domainIndex >= 0 ? getValue(values[domainIndex]) : ''
             };
 
             // Only add if has valid email
