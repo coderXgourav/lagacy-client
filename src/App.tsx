@@ -40,8 +40,8 @@ import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
 import CsvUploaderInbox from "./pages/csvuploader/CsvUploaderInbox";
 import CsvUploaderTemplates from "./pages/csvuploader/CsvUploaderTemplates";
 import CsvUploaderTranscripts from "./pages/csvuploader/CsvUploaderTranscripts";
-import CsvUploaderSmsLogs from "./pages/csvuploader/CsvUploaderSmsLogs";
 import CsvUploaderEmailLogs from "./pages/csvuploader/CsvUploaderEmailLogs";
+import CsvUploaderSmsLogs from "./pages/csvuploader/CsvUploaderSmsLogs";
 import { HrPortalLayout } from "./components/layout/HrPortalLayout";
 import HrPortalDashboard from "./pages/hrportal/HrPortalDashboard";
 import HrEmployeeDirectory from "./pages/hrportal/HrEmployeeDirectory";
@@ -116,15 +116,15 @@ const App = () => (
               <Route path="/csv-filter" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
                 <Route index element={<CsvFilterDashboard />} />
               </Route>
-              <Route path="/csv-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
-                <Route index element={<CsvUploaderDashboard />} />
-                <Route path="stats" element={<CsvUploaderStats />} />
-                <Route path="inbox" element={<CsvUploaderInbox />} />
-                <Route path="templates" element={<CsvUploaderTemplates />} />
-                <Route path="transcripts" element={<CsvUploaderTranscripts />} />
-                <Route path="sms-logs" element={<CsvUploaderSmsLogs />} />
-                <Route path="email-logs" element={<CsvUploaderEmailLogs />} />
-              </Route>
+                <Route path="/csv-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
+                  <Route index element={<CsvUploaderDashboard />} />
+                  <Route path="stats" element={<CsvUploaderStats />} />
+                  <Route path="email-logs" element={<CsvUploaderEmailLogs />} />
+                  <Route path="sms-logs" element={<CsvUploaderSmsLogs />} />
+                  <Route path="inbox" element={<CsvUploaderInbox />} />
+                  <Route path="templates" element={<CsvUploaderTemplates />} />
+                  <Route path="transcripts" element={<CsvUploaderTranscripts />} />
+                </Route>
               <Route path="/hr-portal" element={<ProtectedRoute><HrPortalLayout /></ProtectedRoute>}>
                 <Route index element={<HrPortalDashboard />} />
                 <Route path="employees" element={<HrEmployeeDirectory />} />

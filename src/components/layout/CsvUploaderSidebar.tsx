@@ -6,13 +6,17 @@ import {
     BarChart3,
     FileText,
     Inbox,
-    MessageCircle
+    MessageCircle,
+    Mail,
+    Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { to: "/csv-uploader", label: "Dashboard", icon: Upload },
     { to: "/csv-uploader/stats", label: "Stats", icon: BarChart3 },
+    { to: "/csv-uploader/email-logs", label: "Email Logs", icon: Mail },
+    { to: "/csv-uploader/sms-logs", label: "SMS Logs", icon: Phone },
     { to: "/csv-uploader/inbox", label: "Inbox", icon: Inbox },
     { to: "/csv-uploader/templates", label: "Templates", icon: FileText },
     { to: "/csv-uploader/transcripts", label: "Transcripts", icon: MessageCircle },
