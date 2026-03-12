@@ -54,8 +54,9 @@ export function CandidateDetailsDialog({ candidate, open, onOpenChange }: Candid
                                         {candidate.location && (
                                             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {candidate.location}</span>
                                         )}
-                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-foreground transition-colors">
-                                            <Linkedin className="w-3 h-3 text-indigo-600" /> LinkedIn
+                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-1 transition-colors ${candidate.linkedinSent ? 'text-emerald-600' : 'hover:text-foreground'}`}>
+                                            <Linkedin className={`w-3 h-3 ${candidate.linkedinSent ? 'text-emerald-600' : 'text-indigo-600'}`} /> 
+                                            LinkedIn {candidate.linkedinSent && <span className="flex items-center ml-1 text-[10px] font-bold uppercase tracking-wider">(Sent)</span>}
                                         </a>
                                         {candidate.email && (
                                             <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {candidate.email}</span>

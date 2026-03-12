@@ -333,8 +333,10 @@ export default function CandidateBoard() {
                                     )}
 
                                     <div className="flex gap-4 pt-1">
-                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-500 transition-colors" onClick={(e) => e.stopPropagation()}>
-                                            <Linkedin className="w-3 h-3" /> <span className="underline decoration-indigo-600/30 underline-offset-2">LinkedIn</span>
+                                        <a href={candidate.linkedinUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-1.5 text-xs transition-colors ${candidate.linkedinSent ? 'text-emerald-600' : 'text-indigo-600 hover:text-indigo-500'}`} onClick={(e) => e.stopPropagation()}>
+                                            <Linkedin className="w-3 h-3" /> 
+                                            <span className="underline decoration-current underline-offset-2">LinkedIn</span>
+                                            {candidate.linkedinSent && <CheckCircle className="w-3 h-3 ml-0.5" />}
                                         </a>
                                         {candidate.email && (
                                             <div className="flex items-center gap-1.5 text-xs text-emerald-600">
