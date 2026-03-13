@@ -42,7 +42,7 @@ export default function KyptronixFormPage() {
       title: "Business Card",
       description: "Digital business card downloads and networking inquiries.",
       icon: CreditCard,
-      source: "Kyptronix Business Form",
+      source: "Business",
       color: "amber"
     },
     {
@@ -50,7 +50,7 @@ export default function KyptronixFormPage() {
       title: "Proposal Requests",
       description: "Detailed project requirements and customized proposal asks.",
       icon: FileSignature,
-      source: "Kyptronix Contact Form",
+      source: "Proposal",
       color: "indigo"
     },
   ];

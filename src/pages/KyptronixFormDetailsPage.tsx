@@ -53,14 +53,14 @@ const forms = [
   {
     id: "download-business-card",
     title: "Business Card",
-    source: "Kyptronix Business Form",
+    source: "Business",
     icon: Building2,
     color: "amber"
   },
   {
     id: "request-proposal",
     title: "Proposal Request",
-    source: "Kyptronix Contact Form",
+    source: "Proposal",
     icon: Target,
     color: "indigo"
   }
