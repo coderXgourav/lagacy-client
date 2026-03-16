@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { Mail, Search, RefreshCw, Eye, EyeOff, MessageSquare, Clock, Calendar as CalendarIcon, User, Filter } from "lucide-react";
+import { Mail, Search, RefreshCw, Eye, EyeOff, MessageSquare, Clock, Calendar as CalendarIcon, User, Filter, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface EmailLog {
     _id: string;
     email: string;
     name: string;
+    phoneNumber?: string;
     subject: string;
     status: 'Seen' | 'Unseen' | 'Replied';
     openCount: number;
@@ -132,6 +136,65 @@ export default function CsvUploaderEmailLogs() {
             default:
                 return <Badge variant="secondary" className="opacity-70"><EyeOff className="w-3 h-3 mr-1" /> Unseen</Badge>;
         }
+    };
+
+    const handleDownloadCSV = () => {
+        if (filteredLogs.length === 0) {
+            toast({ title: "No Data", description: "No logs to download.", variant: "destructive" });
+            return;
+        }
+        
+        const headers = ["Recipient Name", "Recipient Email", "Phone Number", "Subject", "Status", "Opens", "Sent Date"];
+        const rows = filteredLogs.map(log => [
+            log.name || 'Unknown',
+            log.email,
+            log.phoneNumber || 'N/A',
+            `"${(log.subject || '').replace(/"/g, '""')}"`,
+            log.status,
+            log.openCount,
+            new Date(log.sentAt).toLocaleDateString()
+        ]);
+        
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `email_logs_${filters.dateFrom}_to_${filters.dateTo}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleDownloadPDF = () => {
+        if (filteredLogs.length === 0) {
+            toast({ title: "No Data", description: "No logs to download.", variant: "destructive" });
+            return;
+        }
+        
+        const doc = new jsPDF();
+        doc.text(`Email Logs (${filters.dateFrom} to ${filters.dateTo})`, 14, 15);
+        
+        const tableColumn = ["Name", "Email", "Phone", "Subject", "Status", "Opens", "Sent Date"];
+        const tableRows = filteredLogs.map(log => [
+            log.name || 'Unknown',
+            log.email,
+            log.phoneNumber || 'N/A',
+            (log.subject || '').substring(0, 30) + ((log.subject || '').length > 30 ? '...' : ''),
+            log.status,
+            log.openCount.toString(),
+            new Date(log.sentAt).toLocaleDateString()
+        ]);
+        
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [0, 86, 179] },
+        });
+        
+        doc.save(`email_logs_${filters.dateFrom}_to_${filters.dateTo}.pdf`);
     };
 
     return (
@@ -341,10 +404,32 @@ export default function CsvUploaderEmailLogs() {
                                         <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Unseen</span>
                                     </div>
                                     <div className="flex-1" />
-                                    <Button onClick={() => fetchLogs(currentPage)} disabled={isLoading} variant="outline" size="sm" className="gap-2">
-                                        <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
-                                        Refresh
-                                    </Button>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="outline" size="sm" className="gap-2">
+                                                    <Download className="w-3.5 h-3.5" />
+                                                    Download
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={handleDownloadCSV} className="cursor-pointer">
+                                                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                                    Export to CSV
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer">
+                                                    <FileText className="w-4 h-4 mr-2" />
+                                                    Export to PDF
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+
+                                        <Button onClick={() => fetchLogs(currentPage)} disabled={isLoading} variant="outline" size="sm" className="gap-2">
+                                            <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
+                                            Refresh
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 <Table>
@@ -367,7 +452,10 @@ export default function CsvUploaderEmailLogs() {
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="font-semibold text-foreground">{log.name || 'Unknown'}</span>
-                                                            <span className="text-xs text-muted-foreground">{log.email}</span>
+                                                            <span className="text-xs text-muted-foreground mb-0.5">{log.email}</span>
+                                                            <span className="text-[10px] text-muted-foreground/80 font-medium">
+                                                                {log.phoneNumber ? log.phoneNumber : 'No phone number'}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </TableCell>

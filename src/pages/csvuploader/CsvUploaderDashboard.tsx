@@ -249,7 +249,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'address'];
         const emailExcludes = ['postal', 'physical'];
 
-        const numberKeywords = ['number', 'phone', 'mobile', 'tel', 'contact_phone', 'registrant_phone', 'cell'];
+        const numberKeywords = ['number', 'phone', 'phonenumber', 'mobile', 'tel', 'contact_phone', 'contact_number', 'registrant_phone', 'cell'];
         const numberExcludes = ['fax', 'extension', 'office'];
 
         const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation', 'location'];
@@ -296,6 +296,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 country: countryIndex >= 0 ? getValue(values[countryIndex]) : '',
                 domainName: domainIndex >= 0 ? getValue(values[domainIndex]) : ''
             };
+            console.log('Extracted contact row:', contact);
 
             // Only add if has valid email
             if (contact.email && contact.email.includes('@')) {
@@ -1010,7 +1011,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 ) : (
                                     <>
                                         <MessageSquare className="h-5 w-5 mr-2" />
-                                        Send Email & SMS
+                                        Send Email & WhatsApp
                                     </>
                                 )}
                             </Button>
@@ -1056,13 +1057,13 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <b>Bulk Emails:</b> Sends 1 email now to every row (fast, email only).
                             </p>
                             <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold text-center">
-                                <b>Email & SMS:</b> Sends both Email + SMS instantly to every row (no calls).
+                                <b>Email & WhatsApp:</b> Sends both Email + WhatsApp instantly to every row (no calls).
                             </p>
                             <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold text-center">
                                 <b>Call:</b> Calls contacts one by one via VAPI. Transcripts saved automatically.
                             </p>
                             <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
-                                <b>Automated Sequence:</b> Sends Email & SMS instantly → 0.2s Wait → VAPI Call → Then next row.
+                                <b>Automated Sequence:</b> Sends Email & WhatsApp instantly → 0.2s Wait → VAPI Call → Then next row.
                             </p>
                         </div>
                     </CardContent>
