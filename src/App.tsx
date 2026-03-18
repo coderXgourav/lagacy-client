@@ -42,6 +42,7 @@ import CsvUploaderTemplates from "./pages/csvuploader/CsvUploaderTemplates";
 import CsvUploaderTranscripts from "./pages/csvuploader/CsvUploaderTranscripts";
 import CsvUploaderEmailLogs from "./pages/csvuploader/CsvUploaderEmailLogs";
 import CsvUploaderSmsLogs from "./pages/csvuploader/CsvUploaderSmsLogs";
+import CsvUploaderWhatsAppChat from "./pages/csvuploader/CsvUploaderWhatsAppChat";
 import { HrPortalLayout } from "./components/layout/HrPortalLayout";
 import HrPortalDashboard from "./pages/hrportal/HrPortalDashboard";
 import HrEmployeeDirectory from "./pages/hrportal/HrEmployeeDirectory";
@@ -64,6 +65,8 @@ import { SourceSiteOwnersLayout } from "./components/layout/SourceSiteOwnersLayo
 import { LeadCaptureLayout } from "./components/layout/LeadCaptureLayout";
 import { KyptronixFormLayout } from "./components/layout/KyptronixFormLayout";
 import { DomainScraperLayout } from "./components/layout/DomainScraperLayout";
+import { LeadPipelineLayout } from "./components/layout/LeadPipelineLayout";
+import LeadPipelineDashboard from "./pages/leadpipeline/LeadPipelineDashboard";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +124,7 @@ const App = () => (
                   <Route path="stats" element={<CsvUploaderStats />} />
                   <Route path="email-logs" element={<CsvUploaderEmailLogs />} />
                   <Route path="sms-logs" element={<CsvUploaderSmsLogs />} />
+                  <Route path="whatsapp-chat" element={<CsvUploaderWhatsAppChat />} />
                   <Route path="inbox" element={<CsvUploaderInbox />} />
                   <Route path="templates" element={<CsvUploaderTemplates />} />
                   <Route path="transcripts" element={<CsvUploaderTranscripts />} />
@@ -151,6 +155,11 @@ const App = () => (
               </Route>
               <Route path="/system-role" element={<ProtectedRoute><SystemRoleLayout /></ProtectedRoute>}>
                 <Route index element={<SystemRoleDashboard />} />
+              </Route>
+              <Route path="/lead-pipeline" element={<ProtectedRoute><LeadPipelineLayout /></ProtectedRoute>}>
+                <Route index element={<LeadPipelineDashboard />} />
+                <Route path="logs" element={<LeadPipelineDashboard />} /> {/* For now, using dashboard for logs too */}
+                <Route path="skips" element={<LeadPipelineDashboard />} />
               </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />

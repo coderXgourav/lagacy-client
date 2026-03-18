@@ -145,10 +145,10 @@ export default function CsvUploaderSmsLogs() {
             <div>
                 <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                     <Phone className="w-8 h-8 text-primary" />
-                    SMS Campaign Logs
+                    WhatsApp Campaign Logs
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                    Track SMS delivery, failures, and customer responses. Select a date range to view logs.
+                    Track WhatsApp delivery, failures, and customer responses. Select a date range to view logs.
                 </p>
             </div>
 
@@ -228,7 +228,7 @@ export default function CsvUploaderSmsLogs() {
                                         ) : (
                                             <Search className="w-4 h-4 mr-2" />
                                         )}
-                                        Search SMS Logs
+                                        Search WhatsApp Logs
                                     </Button>
                                     {(!filters.dateFrom || !filters.dateTo) && (
                                         <p className="text-xs text-muted-foreground ml-3 mb-1">
@@ -297,7 +297,7 @@ export default function CsvUploaderSmsLogs() {
                         <Filter className="w-12 h-12 text-muted-foreground/30 mb-4" />
                         <h3 className="text-lg font-semibold text-foreground">Awaiting Search Criteria</h3>
                         <p className="text-muted-foreground mt-1 max-w-sm">
-                            Please select your desired date range above and click "Search SMS Logs" to view your SMS campaign records.
+                            Please select your desired date range above and click "Search WhatsApp Logs" to view your WhatsApp campaign records.
                         </p>
                     </CardContent>
                 </Card>
@@ -311,7 +311,7 @@ export default function CsvUploaderSmsLogs() {
                         ) : filteredLogs.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center">
                                 <MessageSquare className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                                <p className="text-muted-foreground font-medium">No SMS logs found matching your filters.</p>
+                                <p className="text-muted-foreground font-medium">No WhatsApp logs found matching your filters.</p>
                                 <Button
                                     variant="link"
                                     onClick={() => {

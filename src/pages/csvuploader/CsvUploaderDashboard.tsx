@@ -540,7 +540,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             if (data.success) {
                 toast({
                     title: "🚀 Sequence Started!",
-                    description: "Automated Sequence: Sends Email & SMS instantly → 0.2s Wait → VAPI Call → Then next row.",
+                    description: "Automated Sequence: Sends Email & WhatsApp instantly → 0.2s Wait → VAPI Call → Then next row.",
                 });
             } else {
                 toast({
@@ -601,8 +601,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
             if (data.success) {
                 toast({
-                    title: "📧📱 Email + SMS Started!",
-                    description: `Sending emails and SMS to ${contacts.length} contacts simultaneously.`,
+                    title: "📧📱 Email + WhatsApp Started!",
+                    description: `Sending emails and WhatsApp to ${contacts.length} contacts simultaneously.`,
                 });
             } else {
                 toast({
@@ -823,7 +823,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 </div>
                             </div>
                             <div className="bg-background/50 p-4 rounded-xl border">
-                                <p className="text-sm text-muted-foreground">SMS</p>
+                                <p className="text-sm text-muted-foreground">WhatsApp</p>
                                 <p className="text-2xl font-bold">{stats?.sms?.sent} / {stats?.sms?.sent + stats?.sms?.pending}</p>
                                 <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                                     <div

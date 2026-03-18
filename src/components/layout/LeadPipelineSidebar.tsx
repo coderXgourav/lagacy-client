@@ -1,29 +1,22 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-    Upload,
+    Activity,
     LogOut,
     ArrowLeft,
-    BarChart3,
-    FileText,
-    Inbox,
-    MessageCircle,
-    Mail,
-    Phone
+    ShieldAlert,
+    Database,
+    Phone,
+    LayoutDashboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-    { to: "/csv-uploader", label: "Dashboard", icon: Upload },
-    { to: "/csv-uploader/stats", label: "Stats", icon: BarChart3 },
-    { to: "/csv-uploader/email-logs", label: "Email Logs", icon: Mail },
-    { to: "/csv-uploader/sms-logs", label: "SMS Logs", icon: Phone },
-    { to: "/csv-uploader/whatsapp-chat", label: "WhatsApp Chat", icon: MessageCircle },
-    { to: "/csv-uploader/inbox", label: "Inbox", icon: Inbox },
-    { to: "/csv-uploader/templates", label: "Templates", icon: FileText },
-    { to: "/csv-uploader/transcripts", label: "Transcripts", icon: MessageCircle },
+    { to: "/lead-pipeline", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/lead-pipeline/logs", label: "Success Logs", icon: Database },
+    { to: "/lead-pipeline/skips", label: "Skip Logs", icon: ShieldAlert },
 ];
 
-export function CsvUploaderSidebar() {
+export function LeadPipelineSidebar() {
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -43,9 +36,9 @@ export function CsvUploaderSidebar() {
                     </div>
                     <div>
                         <h1 className="text-sidebar-foreground font-bold text-lg tracking-tight">
-                            CSV Uploader
+                            Lead Pipeline
                         </h1>
-                        <p className="text-muted-foreground text-xs font-medium">Pro Tool</p>
+                        <p className="text-muted-foreground text-xs font-medium">Apollo Auto-Sync</p>
                     </div>
                 </div>
             </div>
@@ -55,7 +48,7 @@ export function CsvUploaderSidebar() {
                     <NavLink
                         key={item.to}
                         to={item.to}
-                        end={item.to === "/csv-uploader"}
+                        end={item.to === "/lead-pipeline"}
                         className={({ isActive }) =>
                             cn(
                                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium group relative overflow-hidden",

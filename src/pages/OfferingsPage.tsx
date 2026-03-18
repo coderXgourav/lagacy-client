@@ -190,6 +190,15 @@ export default function OfferingsPage() {
       available: true,
       route: "/system-role",
     },
+    {
+      id: "lead-pipeline",
+      title: "Lead Pipeline (Apollo)",
+      description: "Auto-sync fresh business leads from Apollo to Zoho CRM hourly.",
+      icon: Activity,
+      available: true,
+      route: "/lead-pipeline",
+      beta: true,
+    },
   ];
 
   return (

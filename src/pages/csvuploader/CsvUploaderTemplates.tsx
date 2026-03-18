@@ -190,7 +190,7 @@ export default function CsvUploaderTemplates() {
                     Message Templates
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                    View and preview the email and SMS templates used in your automation sequences
+                    View and preview the email and WhatsApp templates used in your automation sequences
                 </p>
             </div>
 
@@ -202,7 +202,7 @@ export default function CsvUploaderTemplates() {
                     </TabsTrigger>
                     <TabsTrigger value="sms" className="gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        SMS Templates
+                        WhatsApp Templates
                     </TabsTrigger>
                 </TabsList>
 
@@ -241,7 +241,7 @@ export default function CsvUploaderTemplates() {
                                 <CardHeader className="pb-3">
                                     <div className="flex items-center justify-between">
                                         <Badge variant="outline" className="bg-muted/50">
-                                            SMS {index + 1}
+                                            WhatsApp {index + 1}
                                         </Badge>
                                         <Button
                                             variant="ghost"
