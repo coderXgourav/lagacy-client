@@ -202,7 +202,10 @@ export default function CsvUploaderEmailLogs() {
 
             const allLogs: EmailLog[] = data.logs;
             const doc = new jsPDF();
+            doc.setFontSize(14);
             doc.text(`Email Logs - Seen Only (${filters.dateFrom} to ${filters.dateTo})`, 14, 15);
+            doc.setFontSize(11);
+            doc.text(`Total Seen: ${allLogs.length}`, 14, 23);
             
             const tableColumn = ["Name", "Email", "Phone", "Subject", "Status", "Opens", "Sent Date"];
             const tableRows = allLogs.map(log => [
@@ -218,7 +221,7 @@ export default function CsvUploaderEmailLogs() {
             autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
-                startY: 20,
+                startY: 28,
                 styles: { fontSize: 8 },
                 headStyles: { fillColor: [0, 86, 179] },
             });
