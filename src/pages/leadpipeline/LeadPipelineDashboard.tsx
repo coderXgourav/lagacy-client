@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { 
     LayoutDashboard, 
     Users, 
@@ -17,39 +18,43 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface LeadLog {
     _id: string;
     email: string;
-    firstName: string;
-    lastName: string;
-    company: string;
-    domain: string;
-    phone: string;
-    zohoLeadId: string;
+    firstName?: string;
+    lastName?: string;
+    company?: string;
+    domain?: string;
+    phone?: string;
+    reason?: string; // For skips
     processedAt: string;
 }
 
 export default function LeadPipelineDashboard() {
+    const location = useLocation();
+    const isSkipsPage = location.pathname.includes('/skips');
     const [logs, setLogs] = useState<LeadLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [running, setRunning] = useState(false);
     const [stats, setStats] = useState({ success: 0, total: 0 });
     const { toast } = useToast();
-
+ 
     const fetchLogs = async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/api/lead-pipeline/logs?limit=5`, {
+            const endpoint = isSkipsPage ? '/lead-pipeline/skips' : '/lead-pipeline/logs';
+            const response = await fetch(`${API_BASE_URL}${endpoint}?limit=20`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
             if (data.success) {
-                setLogs(data.logs);
-                setStats({ success: data.total, total: data.total }); // Placeholder for better stats later
+                setLogs(data.logs || []);
+                setStats({ success: data.total, total: data.total });
             }
         } catch (error) {
             console.error('Error fetching logs:', error);
@@ -85,14 +90,20 @@ export default function LeadPipelineDashboard() {
 
     useEffect(() => {
         fetchLogs();
-    }, []);
+    }, [location.pathname]);
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Lead Pipeline Dashboard</h1>
-                    <p className="text-muted-foreground">Monitor your automated Apollo to Zoho CRM sync.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                        {isSkipsPage ? 'Pipeline Skip Logs' : 'Lead Pipeline Dashboard'}
+                    </h1>
+                    <p className="text-muted-foreground">
+                        {isSkipsPage 
+                            ? 'Review leads that did not meet the validation criteria.' 
+                            : 'Monitor your automated Apollo to Database sync.'}
+                    </p>
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={fetchLogs} disabled={loading}>
@@ -158,9 +169,9 @@ export default function LeadPipelineDashboard() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Lead Name</TableHead>
-                                <TableHead>Company</TableHead>
-                                <TableHead>Email</TableHead>
+                                <TableHead>{isSkipsPage ? 'Email' : 'Lead Name'}</TableHead>
+                                <TableHead>{isSkipsPage ? 'Reason' : 'Company'}</TableHead>
+                                <TableHead>{isSkipsPage ? 'Domain' : 'Email'}</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Date</TableHead>
                             </TableRow>
@@ -168,20 +179,31 @@ export default function LeadPipelineDashboard() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10">Loading leads...</TableCell>
+                                    <TableCell colSpan={5} className="text-center py-10">Loading entries...</TableCell>
                                 </TableRow>
                             ) : logs.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">No leads processed yet.</TableCell>
+                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
+                                        No {isSkipsPage ? 'skips' : 'leads'} found.
+                                    </TableCell>
                                 </TableRow>
                             ) : logs.map((log) => (
                                 <TableRow key={log._id}>
-                                    <TableCell className="font-medium">{log.firstName} {log.lastName}</TableCell>
-                                    <TableCell>{log.company}</TableCell>
-                                    <TableCell>{log.email}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {isSkipsPage ? log.email : `${log.firstName || ''} ${log.lastName || ''}`}
+                                    </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                            Synced
+                                        {isSkipsPage ? (
+                                            <span className="text-rose-600 font-medium">{log.reason}</span>
+                                        ) : log.company}
+                                    </TableCell>
+                                    <TableCell>{isSkipsPage ? log.domain : log.email}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className={cn(
+                                            "capitalize",
+                                            isSkipsPage ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-green-50 text-green-700 border-green-200"
+                                        )}>
+                                            {isSkipsPage ? 'Skipped' : 'Synced'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground text-xs">

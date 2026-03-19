@@ -138,63 +138,98 @@ export default function CsvUploaderEmailLogs() {
         }
     };
 
-    const handleDownloadCSV = () => {
-        if (filteredLogs.length === 0) {
-            toast({ title: "No Data", description: "No logs to download.", variant: "destructive" });
-            return;
+    const handleDownloadCSV = async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            // Fetch ALL records matching current filters (bypass pagination)
+            // Always download only "Seen" emails
+            const response = await fetch(
+                `${API_BASE_URL}/csv-uploader/email-logs?all=true&dateFrom=${filters.dateFrom}&dateTo=${filters.dateTo}&status=Seen`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            const data = await response.json();
+            
+            if (!data.success || !data.logs || data.logs.length === 0) {
+                toast({ title: "No Data", description: "No 'Seen' logs found to download.", variant: "destructive" });
+                return;
+            }
+
+            const allLogs: EmailLog[] = data.logs;
+            const headers = ["Recipient Name", "Recipient Email", "Phone Number", "Subject", "Status", "Opens", "Sent Date"];
+            const rows = allLogs.map(log => [
+                log.name || 'Unknown',
+                log.email,
+                log.phoneNumber || 'N/A',
+                `"${(log.subject || '').replace(/"/g, '""')}"`,
+                log.status,
+                log.openCount,
+                new Date(log.sentAt).toLocaleDateString()
+            ]);
+            
+            const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `email_logs_Seen_${filters.dateFrom}_to_${filters.dateTo}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Download error:', error);
+            toast({ title: "Error", description: "Failed to download CSV", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
         }
-        
-        const headers = ["Recipient Name", "Recipient Email", "Phone Number", "Subject", "Status", "Opens", "Sent Date"];
-        const rows = filteredLogs.map(log => [
-            log.name || 'Unknown',
-            log.email,
-            log.phoneNumber || 'N/A',
-            `"${(log.subject || '').replace(/"/g, '""')}"`,
-            log.status,
-            log.openCount,
-            new Date(log.sentAt).toLocaleDateString()
-        ]);
-        
-        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `email_logs_${filters.dateFrom}_to_${filters.dateTo}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
     };
 
-    const handleDownloadPDF = () => {
-        if (filteredLogs.length === 0) {
-            toast({ title: "No Data", description: "No logs to download.", variant: "destructive" });
-            return;
+    const handleDownloadPDF = async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            // Always download only "Seen" emails
+            const response = await fetch(
+                `${API_BASE_URL}/csv-uploader/email-logs?all=true&dateFrom=${filters.dateFrom}&dateTo=${filters.dateTo}&status=Seen`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            const data = await response.json();
+            
+            if (!data.success || !data.logs || data.logs.length === 0) {
+                toast({ title: "No Data", description: "No 'Seen' logs found to download.", variant: "destructive" });
+                return;
+            }
+
+            const allLogs: EmailLog[] = data.logs;
+            const doc = new jsPDF();
+            doc.text(`Email Logs - Seen Only (${filters.dateFrom} to ${filters.dateTo})`, 14, 15);
+            
+            const tableColumn = ["Name", "Email", "Phone", "Subject", "Status", "Opens", "Sent Date"];
+            const tableRows = allLogs.map(log => [
+                log.name || 'Unknown',
+                log.email,
+                log.phoneNumber || 'N/A',
+                (log.subject || '').substring(0, 30) + ((log.subject || '').length > 30 ? '...' : ''),
+                log.status,
+                log.openCount.toString(),
+                new Date(log.sentAt).toLocaleDateString()
+            ]);
+            
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: 20,
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [0, 86, 179] },
+            });
+            
+            doc.save(`email_logs_Seen_${filters.dateFrom}_to_${filters.dateTo}.pdf`);
+        } catch (error) {
+            console.error('Download error:', error);
+            toast({ title: "Error", description: "Failed to download PDF", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
         }
-        
-        const doc = new jsPDF();
-        doc.text(`Email Logs (${filters.dateFrom} to ${filters.dateTo})`, 14, 15);
-        
-        const tableColumn = ["Name", "Email", "Phone", "Subject", "Status", "Opens", "Sent Date"];
-        const tableRows = filteredLogs.map(log => [
-            log.name || 'Unknown',
-            log.email,
-            log.phoneNumber || 'N/A',
-            (log.subject || '').substring(0, 30) + ((log.subject || '').length > 30 ? '...' : ''),
-            log.status,
-            log.openCount.toString(),
-            new Date(log.sentAt).toLocaleDateString()
-        ]);
-        
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 20,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [0, 86, 179] },
-        });
-        
-        doc.save(`email_logs_${filters.dateFrom}_to_${filters.dateTo}.pdf`);
     };
 
     return (
