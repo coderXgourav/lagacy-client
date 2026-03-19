@@ -11,7 +11,10 @@ import {
     Clock,
     CheckCircle2,
     XCircle,
-    Activity
+    Activity,
+    Download,
+    FileText,
+    FileSpreadsheet
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -85,6 +91,125 @@ export default function LeadPipelineDashboard() {
             });
         } finally {
             setRunning(false);
+        }
+    };
+
+    const handleDownloadCSV = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const endpoint = isSkipsPage ? '/lead-pipeline/skips' : '/lead-pipeline/logs';
+            const response = await fetch(`${API_BASE_URL}${endpoint}?all=true`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (!data.success || !data.logs || data.logs.length === 0) {
+                toast({ title: "No Data", description: "No logs found to download.", variant: "destructive" });
+                return;
+            }
+
+            const allLogs: LeadLog[] = data.logs;
+            let headers: string[];
+            let rows: string[][];
+
+            if (isSkipsPage) {
+                headers = ["Email", "Reason", "Domain", "Date"];
+                rows = allLogs.map(log => [
+                    log.email,
+                    log.reason || 'N/A',
+                    log.domain || 'N/A',
+                    new Date(log.processedAt).toLocaleString()
+                ]);
+            } else {
+                headers = ["Name", "Email", "Company", "Domain", "Phone", "Date"];
+                rows = allLogs.map(log => [
+                    `${log.firstName || ''} ${log.lastName || ''}`.trim() || 'N/A',
+                    log.email,
+                    log.company || 'N/A',
+                    log.domain || 'N/A',
+                    log.phone || 'N/A',
+                    new Date(log.processedAt).toLocaleString()
+                ]);
+            }
+
+            const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `lead_pipeline_${isSkipsPage ? 'skips' : 'success'}_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Download error:', error);
+            toast({ title: "Error", description: "Failed to download CSV", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDownloadPDF = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const endpoint = isSkipsPage ? '/lead-pipeline/skips' : '/lead-pipeline/logs';
+            const response = await fetch(`${API_BASE_URL}${endpoint}?all=true`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+
+            if (!data.success || !data.logs || data.logs.length === 0) {
+                toast({ title: "No Data", description: "No logs found to download.", variant: "destructive" });
+                return;
+            }
+
+            const allLogs: LeadLog[] = data.logs;
+            const doc = new jsPDF();
+            const title = isSkipsPage ? 'Pipeline Skip Logs' : 'Lead Pipeline - Successful Syncs';
+            doc.setFontSize(14);
+            doc.text(title, 14, 15);
+            doc.setFontSize(11);
+            doc.text(`Total: ${allLogs.length}`, 14, 23);
+
+            let tableColumn: string[];
+            let tableRows: string[][];
+
+            if (isSkipsPage) {
+                tableColumn = ["Email", "Reason", "Domain", "Date"];
+                tableRows = allLogs.map(log => [
+                    log.email,
+                    log.reason || 'N/A',
+                    log.domain || 'N/A',
+                    new Date(log.processedAt).toLocaleString()
+                ]);
+            } else {
+                tableColumn = ["Name", "Email", "Company", "Domain", "Phone", "Date"];
+                tableRows = allLogs.map(log => [
+                    `${log.firstName || ''} ${log.lastName || ''}`.trim() || 'N/A',
+                    log.email,
+                    log.company || 'N/A',
+                    log.domain || 'N/A',
+                    log.phone || 'N/A',
+                    new Date(log.processedAt).toLocaleString()
+                ]);
+            }
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: 28,
+                styles: { fontSize: 7 },
+                headStyles: { fillColor: isSkipsPage ? [220, 38, 38] : [0, 86, 179] },
+            });
+
+            doc.save(`lead_pipeline_${isSkipsPage ? 'skips' : 'success'}_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (error) {
+            console.error('Download error:', error);
+            toast({ title: "Error", description: "Failed to download PDF", variant: "destructive" });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -161,9 +286,33 @@ export default function LeadPipelineDashboard() {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Recent Successful Syncs</CardTitle>
-                    <CardDescription>The most recent leads added to your CRM.</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>{isSkipsPage ? 'Skip Logs' : 'Recent Successful Syncs'}</CardTitle>
+                        <CardDescription>
+                            {isSkipsPage 
+                                ? 'Leads that were skipped during pipeline processing.' 
+                                : 'The most recent leads added to your CRM.'}
+                        </CardDescription>
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-2">
+                                <Download className="w-3.5 h-3.5" />
+                                Download
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={handleDownloadCSV} className="cursor-pointer">
+                                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                Export to CSV
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer">
+                                <FileText className="w-4 h-4 mr-2" />
+                                Export to PDF
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </CardHeader>
                 <CardContent>
                     <Table>
