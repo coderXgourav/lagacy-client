@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, MapPin, Calendar, Clock, ArrowRight, Briefcase, Trash2, Loader2, UserPlus } from "lucide-react";
+import { Plus, Search, MapPin, Calendar, Clock, ArrowRight, Briefcase, Trash2, Loader2, UserPlus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { notification } from "antd";
+import { DataLoader } from "@/components/ui/DataLoader";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -17,21 +18,31 @@ export default function HrRecruitment() {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [navigatingId, setNavigatingId] = useState<string | null>(null);
-
-    useEffect(() => {
-        fetchJobs();
-    }, []);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalJobs, setTotalJobs] = useState(0);
+    const limit = 10;
 
     const fetchJobs = async () => {
         try {
-            const res = await axios.get(`${API_URL}/hr/jobs`);
-            setJobs(res.data);
+            setLoading(true);
+            const res = await axios.get(`${API_URL}/hr/jobs?page=${currentPage}&limit=${limit}`);
+            if (res.data.success) {
+                setJobs(res.data.data);
+                setTotalPages(res.data.pagination.pages);
+                setTotalJobs(res.data.pagination.total);
+            }
         } catch (error) {
             console.error("Failed to fetch jobs", error);
+            toast.error("Failed to fetch jobs");
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchJobs();
+    }, [currentPage]);
 
     const handleNavigate = (id: string) => {
         setNavigatingId(id);
@@ -92,102 +103,190 @@ export default function HrRecruitment() {
 
                 {/* Job Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {jobs.map((job: any) => (
-                        <Card
-                            key={job._id}
-                            className={`group relative overflow-hidden transition-all duration-300 cursor-pointer border-l-4 ${job.urgency === 'High' ? 'border-l-rose-500' :
-                                job.urgency === 'Low' ? 'border-l-emerald-500' :
-                                    'border-l-sky-500'
-                                } ${navigatingId === job._id
-                                    ? 'bg-muted/50 scale-[0.99] ring-2 ring-indigo-500/20'
-                                    : 'hover:bg-muted/30 hover:shadow-lg'
-                                }`}
-                            onClick={() => handleNavigate(job._id)}
-                        >
-                            <CardContent className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600">
-                                            <Briefcase className="w-6 h-6" />
-                                        </div>
-                                        <Badge variant="outline" className={`${job.urgency === 'High' ? 'text-rose-600 bg-rose-500/5 border-rose-500/20' :
-                                            job.urgency === 'Low' ? 'text-emerald-600 bg-emerald-500/5 border-emerald-500/20' :
-                                                'text-sky-600 bg-sky-500/5 border-sky-500/20'
-                                            }`}>
-                                            {job.urgency} Priority
-                                        </Badge>
-                                    </div>
+                    {loading ? (
+                        <div className="col-span-full py-20">
+                            <DataLoader title="Syncing Jobs" subtitle="Fetching your recruitment pipeline..." />
+                        </div>
+                    ) : (
+                        <>
+                            {jobs.map((job: any) => (
+                                <Card
+                                    key={job._id}
+                                    className={`group relative overflow-hidden transition-all duration-300 cursor-pointer border-l-4 ${job.urgency === 'High' ? 'border-l-rose-500' :
+                                        job.urgency === 'Low' ? 'border-l-emerald-500' :
+                                            'border-l-sky-500'
+                                        } ${navigatingId === job._id
+                                            ? 'bg-muted/50 scale-[0.99] ring-2 ring-indigo-500/20'
+                                            : 'hover:bg-muted/30 hover:shadow-lg'
+                                        }`}
+                                    onClick={() => handleNavigate(job._id)}
+                                >
+                                    <CardContent className="p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600">
+                                                    <Briefcase className="w-6 h-6" />
+                                                </div>
+                                                <Badge variant="outline" className={`${job.urgency === 'High' ? 'text-rose-600 bg-rose-500/5 border-rose-500/20' :
+                                                    job.urgency === 'Low' ? 'text-emerald-600 bg-emerald-500/5 border-emerald-500/20' :
+                                                        'text-sky-600 bg-sky-500/5 border-sky-500/20'
+                                                    }`}>
+                                                    {job.urgency} Priority
+                                                </Badge>
+                                            </div>
 
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors z-10"
+                                                onClick={(e) => handleDeleteJob(e, job._id)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+
+                                        <h3 className="text-xl font-bold mb-2 group-hover:text-indigo-600 transition-colors">
+                                            {job.title}
+                                        </h3>
+
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                                            <div className="flex items-center gap-1.5">
+                                                <MapPin className="w-3.5 h-3.5" /> {job.location}
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5" /> Posted {formatDistanceToNow(new Date(job.createdAt))} ago
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t border-border pt-4 flex items-center justify-between">
+                                            <div className="flex -space-x-2">
+                                                {/* Placeholder avatars for candidates */}
+                                                {[1, 2, 3].map(i => (
+                                                    <div key={i} className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold">
+                                                        ?
+                                                    </div>
+                                                ))}
+                                                <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] text-muted-foreground font-bold">
+                                                    +
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-indigo-600 group-hover:translate-x-1 transition-transform">
+                                                {navigatingId === job._id ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                                        Loading...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        View Board <ArrowRight className="w-4 h-4" />
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+
+                            {/* Empty State */}
+                            {jobs.length === 0 && (
+                                <div className="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl bg-muted/30 text-center">
+                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                        <Briefcase className="w-8 h-8 text-muted-foreground" />
+                                    </div>
+                                    <h3 className="text-lg font-bold">No active jobs</h3>
+                                    <p className="text-muted-foreground mt-1 max-w-sm">Create a new job request to start the AI sourcing agent.</p>
                                     <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors z-10"
-                                        onClick={(e) => handleDeleteJob(e, job._id)}
+                                        variant="outline"
+                                        className="mt-6 border-indigo-500 text-indigo-600 hover:bg-indigo-500/10"
+                                        onClick={() => navigate("/hr-portal/recruitment/new")}
                                     >
-                                        <Trash2 className="w-4 h-4" />
+                                        Create Job
                                     </Button>
                                 </div>
-
-                                <h3 className="text-xl font-bold mb-2 group-hover:text-indigo-600 transition-colors">
-                                    {job.title}
-                                </h3>
-
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
-                                    <div className="flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5" /> {job.location}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock className="w-3.5 h-3.5" /> Posted {formatDistanceToNow(new Date(job.createdAt))} ago
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-border pt-4 flex items-center justify-between">
-                                    <div className="flex -space-x-2">
-                                        {/* Placeholder avatars for candidates */}
-                                        {[1, 2, 3].map(i => (
-                                            <div key={i} className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] font-bold">
-                                                ?
-                                            </div>
-                                        ))}
-                                        <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px] text-muted-foreground font-bold">
-                                            +
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm font-semibold text-indigo-600 group-hover:translate-x-1 transition-transform">
-                                        {navigatingId === job._id ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Loading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                View Board <ArrowRight className="w-4 h-4" />
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-
-                    {/* Empty State */}
-                    {jobs.length === 0 && !loading && (
-                        <div className="col-span-full py-16 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl bg-muted/30 text-center">
-                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                <Briefcase className="w-8 h-8 text-muted-foreground" />
-                            </div>
-                            <h3 className="text-lg font-bold">No active jobs</h3>
-                            <p className="text-muted-foreground mt-1 max-w-sm">Create a new job request to start the AI sourcing agent.</p>
-                            <Button
-                                variant="outline"
-                                className="mt-6 border-indigo-500 text-indigo-600 hover:bg-indigo-500/10"
-                                onClick={() => navigate("/hr-portal/recruitment/new")}
-                            >
-                                Create Job
-                            </Button>
-                        </div>
+                            )}
+                        </>
                     )}
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-8 border-t border-border/50">
+                        <p className="text-sm text-muted-foreground">
+                            Showing page <span className="font-medium text-foreground">{currentPage}</span> of <span className="font-medium text-foreground">{totalPages}</span> &middot; <span className="font-medium text-foreground">{totalJobs}</span> total jobs
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage <= 1 || loading}
+                                className="h-9 w-9 p-0"
+                            >
+                                <ChevronsLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage <= 1 || loading}
+                                className="gap-1 px-3 h-9"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                            </Button>
+                            
+                            <div className="flex items-center gap-1 mx-2">
+                                {[...Array(totalPages)].map((_, i) => {
+                                    const page = i + 1;
+                                    // Show first, last, current, and pages around current
+                                    if (
+                                        page === 1 ||
+                                        page === totalPages ||
+                                        (page >= currentPage - 2 && page <= currentPage + 2)
+                                    ) {
+                                        return (
+                                            <Button
+                                                key={page}
+                                                variant={currentPage === page ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`h-9 w-9 p-0 ${currentPage === page ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md text-white' : ''}`}
+                                            >
+                                                {page}
+                                            </Button>
+                                        );
+                                    } else if (
+                                        (page === 2 && currentPage > 4) ||
+                                        (page === totalPages - 1 && currentPage < totalPages - 3)
+                                    ) {
+                                        return <span key={page} className="px-1 text-muted-foreground">...</span>;
+                                    }
+                                    return null;
+                                }).filter(Boolean)}
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage >= totalPages || loading}
+                                className="gap-1 px-3 h-9"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage >= totalPages || loading}
+                                className="h-9 w-9 p-0"
+                            >
+                                <ChevronsRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

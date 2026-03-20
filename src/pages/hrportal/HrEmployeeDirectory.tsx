@@ -1,8 +1,17 @@
+import { useState, useEffect } from "react";
 import { Users, Search, Filter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DataLoader } from "@/components/ui/DataLoader";
 
 export default function HrEmployeeDirectory() {
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 1500);
+        return () => clearTimeout(timer);
+    }, []);
+
     return (
         <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background to-muted/20 p-6">
             <div className="container mx-auto max-w-[1600px] space-y-6">
@@ -47,10 +56,16 @@ export default function HrEmployeeDirectory() {
                     </div>
                 </div>
 
-                <div className="mt-8 p-12 border-2 border-dashed border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center bg-indigo-500/5">
-                    <p className="text-indigo-600 font-bold text-lg">Employee list coming soon...</p>
-                    <p className="text-indigo-600/60 text-sm">We are building the directory interface.</p>
-                </div>
+                {loading ? (
+                    <div className="py-20">
+                        <DataLoader title="Loading Directory" subtitle="Preparing employee records..." />
+                    </div>
+                ) : (
+                    <div className="mt-8 p-12 border-2 border-dashed border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center bg-indigo-500/5">
+                        <p className="text-indigo-600 font-bold text-lg">Employee list coming soon...</p>
+                        <p className="text-indigo-600/60 text-sm">We are building the directory interface.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

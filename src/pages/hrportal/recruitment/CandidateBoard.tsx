@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2, Plus, Download } from "lucide-react";
+import { ArrowLeft, MoreHorizontal, Linkedin, Mail, Phone, CheckCircle, XCircle, AlertCircle, Loader2, Send, Trash2, Plus, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { notification } from "antd";
@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DataLoader } from "@/components/ui/DataLoader";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -38,18 +39,22 @@ export default function CandidateBoard() {
     const [isAdding, setIsAdding] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [jobTitle, setJobTitle] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCandidates, setTotalCandidates] = useState(0);
+    const limit = 50;
 
     const fetchCandidates = async () => {
         if (!jobId) return;
         try {
-            const res = await axios.get(`${API_URL}/hr/candidates?jobId=${jobId}`);
-            setCandidates(res.data);
+            const res = await axios.get(`${API_URL}/hr/candidates?jobId=${jobId}&page=${currentPage}&limit=${limit}`);
+            if (res.data.success) {
+                setCandidates(res.data.data);
+                setTotalPages(res.data.pagination.pages);
+                setTotalCandidates(res.data.pagination.total);
+            }
         } catch (error: any) {
-            notification.error({
-                message: 'Pipeline Sync Error',
-                description: "Failed to reload candidates. Please refresh the page.",
-                placement: 'topRight'
-            });
+            console.error("Failed to fetch candidates", error);
         } finally {
             setLoading(false);
         }
@@ -57,10 +62,10 @@ export default function CandidateBoard() {
 
     useEffect(() => {
         fetchCandidates();
-        // Poll for updates every 2 seconds for faster feedback during enrichment
-        const interval = setInterval(fetchCandidates, 2000);
+        // Poll for updates every 5 seconds (increased from 2s to be less aggressive with pagination)
+        const interval = setInterval(fetchCandidates, 5000);
         return () => clearInterval(interval);
-    }, [jobId]);
+    }, [jobId, currentPage]);
 
     useEffect(() => {
         const fetchJob = async () => {
@@ -515,16 +520,7 @@ export default function CandidateBoard() {
 
                 <div className="flex-1 overflow-hidden pb-4 min-h-0 mt-4">
                     {loading && candidates.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center gap-6 text-muted-foreground">
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full animate-pulse" />
-                                <Loader2 className="w-16 h-16 animate-spin text-indigo-600 relative z-10" />
-                            </div>
-                            <div className="text-center space-y-2">
-                                <p className="text-lg font-bold text-foreground tracking-tight">Syncing Pipeline</p>
-                                <p className="text-sm font-medium">Fetching candidate data...</p>
-                            </div>
-                        </div>
+                        <DataLoader title="Syncing Pipeline" subtitle="Fetching candidate data..." />
                     ) : visibleStatuses.length > 0 ? (
                         <div className={`grid gap-4 h-full ${
                             isSingleView ? 'grid-cols-1 max-w-5xl mx-auto w-full' : 
@@ -548,6 +544,85 @@ export default function CandidateBoard() {
                         </div>
                     )}
                 </div>
+
+                {/* Pagination Controls */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 bg-card/50 backdrop-blur-sm border border-indigo-500/10 rounded-2xl shadow-sm mt-4">
+                        <p className="text-sm text-muted-foreground">
+                            Page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span> &middot; <span className="font-bold text-foreground">{totalCandidates}</span> candidates total
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(1)}
+                                disabled={currentPage <= 1 || loading}
+                                className="h-9 w-9 p-0"
+                            >
+                                <ChevronsLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage <= 1 || loading}
+                                className="gap-1 px-3 h-9 font-medium"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                            </Button>
+                            
+                            <div className="flex items-center gap-1 mx-2">
+                                {[...Array(totalPages)].map((_, i) => {
+                                    const page = i + 1;
+                                    if (
+                                        page === 1 ||
+                                        page === totalPages ||
+                                        (page >= currentPage - 1 && page <= currentPage + 1)
+                                    ) {
+                                        return (
+                                            <Button
+                                                key={page}
+                                                variant={currentPage === page ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`h-9 w-9 p-0 font-bold ${currentPage === page ? 'bg-indigo-600 hover:bg-indigo-700 shadow-md text-white' : ''}`}
+                                            >
+                                                {page}
+                                            </Button>
+                                        );
+                                    } else if (
+                                        (page === 2 && currentPage > 3) ||
+                                        (page === totalPages - 1 && currentPage < totalPages - 2)
+                                    ) {
+                                        return <span key={page} className="px-1 text-muted-foreground font-bold">...</span>;
+                                    }
+                                    return null;
+                                })}
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage >= totalPages || loading}
+                                className="gap-1 px-3 h-9 font-medium"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={currentPage >= totalPages || loading}
+                                className="h-9 w-9 p-0"
+                            >
+                                <ChevronsRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <CandidateDetailsDialog

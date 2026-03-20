@@ -257,6 +257,16 @@ export default function SystemRoleDashboard() {
                         <div className="flex items-center gap-2 text-red-500 font-semibold mb-2">
                           <Youtube className="w-5 h-5" /> YouTube Hook
                         </div>
+                        {c.videoUrl && (
+                          <div className="mb-4 overflow-hidden rounded-xl border border-border shadow-inner bg-black">
+                            <video 
+                              src={c.videoUrl} 
+                              controls 
+                              className="w-full aspect-video"
+                              poster="/placeholder.svg"
+                            />
+                          </div>
+                        )}
                         <p className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-xl border border-border leading-relaxed">
                           {c.youtubeScript}
                         </p>
@@ -269,6 +279,24 @@ export default function SystemRoleDashboard() {
                           {c.linkedinPost}
                         </p>
                       </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t border-border">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-2 text-green-600 font-semibold">
+                            <FileText className="w-5 h-5" /> SEO Blog Article
+                         </div>
+                         <Button variant="outline" size="sm" onClick={() => {
+                            const win = window.open("", "_blank");
+                            if (win) win.document.write(`<html><head><title>Blog Preview</title><style>body{font-family:sans-serif;max-width:800px;margin:40px auto;line-height:1.6;padding:20px;}</style></head><body>${c.seoBlog}</body></html>`);
+                         }}>
+                            Preview Full Blog
+                         </Button>
+                      </div>
+                      <div 
+                        className="text-xs text-muted-foreground bg-muted/20 p-4 rounded-xl border border-border max-h-40 overflow-y-auto"
+                        dangerouslySetInnerHTML={{ __html: c.seoBlog.substring(0, 500) + "..." }}
+                      />
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-border">

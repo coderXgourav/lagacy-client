@@ -12,9 +12,13 @@ import {
   Zap,
   Target,
   Bot,
+  Smartphone,
   LayoutDashboard,
   BarChart3,
-  Smartphone
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,6 +85,10 @@ export default function LeadDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [packageFilter, setPackageFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalLeadsCount, setTotalLeadsCount] = useState(0);
+  const limit = 20;
 
   const fetchStats = async () => {
     try {
@@ -97,7 +105,7 @@ export default function LeadDashboardPage() {
   const fetchLeads = async () => {
     try {
       setIsLoading(true);
-      let url = `${API_BASE_URL}/lead-capture?limit=100`;
+      let url = `${API_BASE_URL}/lead-capture?page=${currentPage}&limit=${limit}`;
       if (statusFilter !== "all") url += `&status=${statusFilter}`;
       if (packageFilter !== "all") url += `&packageInterested=${packageFilter}`;
 
@@ -105,6 +113,10 @@ export default function LeadDashboardPage() {
       const result = await response.json();
       if (result.success) {
         setLeads(result.data);
+        if (result.pagination) {
+          setTotalPages(result.pagination.pages);
+          setTotalLeadsCount(result.pagination.total);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch leads:", error);
@@ -120,8 +132,11 @@ export default function LeadDashboardPage() {
 
   useEffect(() => {
     fetchStats();
+  }, []);
+
+  useEffect(() => {
     fetchLeads();
-  }, [statusFilter, packageFilter]);
+  }, [statusFilter, packageFilter, currentPage]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -293,7 +308,7 @@ export default function LeadDashboardPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {leads.slice(0, 15).map((lead) => (
+                        {leads.map((lead) => (
                           <TableRow key={lead._id} className="hover:bg-indigo-500/[0.02] border-border/50 transition-colors group">
                             <TableCell className="py-4">
                               <div className="flex flex-col">
@@ -334,6 +349,85 @@ export default function LeadDashboardPage() {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                {!isLoading && totalPages > 1 && (
+                  <div className="flex items-center justify-between p-4 border-t border-border/50 bg-muted/10">
+                    <p className="text-xs text-muted-foreground">
+                      Showing page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span> &middot; <span className="font-bold text-foreground">{totalLeadsCount}</span> total leads
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage <= 1 || isLoading}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage <= 1 || isLoading}
+                        className="h-8 gap-1 px-2 text-xs font-bold uppercase tracking-wider"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                        Prev
+                      </Button>
+
+                      <div className="flex items-center gap-1 mx-2">
+                        {[...Array(totalPages)].map((_, i) => {
+                          const page = i + 1;
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 1 && page <= currentPage + 1)
+                          ) {
+                            return (
+                              <Button
+                                key={page}
+                                variant={currentPage === page ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setCurrentPage(page)}
+                                className={`h-8 w-8 p-0 text-xs font-bold ${currentPage === page ? 'bg-indigo-600 hover:bg-indigo-700 shadow-lg text-white' : ''}`}
+                              >
+                                {page}
+                              </Button>
+                            );
+                          } else if (
+                            (page === 2 && currentPage > 3) ||
+                            (page === totalPages - 1 && currentPage < totalPages - 2)
+                          ) {
+                            return <span key={page} className="text-muted-foreground text-xs">...</span>;
+                          }
+                          return null;
+                        })}
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage >= totalPages || isLoading}
+                        className="h-8 gap-1 px-2 text-xs font-bold uppercase tracking-wider"
+                      >
+                        Next
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage >= totalPages || isLoading}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

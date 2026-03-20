@@ -43,6 +43,10 @@ import {
   Archive,
   Eye,
   Target,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -123,6 +127,10 @@ export default function PainSignalPage() {
   const [minScore, setMinScore] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [enrichingBulk, setEnrichingBulk] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalSignals, setTotalSignals] = useState(0);
+  const limit = 25;
 
   // Platform Selection
   const [selectedPlatform, setSelectedPlatform] = useState("reddit");
@@ -205,9 +213,8 @@ export default function PainSignalPage() {
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (sourceFilter !== "all") params.append("source", sourceFilter);
       if (minScore) params.append("minScore", minScore);
-      params.append("sortBy", "finalScore");
-      params.append("sortOrder", "desc");
-      params.append("limit", "50");
+      params.append("page", currentPage.toString());
+      params.append("limit", limit.toString());
 
       const response = await fetch(`${API_URL}/pain-signals?${params}`, {
         headers: getAuthHeaders(),
@@ -215,6 +222,10 @@ export default function PainSignalPage() {
       const data = await response.json();
       if (data.success) {
         setSignals(data.data);
+        if (data.pagination) {
+          setTotalPages(data.pagination.pages);
+          setTotalSignals(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error("Error fetching signals:", error);
@@ -535,7 +546,7 @@ export default function PainSignalPage() {
     }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, statusFilter, sourceFilter, minScore]);
+  }, [searchQuery, statusFilter, sourceFilter, minScore, currentPage]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "bg-green-500";
@@ -1595,6 +1606,85 @@ export default function PainSignalPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between p-6 bg-card border-2 border-primary/10 rounded-2xl shadow-sm">
+            <p className="text-sm text-muted-foreground">
+              Showing page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span> &middot; <span className="font-bold text-foreground">{totalSignals}</span> total signals
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage <= 1 || loading}
+                className="h-9 w-9 p-0"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage <= 1 || loading}
+                className="gap-1 px-3 h-9 font-medium"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+
+              <div className="flex items-center gap-1 mx-2">
+                {[...Array(totalPages)].map((_, i) => {
+                  const page = i + 1;
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 2 && page <= currentPage + 2)
+                  ) {
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className={`h-9 w-9 p-0 font-bold ${currentPage === page ? 'bg-primary shadow-md text-primary-foreground' : ''}`}
+                      >
+                        {page}
+                      </Button>
+                    );
+                  } else if (
+                    (page === 2 && currentPage > 4) ||
+                    (page === totalPages - 1 && currentPage < totalPages - 3)
+                  ) {
+                    return <span key={page} className="px-1 text-muted-foreground font-bold">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage >= totalPages || loading}
+                className="gap-1 px-3 h-9 font-medium"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage >= totalPages || loading}
+                className="h-9 w-9 p-0"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Floating Bulk Actions */}
         {selectedIds.length > 0 && (
