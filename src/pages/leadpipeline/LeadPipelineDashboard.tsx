@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { 
     LayoutDashboard, 
@@ -14,7 +14,11 @@ import {
     Activity,
     Download,
     FileText,
-    FileSpreadsheet
+    FileSpreadsheet,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +31,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const ITEMS_PER_PAGE = 20;
 
 interface LeadLog {
     _id: string;
@@ -47,27 +52,30 @@ export default function LeadPipelineDashboard() {
     const [loading, setLoading] = useState(true);
     const [running, setRunning] = useState(false);
     const [stats, setStats] = useState({ success: 0, total: 0 });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const { toast } = useToast();
  
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async (page: number = currentPage) => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
             const endpoint = isSkipsPage ? '/lead-pipeline/skips' : '/lead-pipeline/logs';
-            const response = await fetch(`${API_BASE_URL}${endpoint}?limit=20`, {
+            const response = await fetch(`${API_BASE_URL}${endpoint}?page=${page}&limit=${ITEMS_PER_PAGE}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
             if (data.success) {
                 setLogs(data.logs || []);
                 setStats({ success: data.total, total: data.total });
+                setTotalPages(data.totalPages || 1);
             }
         } catch (error) {
             console.error('Error fetching logs:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage, isSkipsPage]);
 
     const triggerPipeline = async () => {
         setRunning(true);
@@ -213,9 +221,15 @@ export default function LeadPipelineDashboard() {
         }
     };
 
+    // Reset to page 1 when switching between Dashboard and Skip Logs
     useEffect(() => {
-        fetchLogs();
+        setCurrentPage(1);
     }, [location.pathname]);
+
+    // Fetch logs when page or route changes
+    useEffect(() => {
+        fetchLogs(currentPage);
+    }, [currentPage, location.pathname]);
 
     return (
         <div className="space-y-6">
@@ -231,7 +245,7 @@ export default function LeadPipelineDashboard() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" onClick={fetchLogs} disabled={loading}>
+                    <Button variant="outline" onClick={() => fetchLogs()} disabled={loading}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
                     </Button>
@@ -321,6 +335,7 @@ export default function LeadPipelineDashboard() {
                                 <TableHead>{isSkipsPage ? 'Email' : 'Lead Name'}</TableHead>
                                 <TableHead>{isSkipsPage ? 'Reason' : 'Company'}</TableHead>
                                 <TableHead>{isSkipsPage ? 'Domain' : 'Email'}</TableHead>
+                                {!isSkipsPage && <TableHead>Phone</TableHead>}
                                 <TableHead>Status</TableHead>
                                 <TableHead>Date</TableHead>
                             </TableRow>
@@ -328,11 +343,11 @@ export default function LeadPipelineDashboard() {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10">Loading entries...</TableCell>
+                                    <TableCell colSpan={isSkipsPage ? 5 : 6} className="text-center py-10">Loading entries...</TableCell>
                                 </TableRow>
                             ) : logs.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
+                                    <TableCell colSpan={isSkipsPage ? 5 : 6} className="text-center py-10 text-muted-foreground italic">
                                         No {isSkipsPage ? 'skips' : 'leads'} found.
                                     </TableCell>
                                 </TableRow>
@@ -347,6 +362,11 @@ export default function LeadPipelineDashboard() {
                                         ) : log.company}
                                     </TableCell>
                                     <TableCell>{isSkipsPage ? log.domain : log.email}</TableCell>
+                                    {!isSkipsPage && (
+                                        <TableCell className="text-muted-foreground">
+                                            {log.phone || '—'}
+                                        </TableCell>
+                                    )}
                                     <TableCell>
                                         <Badge variant="outline" className={cn(
                                             "capitalize",
@@ -362,6 +382,54 @@ export default function LeadPipelineDashboard() {
                             ))}
                         </TableBody>
                     </Table>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-4 border-t mt-4">
+                            <p className="text-sm text-muted-foreground">
+                                Page {currentPage} of {totalPages} &middot; {stats.total} total entries
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(1)}
+                                    disabled={currentPage <= 1 || loading}
+                                >
+                                    <ChevronsLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage <= 1 || loading}
+                                >
+                                    <ChevronLeft className="h-4 w-4 mr-1" />
+                                    Previous
+                                </Button>
+                                <span className="text-sm font-medium px-2">
+                                    {currentPage}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage >= totalPages || loading}
+                                >
+                                    Next
+                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCurrentPage(totalPages)}
+                                    disabled={currentPage >= totalPages || loading}
+                                >
+                                    <ChevronsRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

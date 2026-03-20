@@ -343,6 +343,11 @@ export default function CandidateBoard() {
                                                 <Mail className="w-3 h-3" /> {candidate.email}
                                             </div>
                                         )}
+                                        {candidate.phone && (
+                                            <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                                                <Phone className="w-3 h-3" /> {candidate.phone}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

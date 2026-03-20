@@ -1,7 +1,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Building2, GraduationCap, MapPin, Calendar, Linkedin, Mail } from "lucide-react";
+import { Building2, GraduationCap, MapPin, Calendar, Linkedin, Mail, Phone } from "lucide-react";
 
 interface CandidateDetailsDialogProps {
     candidate: any;
@@ -60,6 +60,9 @@ export function CandidateDetailsDialog({ candidate, open, onOpenChange }: Candid
                                         </a>
                                         {candidate.email && (
                                             <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {candidate.email}</span>
+                                        )}
+                                        {candidate.phone && (
+                                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {candidate.phone}</span>
                                         )}
                                     </div>
                                 </div>
