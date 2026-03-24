@@ -38,6 +38,8 @@ import {
   Share2,
   TrendingUp,
   Activity,
+  Zap,
+  Youtube
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -197,6 +199,23 @@ export default function OfferingsPage() {
       icon: Activity,
       available: true,
       route: "/lead-pipeline",
+      beta: true,
+    },
+    {
+      id: "system-architecture",
+      title: "SYSTEM ARCHITECTURE (HOW IT SHOULD FLOW)",
+      description: "Complete 13-step LLM prompt architectural flow for growth mastery.",
+      icon: Zap,
+      available: true,
+      route: "/system-architecture",
+    },
+    {
+      id: "youtube-automation",
+      title: "YOUTUBE LEAD AUTOMATION",
+      description: "n8n style autonomous 11-step lead engine for high-intent YouTube discovery.",
+      icon: Youtube,
+      available: true,
+      route: "/youtube-automation",
       beta: true,
     },
   ];

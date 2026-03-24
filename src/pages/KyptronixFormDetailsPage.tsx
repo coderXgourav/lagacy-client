@@ -22,7 +22,8 @@ import {
   Filter,
   Users,
   Target,
-  Zap
+  Zap,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +109,26 @@ export default function KyptronixFormDetailsPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) return;
+    
+    try {
+      await kyptronixApi.deleteLead(id);
+      toast({
+        title: "Success",
+        description: "Submission deleted successfully",
+      });
+      fetchLeads(currentPage);
+    } catch (error) {
+      console.error('Failed to delete lead:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete submission",
+        variant: "destructive"
+      });
     }
   };
 
@@ -244,12 +265,25 @@ export default function KyptronixFormDetailsPage() {
                     >
                       <>
                         <tr className="hover:bg-indigo-500/[0.02] transition-colors group cursor-pointer border-l-2 border-l-transparent hover:border-l-indigo-500">
-                          <td className="px-6 py-6 w-12">
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted p-0">
-                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expandedRow === lead._id ? 'rotate-180 text-indigo-600' : 'text-muted-foreground/50'}`} />
+                          <td className="px-6 py-6 w-24">
+                            <div className="flex items-center gap-2">
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted p-0">
+                                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expandedRow === lead._id ? 'rotate-180 text-indigo-600' : 'text-muted-foreground/50'}`} />
+                                </Button>
+                              </CollapsibleTrigger>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(lead._id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                            </CollapsibleTrigger>
+                            </div>
                           </td>
                           <td className="px-6 py-6">
                             <div className="flex flex-col gap-1">

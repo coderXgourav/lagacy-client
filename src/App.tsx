@@ -67,6 +67,9 @@ import { KyptronixFormLayout } from "./components/layout/KyptronixFormLayout";
 import { DomainScraperLayout } from "./components/layout/DomainScraperLayout";
 import { LeadPipelineLayout } from "./components/layout/LeadPipelineLayout";
 import LeadPipelineDashboard from "./pages/leadpipeline/LeadPipelineDashboard";
+import { SystemArchitectureLayout } from "./components/layout/SystemArchitectureLayout";
+import SystemArchitecturePage from "./pages/SystemArchitecturePage";
+import YoutubeAutomationPage from "./pages/YoutubeAutomationPage";
 
 const queryClient = new QueryClient();
 
@@ -161,6 +164,10 @@ const App = () => (
                 <Route path="logs" element={<LeadPipelineDashboard />} /> {/* For now, using dashboard for logs too */}
                 <Route path="skips" element={<LeadPipelineDashboard />} />
               </Route>
+              <Route path="/system-architecture" element={<ProtectedRoute><SystemArchitectureLayout /></ProtectedRoute>}>
+                <Route index element={<SystemArchitecturePage />} />
+              </Route>
+              <Route path="/youtube-automation" element={<ProtectedRoute><YoutubeAutomationPage /></ProtectedRoute>} />
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

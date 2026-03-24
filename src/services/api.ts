@@ -524,7 +524,8 @@ export const kyptronixApi = {
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     return apiCall(`/kyptronix-leads?${queryParams.toString()}`);
-  }
+  },
+  deleteLead: (id: string) => apiCall(`/kyptronix-leads/${id}`, { method: 'DELETE' })
 };
 
 export default {
