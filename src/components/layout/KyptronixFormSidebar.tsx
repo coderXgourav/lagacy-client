@@ -1,15 +1,14 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-    FormInput,
-    LayoutDashboard,
-    ArrowLeft,
-    Smartphone,
-    Zap,
-    ShieldCheck,
     FileText,
     ListTodo,
-    Users
+    Users,
+    FileSignature,
+    Zap,
+    Download,
+    Mail,
+    FormInput
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -47,9 +46,39 @@ export const KyptronixFormSidebar = () => {
                     path: "/kyptronix-form/download-business-card",
                 },
                 {
-                    name: "Proposal Requests",
-                    icon: FileText,
+                    name: "Proposal Requests (All)",
+                    icon: FileSignature,
                     path: "/kyptronix-form/request-proposal",
+                },
+                {
+                    name: "SMO Questions",
+                    icon: Zap,
+                    path: "/kyptronix-form/request-proposal?type=smo",
+                },
+                {
+                    name: "SEO Questions",
+                    icon: ListTodo,
+                    path: "/kyptronix-form/request-proposal?type=seo",
+                },
+                {
+                    name: "Kyptronix Questions",
+                    icon: Download,
+                    path: "/kyptronix-form/request-proposal?type=kyptronix",
+                },
+                {
+                    name: "App Dev Questions",
+                    icon: FileText,
+                    path: "/kyptronix-form/request-proposal?type=app-development",
+                },
+                {
+                    name: "Automation Questions",
+                    icon: Zap,
+                    path: "/kyptronix-form/request-proposal?type=automation",
+                },
+                {
+                    name: "Discovery Calls",
+                    icon: Mail,
+                    path: "/kyptronix-form/request-proposal?type=discovery",
                 }
             ]
         }
@@ -92,14 +121,14 @@ export const KyptronixFormSidebar = () => {
                                         onClick={() => navigate(item.path)}
                                         className={cn(
                                             "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-                                            location.pathname === item.path
+                                            (location.pathname + location.search) === item.path
                                                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 translate-x-1"
                                                 : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                                         )}
                                     >
                                         <item.icon className={cn(
                                             "w-4 h-4",
-                                            location.pathname === item.path ? "text-white" : "text-sidebar-foreground/40"
+                                            (location.pathname + location.search) === item.path ? "text-white" : "text-sidebar-foreground/40"
                                         )} />
                                         {item.name}
                                     </button>

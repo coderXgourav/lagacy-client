@@ -50,8 +50,13 @@ export default function SystemRoleDashboard() {
         title: "Pipeline Started",
         description: "The daily workflow has been triggered. Check logs in a few moments.",
       });
-      // Poll for updates (simple approach)
-      setTimeout(fetchData, 5000);
+      // Active polling for 10 minutes (to see real-time log updates)
+      let pollCount = 0;
+      const pollInterval = setInterval(() => {
+        fetchData();
+        pollCount++;
+        if (pollCount > 60) clearInterval(pollInterval); // Stop after 10 mins
+      }, 10000); // Every 10 seconds
     } catch (error) {
       toast({
         title: "Error triggering pipeline",
@@ -260,7 +265,7 @@ export default function SystemRoleDashboard() {
                         {c.videoUrl && (
                           <div className="mb-4 overflow-hidden rounded-xl border border-border shadow-inner bg-black">
                             <video 
-                              src={c.videoUrl} 
+                              src={c.videoUrl.startsWith('/') ? `${API_BASE_URL.replace('/api/system-role', '')}${c.videoUrl}` : c.videoUrl} 
                               controls 
                               className="w-full aspect-video"
                               poster="/placeholder.svg"

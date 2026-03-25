@@ -47,11 +47,59 @@ export default function KyptronixFormPage() {
     },
     {
       id: "request-proposal",
-      title: "Proposal Requests",
-      description: "Detailed project requirements and customized proposal asks.",
+      title: "Proposal Requests (All)",
+      description: "Complete list of all project requirements and customized proposal asks.",
       icon: FileSignature,
-      source: "Proposal",
+      source: "Questionnaires",
       color: "indigo"
+    },
+    {
+      id: "request-proposal?type=smo",
+      title: "SMO Questions",
+      description: "Social Media Optimization discovery and strategy submissions.",
+      icon: Zap,
+      source: "Questionnaire",
+      color: "blue"
+    },
+    {
+      id: "request-proposal?type=seo",
+      title: "SEO Questions",
+      description: "Search Engine Optimization technical and content requirements.",
+      icon: ListTodo,
+      source: "Questionnaire",
+      color: "emerald"
+    },
+    {
+      id: "request-proposal?type=kyptronix",
+      title: "Kyptronix Questions",
+      description: "Specific Kyptronix ecosystem and platform discovery forms.",
+      icon: Download,
+      source: "Questionnaire",
+      color: "amber"
+    },
+    {
+      id: "request-proposal?type=app-development",
+      title: "App Dev Questions",
+      description: "Mobile and Web application development technical specs.",
+      icon: FileText,
+      source: "Questionnaire",
+      color: "purple"
+    },
+    {
+      id: "request-proposal?type=automation",
+      title: "Automation Questions",
+      description: "Business process automation and workflow requirements.",
+      icon: Zap,
+      source: "Questionnaire",
+      color: "indigo"
+    },
+    {
+      id: "request-proposal?type=discovery",
+      title: "Discovery Calls",
+      description: "Initial discovery and project scoping questionnaires.",
+      icon: Mail,
+      source: "Questionnaire",
+      color: "blue"
     },
   ];
 

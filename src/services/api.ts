@@ -525,6 +525,14 @@ export const kyptronixApi = {
     queryParams.append('limit', limit.toString());
     return apiCall(`/kyptronix-leads?${queryParams.toString()}`);
   },
+  getQuestionnaires: (formType?: string, page: number = 1, limit: number = 10) => {
+    const queryParams = new URLSearchParams();
+    if (formType) queryParams.append('formType', formType);
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    return apiCall(`/kyptronix-leads/questionnaires?${queryParams.toString()}`);
+  },
+  deleteQuestionnaire: (id: string) => apiCall(`/kyptronix-leads/questionnaires/${id}`, { method: 'DELETE' }),
   deleteLead: (id: string) => apiCall(`/kyptronix-leads/${id}`, { method: 'DELETE' })
 };
 

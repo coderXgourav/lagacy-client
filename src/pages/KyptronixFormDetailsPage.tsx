@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,23 +78,43 @@ export default function KyptronixFormDetailsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
-
-  const selectedForm = forms.find(f => f.id === formId);
+  const [searchParams] = useSearchParams();
+  const [selectedFormType, setSelectedFormType] = useState<string>(searchParams.get('type') || 'all');
 
   useEffect(() => {
-    if (!selectedForm) {
-      navigate('/kyptronix-form');
-      return;
-    }
-    fetchLeads(currentPage);
-  }, [selectedForm, currentPage]);
+    const type = searchParams.get('type') || 'all';
+    setSelectedFormType(type);
+    setCurrentPage(1); // Reset to page 1 on type change
+  }, [searchParams]);
+
+  const questionnaireFilters = [
+    { label: 'All', value: 'all' },
+    { label: 'SMO', value: 'smo' },
+    { label: 'SEO', value: 'seo' },
+    { label: 'Kyptronix', value: 'kyptronix' },
+    { label: 'App Development', value: 'app-development' },
+    { label: 'Automation', value: 'automation' },
+    { label: 'Discovery', value: 'discovery' }
+  ];
+
+  const selectedForm = forms.find(f => f.id === formId);
 
   const fetchLeads = async (page: number) => {
     if (!selectedForm) return;
     try {
       setLoading(true);
       const limit = 10;
-      const response = await kyptronixApi.getLeads(selectedForm.source, page, limit);
+      let response;
+      if (formId === 'request-proposal') {
+        response = await kyptronixApi.getQuestionnaires(
+          selectedFormType === 'all' ? undefined : selectedFormType, 
+          page, 
+          limit
+        );
+      } else {
+        response = await kyptronixApi.getLeads(selectedForm.source, page, limit);
+      }
+      
       if (response && response.data) {
         setLeads(response.data);
         setTotalPages(response.totalPages || 1);
@@ -112,11 +132,23 @@ export default function KyptronixFormDetailsPage() {
     }
   };
 
+  useEffect(() => {
+    if (!selectedForm) {
+      navigate('/kyptronix-form');
+      return;
+    }
+    fetchLeads(currentPage);
+  }, [selectedForm, currentPage, selectedFormType]);
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) return;
     
     try {
-      await kyptronixApi.deleteLead(id);
+      if (formId === 'request-proposal') {
+        await kyptronixApi.deleteQuestionnaire(id);
+      } else {
+        await kyptronixApi.deleteLead(id);
+      }
       toast({
         title: "Success",
         description: "Submission deleted successfully",
@@ -214,6 +246,30 @@ export default function KyptronixFormDetailsPage() {
               </CardTitle>
               <CardDescription className="text-sm font-medium">Real-time engagement tracking and analysis</CardDescription>
             </div>
+            
+            {formId === 'request-proposal' && (
+              <div className="flex flex-wrap gap-2 pt-4 md:pt-0">
+                {questionnaireFilters.map((filter) => (
+                  <Button
+                    key={filter.value}
+                    variant={selectedFormType === filter.value ? "default" : "outline"}
+                    size="sm"
+                    className={`text-[10px] font-bold uppercase tracking-widest rounded-xl h-8 px-4 transition-all duration-300 ${
+                      selectedFormType === filter.value 
+                        ? `bg-${selectedForm.color}-600 hover:bg-${selectedForm.color}-700 shadow-lg shadow-${selectedForm.color}-600/20` 
+                        : "bg-background/50 border-border hover:bg-muted"
+                    }`}
+                    onClick={() => {
+                      setSelectedFormType(filter.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {filter.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <div className="relative group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-indigo-600 transition-colors" />
@@ -312,8 +368,13 @@ export default function KyptronixFormDetailsPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-6">
-                            <div className="flex flex-wrap gap-1.5">
+                          <td className="px-6 py-6 font-bold">
+                            <div className="flex flex-wrap gap-1.5 ">
+                              {lead.formType && (
+                                <Badge variant="default" className={`text-[9px] font-bold uppercase tracking-wider h-5 bg-${selectedForm.color}-500/10 text-${selectedForm.color}-600 border-${selectedForm.color}-500/20`}>
+                                  {lead.formType}
+                                </Badge>
+                              )}
                               {lead.serviceCategory && <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider h-5 bg-background/50">{lead.serviceCategory}</Badge>}
                               {lead.budgetRange && <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider h-5 border-emerald-500/20 text-emerald-600 bg-emerald-500/5">{lead.budgetRange}</Badge>}
                             </div>
@@ -327,8 +388,8 @@ export default function KyptronixFormDetailsPage() {
                           </td>
                           <td className="px-6 py-6 text-right">
                             <div className="flex flex-col items-end gap-1">
-                              <span className="text-xs font-medium text-foreground tabular-nums">{format(new Date(lead.createdAt), 'MMM dd, yyyy')}</span>
-                              <span className="text-xs text-muted-foreground font-medium tabular-nums">{format(new Date(lead.createdAt), 'HH:mm:ss')}</span>
+                              <span className="text-xs font-medium text-foreground tabular-nums">{format(new Date(lead.submittedAt || lead.createdAt), 'MMM dd, yyyy')}</span>
+                              <span className="text-xs text-muted-foreground font-medium tabular-nums">{format(new Date(lead.submittedAt || lead.createdAt), 'HH:mm:ss')}</span>
                             </div>
                           </td>
                         </tr>
@@ -356,22 +417,91 @@ export default function KyptronixFormDetailsPage() {
                                 )}
 
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                  {[
-                                    { label: "Target Service", value: lead.service, icon: CheckCircle2, color: "emerald" },
-                                    { label: "Business Sector", value: lead.businessType, icon: Building2, color: "indigo" },
-                                    { label: "Quoted Valuation", value: lead.price, icon: Banknote, color: "blue" },
-                                    { label: "Preferred Sync", value: lead.preferredCallTime, icon: Clock, color: "amber" }
-                                  ].map((attr, i) => (
-                                    attr.value && (
+                                  {formId === 'request-proposal' && lead.responses ? (
+                                    Object.entries(lead.responses).filter(([_, val]) => val && val !== 'on').map(([key, val], i) => (
                                       <div key={i} className="p-4 rounded-xl bg-background/40 border border-border flex flex-col gap-2">
                                         <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-                                          <attr.icon className={`h-3 w-3 text-${attr.color}-500`} />
-                                          {attr.label}
+                                          <CheckCircle2 className={`h-3 w-3 text-${selectedForm.color}-500`} />
+                                          {key.replace(/([A-Z])/g, ' $1').trim()}
                                         </div>
-                                        <div className="text-xs font-bold text-foreground">{attr.value}</div>
+                                        <div className="text-xs font-bold text-foreground line-clamp-2" title={String(val)}>{String(val)}</div>
                                       </div>
-                                    )
-                                  ))}
+                                    ))
+                                  ) : (
+                                    [
+                                      { label: "Target Service", value: lead.service, icon: CheckCircle2, color: "emerald" },
+                                      { label: "Business Sector", value: lead.businessType, icon: Building2, color: "indigo" },
+                                      { label: "Quoted Valuation", value: lead.price, icon: Banknote, color: "blue" },
+                                      { label: "Preferred Sync", value: lead.preferredCallTime, icon: Clock, color: "amber" }
+                                    ].map((attr, i) => (
+                                      attr.value && (
+                                        <div key={i} className="p-4 rounded-xl bg-background/40 border border-border flex flex-col gap-2">
+                                          <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                                            <attr.icon className={`h-3 w-3 text-${attr.color}-500`} />
+                                            {attr.label}
+                                          </div>
+                                          <div className="text-xs font-bold text-foreground">{attr.value}</div>
+                                        </div>
+                                      )
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        </CollapsibleContent>
+                        <CollapsibleContent asChild>
+                          <tr>
+                            <td colSpan={6} className="bg-indigo-500/[0.01] px-6 py-0 overflow-hidden">
+                              <div className="py-8 px-12 space-y-8 animate-slide-up border-x-2 border-indigo-500/10">
+                                {lead.message && (
+                                  <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                        <FileText className="h-4 w-4 text-indigo-600" />
+                                      </div>
+                                      <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Requirements Manifest</h4>
+                                    </div>
+                                    <div className="bg-card/50 backdrop-blur-md rounded-2xl border border-border p-6 shadow-xl relative overflow-hidden group">
+                                      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <Zap className="h-12 w-12 text-indigo-500" />
+                                      </div>
+                                      <p className="text-sm text-foreground leading-relaxed font-medium">
+                                        {lead.message}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                  {formId === 'request-proposal' && lead.responses ? (
+                                    Object.entries(lead.responses).filter(([_, val]) => val).map(([key, val], i) => (
+                                      <div key={i} className="p-4 rounded-xl bg-background/40 border border-border flex flex-col gap-2">
+                                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                                          <CheckCircle2 className={`h-3 w-3 text-${selectedForm.color}-500`} />
+                                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                                        </div>
+                                        <div className="text-xs font-bold text-foreground line-clamp-2" title={String(val)}>{String(val)}</div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    [
+                                      { label: "Target Service", value: lead.service, icon: CheckCircle2, color: "emerald" },
+                                      { label: "Business Sector", value: lead.businessType, icon: Building2, color: "indigo" },
+                                      { label: "Quoted Valuation", value: lead.price, icon: Banknote, color: "blue" },
+                                      { label: "Preferred Sync", value: lead.preferredCallTime, icon: Clock, color: "amber" }
+                                    ].map((attr, i) => (
+                                      attr.value && (
+                                        <div key={i} className="p-4 rounded-xl bg-background/40 border border-border flex flex-col gap-2">
+                                          <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                                            <attr.icon className={`h-3 w-3 text-${attr.color}-500`} />
+                                            {attr.label}
+                                          </div>
+                                          <div className="text-xs font-bold text-foreground">{attr.value}</div>
+                                        </div>
+                                      )
+                                    ))
+                                  )}
                                 </div>
                               </div>
                             </td>
