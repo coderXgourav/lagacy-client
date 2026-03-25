@@ -39,7 +39,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const stepData = [
   {
     step: 1,
-    title: "INPUT STRUCTURING",
+    title: "INPUT (Startup DNA)",
     icon: Layout,
     color: "text-blue-500",
     bg: "bg-blue-500/10",
@@ -53,115 +53,97 @@ const stepData = [
     color: "text-purple-500",
     bg: "bg-purple-500/10",
     endpoint: "discover",
-    prompt: `Act as a VC research analyst. Generate a list of 10 ideal investors.`
+    prompt: `(NO LLM) Use Crunchbase + Apollo.io to pull raw list.`
   },
   {
     step: 3,
-    title: "DATA NORMALIZATION",
-    icon: Database,
+    title: "DATA ENRICHMENT",
+    icon: Globe,
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
-    endpoint: "normalize",
-    prompt: `Standardize fields, merge duplicates, and clean the dataset.`
+    endpoint: "enrich",
+    prompt: `(NO LLM) Use APIs + Scraping (LinkedIn, Websites).`
   },
   {
     step: 4,
-    title: "ENRICHMENT ENGINE",
-    icon: Globe,
+    title: "LLM SUMMARIZATION",
+    icon: Brain,
     color: "text-indigo-500",
     bg: "bg-indigo-500/10",
-    endpoint: "enrich",
-    prompt: `Enrich each investor with fund size, thesis, and portfolio details.`
+    endpoint: "summarize",
+    prompt: `Convert messy enrichment data → structured insights (Thesis, Stage, Geo).`
   },
   {
     step: 5,
-    title: "INVESTMENT INTELLIGENCE",
-    icon: Brain,
+    title: "SCORING ENGINE",
+    icon: Zap,
     color: "text-rose-500",
     bg: "bg-rose-500/10",
-    endpoint: "intelligence",
-    prompt: `Analyze activity levels and sector concentration.`
+    endpoint: "scoring",
+    prompt: `Hybrid: Rule-based base score + LLM-based fit refinement.`
   },
   {
     step: 6,
-    title: "CHECK SIZE ESTIMATION",
-    icon: BarChart3,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-    endpoint: "check-size",
-    prompt: `Estimate min/max check sizes based on fund data.`
-  },
-  {
-    step: 7,
-    title: "CONTACT INTELLIGENCE",
+    title: "WARM INTRO DETECTION",
     icon: Users,
     color: "text-orange-500",
     bg: "bg-orange-500/10",
-    endpoint: "contact",
-    prompt: `Find and validate email, LinkedIn, and phone data.`
+    endpoint: "warm-intro",
+    prompt: `(NO LLM) Pure data mapping via LinkedIn/CRM graph.`
   },
   {
-    step: 8,
-    title: "SCORING ENGINE",
-    icon: Zap,
-    color: "text-yellow-500",
-    bg: "bg-yellow-500/10",
-    endpoint: "scoring",
-    prompt: `Score fit based on niche, stage, and activity.`
-  },
-  {
-    step: 9,
+    step: 7,
     title: "SEGMENTATION",
     icon: ShieldCheck,
     color: "text-teal-500",
     bg: "bg-teal-500/10",
     endpoint: "segment",
-    prompt: `Divide into Tier 1 (Hot), Tier 2 (Warm), and Tier 3 (Cold).`
+    prompt: `(NO LLM) 80+ HOT | 60-79 WARM | <60 COLD.`
   },
   {
-    step: 10,
+    step: 8,
     title: "OUTREACH ENGINE",
     icon: Mail,
     color: "text-sky-500",
     bg: "bg-sky-500/10",
     endpoint: "outreach",
-    prompt: `Generate hyper-personalized emails and DMs.`
+    prompt: `Generate hyper-personalized, controlled outreach (No fluff).`
   },
   {
-    step: 11,
+    step: 9,
+    title: "DELIVERABILITY",
+    icon: Activity,
+    color: "text-yellow-500",
+    bg: "bg-yellow-500/10",
+    endpoint: "deliverability",
+    prompt: `(NO LLM) Automated email infrastructure & warm-up check.`
+  },
+  {
+    step: 10,
     title: "REPLY INTELLIGENCE",
     icon: MessageSquare,
     color: "text-pink-500",
     bg: "bg-pink-500/10",
     endpoint: "reply-ai",
-    prompt: `Classify sentiment and extract next actions.`
+    prompt: `Classify intent: Interested, Follow-up, Not a fit.`
   },
   {
-    step: 12,
-    title: "BOOKING SYSTEM",
-    icon: Calendar,
-    color: "text-violet-500",
-    bg: "bg-violet-500/10",
-    endpoint: "booking",
-    prompt: `Sync availability and generate booking links.`
-  },
-  {
-    step: 13,
-    title: "CRM SYSTEM",
+    step: 11,
+    title: "CRM (Zoho)",
     icon: Database,
     color: "text-slate-500",
     bg: "bg-slate-500/10",
     endpoint: "crm-sync",
-    prompt: `Sync all data to Zoho CRM pipelines.`
+    prompt: `(NO LLM) One-way sync to Zoho CRM.`
   },
   {
-    step: 14,
+    step: 12,
     title: "LEARNING LOOP",
-    icon: Brain,
+    icon: TrendingUp,
     color: "text-red-500",
     bg: "bg-red-500/10",
     endpoint: "learning-loop",
-    prompt: `Optimize flow based on open/reply results.`
+    prompt: `LLM-driven optimization suggestions based on campaign results.`
   }
 ];
 
@@ -330,7 +312,7 @@ export default function SystemArchitecturePage() {
              <Card className="bg-primary/5 border-primary/20 shadow-sm">
                <CardHeader className="pb-2">
                  <CardDescription className="uppercase font-bold text-[10px] tracking-widest">Completion Progress</CardDescription>
-                 <CardTitle className="text-sm font-black text-primary">{(pipeline.currentStep / 14 * 100).toFixed(0)}%</CardTitle>
+                 <CardTitle className="text-sm font-black text-primary">{(pipeline.currentStep / 12 * 100).toFixed(0)}%</CardTitle>
                </CardHeader>
              </Card>
           </div>
@@ -354,7 +336,13 @@ export default function SystemArchitecturePage() {
                   <div className="space-y-1">
                     <p className="text-[10px] uppercase opacity-50 font-bold">Growth Signals</p>
                     <div className="flex flex-wrap gap-1">
-                      {pipeline.structuredProfile.growth_signals?.map((s: string) => <Badge key={s} variant="secondary" className="text-[9px] px-1 h-4">{s}</Badge>)}
+                      {pipeline.structuredProfile.growth_signals?.length > 0 ? (
+                        pipeline.structuredProfile.growth_signals.map((s: string) => (
+                          <Badge key={s} variant="secondary" className="text-[9px] px-1 h-4">{s}</Badge>
+                        ))
+                      ) : (
+                        <p className="text-[10px] opacity-30 italic">No signals detected</p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1">

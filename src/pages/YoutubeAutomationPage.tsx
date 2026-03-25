@@ -43,16 +43,16 @@ const ytStepData = [
 ];
 
 const keywordPresets = [
-  { id: "website", label: "Website Problems", keywords: "website redesign, website developer, website looks outdated, slow website, shopify developer, wordpress developer" },
-  { id: "leads", label: "Lead Generation", keywords: "need more leads, lead generation help, B2B leads, lead generation agency, not getting clients" },
-  { id: "marketing", label: "Marketing", keywords: "facebook ads not working, google ads not converting, ads expensive no results, meta ads expensive, ROI problem" },
-  { id: "automation", label: "Automation", keywords: "business automation tools, automate business processes, crm automation, zapier alternative, make.com, n8n help" },
-  { id: "crm", label: "CRM Problems", keywords: "crm recommendation, crm implementation, hubspot integration, salesforce help, crm migration" },
-  { id: "ecommerce", label: "E-commerce", keywords: "shopify store not converting, ecommerce conversion, shopify developer urgent, abandoned cart high" },
-  { id: "branding", label: "Founder Branding", keywords: "personal branding for founders, linkedin growth, linkedin content strategy, personal branding agency" },
-  { id: "growth", label: "Startup Growth", keywords: "startup marketing strategy, startup growth help, startup lead gen, go to market strategy, B2B saas growth" },
-  { id: "realestate", label: "Real Estate", keywords: "real estate lead generation, real estate developer, property portal development, real estate marketing" },
-  { id: "emergency", label: "Emergency Signals", keywords: "agency recommendation urgently, looking for marketing agency, need developer urgently, hire growth consultant" }
+  { id: "website", label: "Website Problems", keywords: "website redesign needed, website developer needed, need a website developer, website redesign help, website looks outdated, slow website problem, website not converting, website loading too slow, shopify developer needed, wordpress developer needed, need ecommerce website, website UX problems, website design agency recommendation, website revamp cost, website optimization help" },
+  { id: "leads", label: "Lead Generation", keywords: "need more leads, lead generation help, how to generate B2B leads, lead generation agency, struggling to get leads, not getting clients online, how to get customers online, local business marketing help, how to generate leads for my business, sales pipeline empty, need appointment setting" },
+  { id: "marketing", label: "Marketing Problems", keywords: "facebook ads not working, google ads not converting, ads expensive no results, marketing agency recommendation, paid ads ROI problem, how to improve ad conversion, instagram ads not working, meta ads expensive, customer acquisition cost too high, ads wasting money" },
+  { id: "automation", label: "Automation Problems", keywords: "business automation tools, how to automate business processes, crm automation help, workflow automation, zapier alternative, make.com automation, n8n automation help, automate lead follow up, automate marketing workflow, AI automation for business" },
+  { id: "crm", label: "CRM Problems", keywords: "crm recommendation for small business, crm implementation help, crm integration help, crm setup cost, crm automation problems, hubspot integration help, salesforce integration help, crm migration help" },
+  { id: "ecommerce", label: "E-commerce Problems", keywords: "shopify store not converting, ecommerce conversion problems, shopify developer needed urgently, woocommerce developer help, abandoned cart high, how to increase ecommerce conversion, product page not converting" },
+  { id: "branding", label: "Founder Personal Branding", keywords: "personal branding for founders, linkedin growth help, how to grow linkedin audience, linkedin content strategy, personal branding agency, build founder brand online" },
+  { id: "growth", label: "Startup Growth Problems", keywords: "startup marketing strategy, startup growth help, startup lead generation, startup go to market strategy, b2b saas growth strategy, startup struggling with traction" },
+  { id: "realestate", label: "Real Estate", keywords: "real estate lead generation, real estate website developer, property portal development, crm for real estate, real estate marketing automation" },
+  { id: "emergency", label: "Emergency Signals", keywords: "agency recommendation urgently, looking for marketing agency, need developer urgently, need automation consultant, hire growth consultant, looking for web development agency, need help scaling business" }
 ];
 
 export default function YoutubeAutomationPage() {
@@ -101,22 +101,43 @@ export default function YoutubeAutomationPage() {
       switch (pipeline.currentStep) {
         case 1:
           endpoint = `/youtube-automation/pipeline/${pipeline._id}/filter`;
-          payload = { videos: [
-            { video_id: "yt123", title: "My Wix website is slow", description: "Need help with SEO and speed" },
-            { video_id: "yt456", title: "How to build an app", description: "Searching for developers" }
-          ]};
+          payload = { videos: [] }; 
+          break;
+        case 2:
+          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/validate-engagement`;
           break;
         case 3:
           if (leads.length > 0) {
             endpoint = `/youtube-automation/lead/${leads[0]._id}/pain-detection`;
-            payload = { comment: "I am struggling with my Wix site, it never ranks on Google. Anyone can help?" };
+            payload = { comment: null };
           }
           break;
         case 4:
           if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/qualify`;
           break;
+        case 5:
+          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/identity`;
+          break;
+        case 6:
+          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/enrich`;
+          break;
+        case 7:
+          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/structure`;
+          break;
         case 8:
           if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/outreach`;
+          break;
+        case 9:
+          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/personalize`;
+          break;
+        case 10:
+          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/booking`;
+          break;
+        case 11:
+          if (leads.length > 0) {
+            endpoint = `/youtube-automation/lead/${leads[0]._id}/reply`;
+            payload = { replyText: "Interested, tell me more." };
+          }
           break;
         default:
           toast({ title: "Simulation Mode", description: `Executing Step ${pipeline.currentStep}: ${step.title}` });
@@ -257,17 +278,71 @@ export default function YoutubeAutomationPage() {
                  </h2>
                  <div className="space-y-4 max-h-[600px] overflow-auto pr-2 custom-scrollbar">
                     {leads.length > 0 ? leads.map((lead, i) => (
-                      <Card key={i} className="bg-card border-red-500/10 hover:border-red-500/30 transition-all group overflow-hidden">
+                      <Card key={lead._id} className={`mb-3 border-l-4 ${lead.status === 'qualified' ? 'border-l-emerald-500' : 'border-l-slate-700'} bg-slate-900/40 backdrop-blur-md`}>
                         <CardContent className="p-4 flex gap-4">
-                           <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center font-black text-red-500">{lead.username?.charAt(0) || "U"}</div>
-                           <div className="flex-1 space-y-1">
+                            <div className="relative">
+                              <Avatar className="h-10 w-10 border-2 border-slate-700">
+                                <AvatarImage src={lead.profile_image} />
+                                <AvatarFallback className="bg-slate-800 text-slate-400">U</AvatarFallback>
+                              </Avatar>
+                              {lead.filter_type && (
+                                <div className={`absolute -bottom-1 -right-1 px-1 rounded text-[7px] font-bold uppercase ${
+                                  lead.filter_type === 'IDEAL' ? 'bg-emerald-500 text-white' : 
+                                  lead.filter_type === 'RELAXED' ? 'bg-amber-500 text-black' : 'bg-slate-600 text-white'
+                                }`}>
+                                  {lead.filter_type}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 space-y-2">
                               <div className="flex justify-between items-start">
-                                <p className="font-bold text-sm">@{lead.username || "User"}</p>
-                                <Badge variant="outline" className={`text-[8px] uppercase ${lead.status === 'qualified' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' : ''}`}>{lead.status}</Badge>
+                                <div className="space-y-0.5">
+                                  <a 
+                                    href={lead.channel_id ? `https://youtube.com/channel/${lead.channel_id}` : "#"} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="font-bold text-sm hover:text-red-500 flex items-center gap-1"
+                                  >
+                                    @{lead.username || "User"} <Globe className="h-3 w-3 opacity-50" />
+                                  </a>
+                                  {lead.title && <p className="text-[9px] opacity-40 truncate max-w-[150px]">{lead.title}</p>}
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge variant="outline" className={`text-[8px] uppercase ${lead.status === 'qualified' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' : ''}`}>{lead.status}</Badge>
+                                  <a 
+                                    href={lead.comment_id ? `https://www.youtube.com/watch?v=${lead.video_id}&lc=${lead.comment_id}` : `https://youtube.com/watch?v=${lead.video_id}`} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="text-[9px] font-bold text-red-500 hover:underline flex items-center gap-1"
+                                  >
+                                    <Youtube className="h-2.5 w-2.5" /> View Comment
+                                  </a>
+                                </div>
                               </div>
-                              <p className="text-xs text-muted-foreground line-clamp-2">"{lead.comment}"</p>
-                              {lead.problem_summary && <p className="text-[10px] text-red-400 font-bold uppercase mt-2">Detected: {lead.problem_summary}</p>}
-                           </div>
+                              <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border-l-2 border-red-500/10 transition-all">
+                                {lead.pain_snippet ? (
+                                  <>
+                                    "{lead.comment.split(lead.pain_snippet)[0]}
+                                    <span className="bg-red-500/20 text-red-400 font-bold px-1 rounded">{lead.pain_snippet}</span>
+                                    {lead.comment.split(lead.pain_snippet)[1]}"
+                                  </>
+                                ) : (
+                                  `"${lead.comment}"`
+                                )}
+                              </div>
+                              {lead.problem_summary && (
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                  <Badge className="text-[9px] bg-red-600 hover:bg-red-600">PAIN: {lead.category}</Badge>
+                                  <p className="text-[10px] text-red-400 font-bold uppercase">{lead.problem_summary}</p>
+                                </div>
+                              )}
+                              {lead.contact && (lead.contact.email || lead.contact.phone) && lead.contact.email !== 'search@google.com' && (
+                                <div className="mt-3 p-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg flex flex-wrap gap-3">
+                                  {lead.contact.email && <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400"><Mail className="h-3 w-3" /> {lead.contact.email}</div>}
+                                  {lead.contact.phone && lead.contact.phone !== 'N/A' && <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400"><Activity className="h-3 w-3" /> {lead.contact.phone}</div>}
+                                </div>
+                              )}
+                            </div>
                         </CardContent>
                       </Card>
                     )) : (
