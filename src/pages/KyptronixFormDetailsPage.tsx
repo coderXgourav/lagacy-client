@@ -23,8 +23,20 @@ import {
   Users,
   Target,
   Zap,
-  Trash2
+  Trash2,
+  Eye,
+  FileDown
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { format } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { kyptronixApi } from '@/services/api';
@@ -80,6 +92,9 @@ export default function KyptronixFormDetailsPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const [selectedFormType, setSelectedFormType] = useState<string>(searchParams.get('type') || 'all');
+
+  const [viewingLead, setViewingLead] = useState<any | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   useEffect(() => {
     const type = searchParams.get('type') || 'all';
@@ -172,6 +187,69 @@ export default function KyptronixFormDetailsPage() {
       {label}
     </Badge>
   );
+
+  const handleDownloadPdf = (lead: any) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(79, 70, 229); // Indigo color
+    doc.text('Kyptronix Form Submission', 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${format(new Date(), 'MMM dd, yyyy HH:mm:ss')}`, 14, 30);
+    
+    // Core Info
+    const coreInfo = [
+      ['Submission ID', lead._id],
+      ['Form Type', lead.formType || lead.source || 'N/A'],
+      ['Submitter Name', lead.name || 'N/A'],
+      ['Email', lead.email || 'N/A'],
+      ['Phone', lead.phone || 'N/A'],
+      ['Company', lead.companyName || lead.businessType || 'N/A'],
+      ['Date', format(new Date(lead.submittedAt || lead.createdAt), 'MMM dd, yyyy HH:mm:ss')],
+    ];
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Field', 'Information']],
+      body: coreInfo,
+      theme: 'striped',
+      headStyles: { fillStyle: 'fill', fillColor: [79, 70, 229] },
+    });
+
+    // Responses / Requirements
+    if (lead.responses || lead.message) {
+      doc.setFontSize(14);
+      doc.setTextColor(31, 41, 55);
+      doc.text('Submission Details', 14, (doc as any).lastAutoTable.finalY + 15);
+
+      const responseData = lead.responses 
+        ? Object.entries(lead.responses).map(([key, value]) => [
+            key.replace(/([A-Z])/g, ' $1').trim(),
+            String(value)
+          ]) 
+        : [['Message / Message', lead.message]];
+
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 20,
+        head: [['Question', 'Response']],
+        body: responseData,
+        theme: 'grid',
+        headStyles: { fillStyle: 'fill', fillColor: [55, 65, 81] },
+        styles: { overflow: 'linebreak' },
+        columnStyles: { 0: { fontStyle: 'bold', width: 60 } }
+      });
+    }
+
+    doc.save(`Kyptronix_Submission_${lead.name || lead._id}.pdf`);
+    
+    toast({
+      title: "PDF Generated",
+      description: "Submission report has been downloaded successfully.",
+    });
+  };
 
   if (!selectedForm) return null;
 
@@ -331,6 +409,29 @@ export default function KyptronixFormDetailsPage() {
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
+                                className="h-8 w-8 rounded-lg hover:bg-indigo-500/10 hover:text-indigo-600 text-muted-foreground transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingLead(lead);
+                                  setIsViewModalOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 text-muted-foreground transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadPdf(lead);
+                                }}
+                              >
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
                                 className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -393,63 +494,6 @@ export default function KyptronixFormDetailsPage() {
                             </div>
                           </td>
                         </tr>
-                        <CollapsibleContent asChild>
-                          <tr>
-                            <td colSpan={6} className="bg-indigo-500/[0.01] px-6 py-0 overflow-hidden">
-                              <div className="py-8 px-12 space-y-8 animate-slide-up border-x-2 border-indigo-500/10">
-                                {lead.message && (
-                                  <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                        <FileText className="h-4 w-4 text-indigo-600" />
-                                      </div>
-                                      <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Requirements Manifest</h4>
-                                    </div>
-                                    <div className="bg-card/50 backdrop-blur-md rounded-2xl border border-border p-6 shadow-xl relative overflow-hidden group">
-                                      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <Zap className="h-12 w-12 text-indigo-500" />
-                                      </div>
-                                      <p className="text-sm text-foreground leading-relaxed font-medium">
-                                        {lead.message}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                                  {formId === 'request-proposal' && lead.responses ? (
-                                    Object.entries(lead.responses).filter(([_, val]) => val && val !== 'on').map(([key, val], i) => (
-                                      <div key={i} className="p-4 rounded-xl bg-background/40 border border-border flex flex-col gap-2">
-                                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-                                          <CheckCircle2 className={`h-3 w-3 text-${selectedForm.color}-500`} />
-                                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                                        </div>
-                                        <div className="text-xs font-bold text-foreground line-clamp-2" title={String(val)}>{String(val)}</div>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    [
-                                      { label: "Target Service", value: lead.service, icon: CheckCircle2, color: "emerald" },
-                                      { label: "Business Sector", value: lead.businessType, icon: Building2, color: "indigo" },
-                                      { label: "Quoted Valuation", value: lead.price, icon: Banknote, color: "blue" },
-                                      { label: "Preferred Sync", value: lead.preferredCallTime, icon: Clock, color: "amber" }
-                                    ].map((attr, i) => (
-                                      attr.value && (
-                                        <div key={i} className="p-4 rounded-xl bg-background/40 border border-border flex flex-col gap-2">
-                                          <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-                                            <attr.icon className={`h-3 w-3 text-${attr.color}-500`} />
-                                            {attr.label}
-                                          </div>
-                                          <div className="text-xs font-bold text-foreground">{attr.value}</div>
-                                        </div>
-                                      )
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        </CollapsibleContent>
                         <CollapsibleContent asChild>
                           <tr>
                             <td colSpan={6} className="bg-indigo-500/[0.01] px-6 py-0 overflow-hidden">
@@ -550,6 +594,115 @@ export default function KyptronixFormDetailsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Submission View Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border shadow-2xl">
+          <DialogHeader className="border-b border-border pb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                  <div className={`p-2 rounded-lg bg-${selectedForm.color}-500/10`}>
+                    <selectedForm.icon className={`h-6 w-6 text-${selectedForm.color}-600`} />
+                  </div>
+                  Full Form Submission
+                </DialogTitle>
+                <DialogDescription className="text-sm font-medium mt-1">
+                  Submission ID: <span className="text-indigo-600 font-bold tabular-nums">{viewingLead?._id}</span>
+                </DialogDescription>
+              </div>
+              <Button 
+                variant="default"
+                className={`bg-${selectedForm.color}-600 hover:bg-${selectedForm.color}-700 shadow-lg shadow-${selectedForm.color}-600/20 gap-2 h-11 px-6 rounded-xl font-bold`}
+                onClick={() => handleDownloadPdf(viewingLead)}
+              >
+                <FileDown className="h-4 w-4" />
+                Export as PDF
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {viewingLead && (
+            <div className="py-8 space-y-10 group">
+              {/* Primary Profile */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-6 rounded-2xl bg-muted/30 border border-border/50 space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">Prospect Details</div>
+                  <div className="space-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-foreground">{viewingLead.name}</span>
+                      <span className="text-xs text-muted-foreground font-medium">{viewingLead.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                      <Phone className="h-3 w-3" /> {viewingLead.phone || 'N/A'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-muted/30 border border-border/50 space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">Entity & Source</div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Building2 className="h-4 w-4 text-indigo-500" /> {viewingLead.companyName || 'Private Individual'}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-indigo-600">
+                      <Badge variant="outline" className="text-[10px] border-indigo-500/20 bg-indigo-500/5">{viewingLead.formType || selectedForm.source}</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-muted/30 border border-border/50 space-y-4">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">Timestamp</div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <Clock className="h-4 w-4 text-amber-500" /> {format(viewingLead.submittedAt ? new Date(viewingLead.submittedAt) : viewingLead.createdAt ? new Date(viewingLead.createdAt) : new Date(), 'MMM dd, yyyy')}
+                    </div>
+                    <div className="text-xs font-bold text-muted-foreground tabular-nums">
+                      {format(viewingLead.submittedAt ? new Date(viewingLead.submittedAt) : viewingLead.createdAt ? new Date(viewingLead.createdAt) : new Date(), 'HH:mm:ss')} (Server Time)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comprehensive Response Grid */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border/50" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">Requirements Manifest</span>
+                  <div className="h-px flex-1 bg-border/50" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewingLead.responses ? (
+                    Object.entries(viewingLead.responses).filter(([_, v]) => v && v !== 'on').map(([key, val], idx) => (
+                      <div key={idx} className="p-5 rounded-2xl bg-card border border-border/80 hover:border-indigo-500/30 transition-all group/item shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle2 className={`h-3 w-3 text-${selectedForm.color}-500 opacity-0 group-hover/item:opacity-100 transition-opacity`} />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-foreground leading-relaxed break-words">{String(val)}</p>
+                      </div>
+                    ))
+                  ) : viewingLead.message ? (
+                    <div className="col-span-2 p-6 rounded-2xl bg-card border border-border shadow-sm">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 opacity-40">Direct Requirements Message</div>
+                      <p className="text-sm font-medium text-foreground leading-relaxed italic">{viewingLead.message}</p>
+                    </div>
+                  ) : (
+                    <div className="col-span-2 text-center py-10 opacity-40 italic text-sm">No structured response data available for this submission.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="border-t border-border pt-6">
+            <Button variant="ghost" onClick={() => setIsViewModalOpen(false)} className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Close Inspector</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

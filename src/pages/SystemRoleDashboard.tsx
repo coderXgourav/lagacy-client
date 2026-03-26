@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Activity, Users, FileText, Youtube, Search, CheckCircle2, ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/system-role` : "http://localhost:5000/api/system-role";
+const API_BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/system-role` : "http://localhost:8000/api/system-role";
 
 export default function SystemRoleDashboard() {
   const [data, setData] = useState<any>(null);
@@ -21,20 +21,22 @@ export default function SystemRoleDashboard() {
   const [triggering, setTriggering] = useState(false);
   const { toast } = useToast();
 
-  const fetchData = async () => {
+  const fetchData = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (!isRefresh) setLoading(true);
       const res = await axios.get(`${API_BASE_URL}/dashboard`);
       setData(res.data.data);
     } catch (error) {
       console.error("Error fetching data", error);
-      toast({
-        title: "Error fetching data",
-        description: "Could not load system role data.",
-        variant: "destructive",
-      });
+      if (!isRefresh) {
+        toast({
+          title: "Error fetching data",
+          description: "Could not load system role data.",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!isRefresh) setLoading(false);
     }
   };
 
@@ -53,7 +55,7 @@ export default function SystemRoleDashboard() {
       // Active polling for 10 minutes (to see real-time log updates)
       let pollCount = 0;
       const pollInterval = setInterval(() => {
-        fetchData();
+        fetchData(true);
         pollCount++;
         if (pollCount > 60) clearInterval(pollInterval); // Stop after 10 mins
       }, 10000); // Every 10 seconds
@@ -263,13 +265,26 @@ export default function SystemRoleDashboard() {
                           <Youtube className="w-5 h-5" /> YouTube Hook
                         </div>
                         {c.videoUrl && (
-                          <div className="mb-4 overflow-hidden rounded-xl border border-border shadow-inner bg-black">
-                            <video 
-                              src={c.videoUrl.startsWith('/') ? `${API_BASE_URL.replace('/api/system-role', '')}${c.videoUrl}` : c.videoUrl} 
-                              controls 
-                              className="w-full aspect-video"
-                              poster="/placeholder.svg"
-                            />
+                          <div className="mb-4 overflow-hidden rounded-xl border border-border shadow-inner bg-black group relative">
+                            {c.videoUrl.includes('heygen.com') ? (
+                              <div className="aspect-video flex flex-col items-center justify-center p-6 text-center space-y-4">
+                                <Activity className="h-10 w-10 text-primary animate-pulse" />
+                                <div className="space-y-1">
+                                  <p className="text-sm font-bold text-white uppercase tracking-widest">HeyGen Video Generation Started</p>
+                                  <p className="text-[10px] text-white/50">Processing AI Avatar... This usually takes 1-3 minutes.</p>
+                                </div>
+                                <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20" onClick={() => window.open(c.videoUrl, '_blank')}>
+                                  Open Preview in HeyGen
+                                </Button>
+                              </div>
+                            ) : (
+                              <video 
+                                src={c.videoUrl.startsWith('/') ? `${API_BASE_URL.replace('/api/system-role', '')}${c.videoUrl}` : c.videoUrl} 
+                                controls 
+                                className="w-full aspect-video"
+                                poster="/placeholder.svg"
+                              />
+                            )}
                           </div>
                         )}
                         <p className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-xl border border-border leading-relaxed">

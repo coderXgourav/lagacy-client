@@ -25,6 +25,7 @@ import {
   UserCheck,
   Heart
 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -51,7 +52,7 @@ const keywordPresets = [
   { id: "ecommerce", label: "E-commerce Problems", keywords: "shopify store not converting, ecommerce conversion problems, shopify developer needed urgently, woocommerce developer help, abandoned cart high, how to increase ecommerce conversion, product page not converting" },
   { id: "branding", label: "Founder Personal Branding", keywords: "personal branding for founders, linkedin growth help, how to grow linkedin audience, linkedin content strategy, personal branding agency, build founder brand online" },
   { id: "growth", label: "Startup Growth Problems", keywords: "startup marketing strategy, startup growth help, startup lead generation, startup go to market strategy, b2b saas growth strategy, startup struggling with traction" },
-  { id: "realestate", label: "Real Estate", keywords: "real estate lead generation, real estate website developer, property portal development, crm for real estate, real estate marketing automation" },
+  { id: "realestate", label: "Real Estate / Local Business", keywords: "real estate lead generation, real estate website developer, property portal development, crm for real estate, real estate marketing automation" },
   { id: "emergency", label: "Emergency Signals", keywords: "agency recommendation urgently, looking for marketing agency, need developer urgently, need automation consultant, hire growth consultant, looking for web development agency, need help scaling business" }
 ];
 
@@ -59,7 +60,13 @@ export default function YoutubeAutomationPage() {
   const [pipeline, setPipeline] = useState<any>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("Problems with Website design, Mobile apps, SEO, or Automation 2024");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [logs, setLogs] = useState<string[]>(["[SYSTEM] Standing by for new mission...", "[READY] Keyword framework loaded: Kyptronix v2.0"]);
+
+  const addLog = (msg: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `[${timestamp}] ${msg}`]);
+  };
 
   const getHeaders = () => ({ headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
 
@@ -80,11 +87,16 @@ export default function YoutubeAutomationPage() {
   const handleLaunch = async () => {
     try {
       setLoading(true);
+      addLog(`🚀 Initializing YouTube Pipeline for query: "${searchQuery.substring(0, 30)}..."`);
       const res = await axios.post(`${API_URL}/youtube-automation/initialize`, { query: searchQuery }, getHeaders());
       setPipeline(res.data.data);
       setLeads([]);
+      addLog(`✅ Pipeline created! Launching Step 1: Video Relevance Filter.`);
       toast({ title: "YouTube Machine Launched", description: "Scanning for high-intent leads..." });
-    } catch (err: any) { toast({ title: "Launch Failed", variant: "destructive" }); }
+    } catch (err: any) { 
+      addLog(`❌ Launch Failed: ${err.message}`);
+      toast({ title: "Launch Failed", variant: "destructive" }); 
+    }
     finally { setLoading(false); }
   };
 
@@ -162,10 +174,22 @@ export default function YoutubeAutomationPage() {
     if (!pipeline) return;
     try {
       setLoading(true);
+      addLog(`🌐 Connecting to Apify Deep Scraper...`);
+      addLog(`🔍 Category-Specific Search: "${searchQuery.split(',')[0]}..."`);
+      
+      const currentQueries = searchQuery.split(', ').filter(q => q.trim() !== "");
+      addLog(`🕵️ Multi-Discovery Active: Firing signals for ${currentQueries.join(' + ')}.`);
+      
       const res = await axios.post(`${API_URL}/youtube-automation/pipeline/${pipeline._id}/fetch-apify`, { query: searchQuery }, getHeaders());
-      toast({ title: "Apify Sync Complete", description: `Ingested ${res.data.data.length} new potential leads.` });
+      
+      const newLeads = res.data.data;
+      addLog(`🎯 Sync Complete! Captured ${newLeads.length} multi-category leads.`);
+      addLog(`🚀 Pipeline Moving: Auto-advanced to Step 3 (Pain Intelligence).`);
+      
+      toast({ title: "Apify Sync Complete", description: `Ingested ${newLeads.length} new potential leads with AI intelligence.` });
       loadPipeline();
     } catch (err: any) {
+      addLog(`❌ Apify Sync Failed: ${err.message}`);
       toast({ title: "Sync Failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -193,22 +217,35 @@ export default function YoutubeAutomationPage() {
           <div className="space-y-4">
             <label className="text-xs font-bold uppercase opacity-70">Discovery Presets (Select to populate)</label>
             <div className="flex flex-wrap gap-2">
-              {keywordPresets.map((preset) => (
-                <Badge 
-                  key={preset.id} 
-                  variant="outline" 
-                  className={`cursor-pointer hover:bg-red-500 hover:text-white transition-all py-1 px-3 text-[10px] uppercase font-bold border-red-500/20 ${searchQuery.includes(preset.keywords.split(',')[0]) ? "bg-red-500 text-white" : ""}`}
-                  onClick={() => setSearchQuery(preset.keywords)}
-                >
-                  {preset.label}
-                </Badge>
-              ))}
+              {keywordPresets.map((preset) => {
+                const currentQueries = searchQuery.split(', ').filter(q => q.trim() !== "");
+                const isActive = currentQueries.includes(preset.label);
+                
+                const togglePreset = () => {
+                  if (isActive) {
+                    setSearchQuery(currentQueries.filter(q => q !== preset.label).join(', '));
+                  } else {
+                    setSearchQuery([...currentQueries, preset.label].join(', '));
+                  }
+                };
+
+                return (
+                  <Badge 
+                    key={preset.id} 
+                    variant={isActive ? "default" : "outline"} 
+                    className={`cursor-pointer transition-all py-1.5 px-4 text-[10px] uppercase font-black tracking-widest border-red-500/30 ${isActive ? "bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)] border-red-500" : "hover:bg-red-500/10 hover:border-red-500/50 text-muted-foreground"}`}
+                    onClick={togglePreset}
+                  >
+                    {preset.label}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
           
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase opacity-70">YouTube Search Target</label>
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-muted/50 border-red-500/10 h-12" placeholder="e.g. Wix website problems, SEO struggles..." />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-muted/50 border-red-500/10 h-12 text-sm font-bold uppercase tracking-widest placeholder:opacity-40" placeholder="LEAVE BLANK FOR AUTONOMOUS DISCOVERY (v2.0)..." />
           </div>
           <div className="flex gap-4">
             <Button onClick={handleLaunch} className="flex-1 h-14 text-lg font-bold uppercase tracking-widest shadow-xl bg-red-600 hover:bg-red-700 text-white" disabled={loading || pipeline}>
@@ -320,22 +357,44 @@ export default function YoutubeAutomationPage() {
                                 </div>
                               </div>
                               <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border-l-2 border-red-500/10 transition-all">
-                                {lead.pain_snippet ? (
+                                {lead.matched_keyword && lead.comment.toLowerCase().includes(lead.matched_keyword.toLowerCase()) ? (
+                                  (() => {
+                                    const parts = lead.comment.split(new RegExp(`(${lead.matched_keyword})`, 'gi'));
+                                    return (
+                                      <>
+                                        {parts.map((part: string, i: number) => 
+                                          part.toLowerCase() === lead.matched_keyword.toLowerCase() ? 
+                                          <span key={i} className="bg-yellow-500/30 text-yellow-200 font-black px-1 rounded border border-yellow-500/50">{part}</span> : 
+                                          part
+                                        )}
+                                      </>
+                                    );
+                                  })()
+                                ) : lead.pain_snippet ? (
                                   <>
-                                    "{lead.comment.split(lead.pain_snippet)[0]}
+                                    {lead.comment.split(lead.pain_snippet)[0]}
                                     <span className="bg-red-500/20 text-red-400 font-bold px-1 rounded">{lead.pain_snippet}</span>
-                                    {lead.comment.split(lead.pain_snippet)[1]}"
+                                    {lead.comment.split(lead.pain_snippet)[1]}
                                   </>
                                 ) : (
                                   `"${lead.comment}"`
                                 )}
                               </div>
-                              {lead.problem_summary && (
-                                <div className="flex flex-wrap items-center gap-2 mt-2">
-                                  <Badge className="text-[9px] bg-red-600 hover:bg-red-600">PAIN: {lead.category}</Badge>
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                {lead.matched_keyword && (
+                                  <Badge variant="outline" className="text-[9px] border-yellow-500/50 text-yellow-500 bg-yellow-500/5 uppercase font-black tracking-tighter">
+                                    🎯 SIGNAL: {lead.matched_keyword}
+                                  </Badge>
+                                )}
+                                {lead.category && (
+                                  <Badge className="text-[9px] bg-red-600 hover:bg-red-600 uppercase font-black">
+                                    🔥 PAIN: {lead.category}
+                                  </Badge>
+                                )}
+                                {lead.problem_summary && (
                                   <p className="text-[10px] text-red-400 font-bold uppercase">{lead.problem_summary}</p>
-                                </div>
-                              )}
+                                )}
+                              </div>
                               {lead.contact && (lead.contact.email || lead.contact.phone) && lead.contact.email !== 'search@google.com' && (
                                 <div className="mt-3 p-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg flex flex-wrap gap-3">
                                   {lead.contact.email && <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400"><Mail className="h-3 w-3" /> {lead.contact.email}</div>}
@@ -354,15 +413,14 @@ export default function YoutubeAutomationPage() {
                  <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
                     <Activity className="h-6 w-6 text-red-500" /> Extraction Logs
                  </h2>
-                 <Card className="bg-black/80 font-mono text-[11px] p-6 h-[600px] overflow-auto border-red-500/20 shadow-inner">
-                    <div className="space-y-2">
-                      <p className="text-emerald-400 opacity-80">[00:00:01] Initializing YouTube Scraper...</p>
-                      <p className="text-emerald-400">[00:00:02] target_query="{searchQuery}"</p>
-                      <p className="text-yellow-400">[SYSTEM] Connection to Google Workspace established.</p>
-                      {pipeline.currentStep > 1 && <p className="text-emerald-400 mt-2">[00:00:15] Step 1 COMPLETED. Video IDs: {leads.map(l => l.video_id).join(', ')}</p>}
-                      {pipeline.currentStep > 2 && <p className="text-emerald-400">[00:00:22] Step 2 COMPLETED. Engagement validated at 8.4% average.</p>}
-                      {pipeline.currentStep > 3 && <p className="text-purple-400 font-bold mt-4">[LLM] Running Core Pain Detection analysis...</p>}
-                      {pipeline.currentStep > 3 && leads.length > 0 && <p className="text-pink-400">→ Analyzed lead @{leads[0].username}: "Frustrated with SEO results on Wix"</p>}
+                 <Card className="bg-black/90 font-mono text-[11px] p-6 h-[600px] overflow-auto border-red-500/20 shadow-inner custom-scrollbar relative">
+                    <div className="absolute top-0 right-0 p-2 opacity-20"><Youtube className="h-10 w-10 text-red-600" /></div>
+                    <div className="space-y-1.5">
+                      {logs.map((log, i) => (
+                        <p key={i} className={`${log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-emerald-400' : log.includes('🚀') ? 'text-blue-400 font-bold' : 'text-emerald-400/80'}`}>
+                          {log}
+                        </p>
+                      ))}
                       <div className="animate-pulse inline-block w-2 h-4 bg-emerald-500 ml-1 mt-2" />
                     </div>
                  </Card>

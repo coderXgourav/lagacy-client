@@ -197,6 +197,35 @@ export default function HrJobRequest() {
                             </div>
                         </div>
 
+                        <div className="space-y-4 pt-4 border-t border-border">
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="autoOutreach" className="text-base font-semibold text-foreground">Auto-send LinkedIn Connection Requests</Label>
+                                    <p className="text-sm text-muted-foreground">Automatically queue connection requests for every candidate found via Apify.</p>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="checkbox"
+                                        id="autoOutreach"
+                                        className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                        {...register("autoOutreach")}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="outreachMessage" className="text-foreground">Custom Outreach Message</Label>
+                                <Textarea
+                                    id="outreachMessage"
+                                    placeholder="Came across your profile—your experience stood out..."
+                                    className="min-h-[120px] focus:ring-indigo-500"
+                                    defaultValue={"Came across your profile—your experience stood out.\nWe’re building a high-performance team at Kyptronix LLP (AI, sales, and product roles), and I think you could be a strong fit.\nOpen to a quick chat to explore this?\n— HR Team, Kyptronix"}
+                                    {...register("outreachMessage")}
+                                />
+                                <p className="text-xs text-muted-foreground">Use <b>#firstName#</b> as a placeholder for the candidate's name.</p>
+                            </div>
+                        </div>
+
                         <div className="pt-4 flex justify-end">
                             <Button
                                 type="submit"
