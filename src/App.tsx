@@ -70,6 +70,8 @@ import LeadPipelineDashboard from "./pages/leadpipeline/LeadPipelineDashboard";
 import { SystemArchitectureLayout } from "./components/layout/SystemArchitectureLayout";
 import SystemArchitecturePage from "./pages/SystemArchitecturePage";
 import YoutubeAutomationPage from "./pages/YoutubeAutomationPage";
+import FacebookAutomationPage from "./pages/FacebookAutomationPage";
+import TwitterAutomationPage from "./pages/TwitterAutomationPage";
 
 const queryClient = new QueryClient();
 
@@ -168,6 +170,8 @@ const App = () => (
                 <Route index element={<SystemArchitecturePage />} />
               </Route>
               <Route path="/youtube-automation" element={<ProtectedRoute><YoutubeAutomationPage /></ProtectedRoute>} />
+              <Route path="/facebook-automation" element={<ProtectedRoute><FacebookAutomationPage /></ProtectedRoute>} />
+              <Route path="/twitter-automation" element={<ProtectedRoute><TwitterAutomationPage /></ProtectedRoute>} />
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

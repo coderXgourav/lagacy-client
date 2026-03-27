@@ -39,7 +39,9 @@ import {
   TrendingUp,
   Activity,
   Zap,
-  Youtube
+  Youtube,
+  Facebook,
+  Twitter
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -216,6 +218,24 @@ export default function OfferingsPage() {
       icon: Youtube,
       available: true,
       route: "/youtube-automation",
+      beta: true,
+    },
+    {
+      id: "facebook-automation",
+      title: "FACEBOOK LEAD AUTOMATION",
+      description: "n8n style autonomous 11-step lead engine for high-intent Facebook discovery.",
+      icon: Facebook,
+      available: true,
+      route: "/facebook-automation",
+      beta: true,
+    },
+    {
+      id: "twitter-automation",
+      title: "TWITTER LEAD AUTOMATION",
+      description: "n8n style autonomous 11-step lead engine for high-intent Twitter discovery.",
+      icon: Twitter,
+      available: true,
+      route: "/twitter-automation",
       beta: true,
     },
   ];
