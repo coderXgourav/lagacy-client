@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Activity, Users, FileText, Youtube, Search, CheckCircle2, ArrowRight } from "lucide-react";
+import { Play, Activity, Users, FileText, Youtube, Search, CheckCircle2, ArrowRight, Mail, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/system-role` : "http://localhost:8000/api/system-role";
@@ -19,6 +19,7 @@ export default function SystemRoleDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async (isRefresh = false) => {
@@ -67,6 +68,26 @@ export default function SystemRoleDashboard() {
       });
     } finally {
       setTriggering(false);
+    }
+  };
+
+  const handleSendEmailReport = async () => {
+    try {
+      setSendingEmail(true);
+      const res = await axios.post(`${API_BASE_URL}/send-email-report`);
+      toast({
+        title: "Email Sent Successfully",
+        description: res.data.message || "Your full content report has been delivered to pawankyptronix@gmail.com",
+      });
+    } catch (error: any) {
+      console.error("Error sending email", error);
+      toast({
+        title: "Email Failed",
+        description: error.response?.data?.error || "Could not send the email report. Check server logs.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -238,6 +259,20 @@ export default function SystemRoleDashboard() {
                       <p className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Outreach Angle</p>
                       <p className="text-sm">{prospect.outreachAngle}</p>
                     </div>
+                    <div className="pt-2">
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         className="w-full gap-2 border-red-500/20 hover:bg-red-500/10 text-red-600 font-semibold"
+                         onClick={() => {
+                           window.open(`mailto:${prospect.publicEmail}?subject=Regarding ${prospect.companyName}&body=${encodeURIComponent(prospect.outreachAngle)}`);
+                         }}
+                         disabled={!prospect.publicEmail}
+                       >
+                         <Mail className="w-4 h-4" /> 
+                         {prospect.publicEmail ? 'Contact via Gmail' : 'Email Not Found'}
+                       </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -253,10 +288,13 @@ export default function SystemRoleDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {data?.content?.map((c: any, i: number) => (
+                {data?.content?.slice().sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((c: any, i: number) => (
                   <div key={i} className="p-6 border border-primary/10 rounded-2xl space-y-5 bg-card shadow-sm">
-                    <div className="flex border-b border-border pb-3">
+                    <div className="flex border-b border-border pb-3 justify-between items-center">
                       <Badge variant="outline" className="font-mono text-xs text-muted-foreground">ID: {c.problemId}</Badge>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        Generated: {new Date(c.createdAt).toLocaleString()}
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -264,7 +302,7 @@ export default function SystemRoleDashboard() {
                         <div className="flex items-center gap-2 text-red-500 font-semibold mb-2">
                           <Youtube className="w-5 h-5" /> YouTube Hook
                         </div>
-                        {c.videoUrl && (
+                        {c.videoUrl ? (
                           <div className="mb-4 overflow-hidden rounded-xl border border-border shadow-inner bg-black group relative">
                             {c.videoUrl.includes('heygen.com') ? (
                               <div className="aspect-video flex flex-col items-center justify-center p-6 text-center space-y-4">
@@ -286,6 +324,64 @@ export default function SystemRoleDashboard() {
                               />
                             )}
                           </div>
+                        ) : (
+                          // NEW: D-ID / Generic Processing Placeholder
+                          // Only show placeholder if the content was created in the last 30 minutes
+                          (() => {
+                            const isRecent = c.createdAt && (new Date().getTime() - new Date(c.createdAt).getTime() < 12 * 60 * 60 * 1000);
+                            const didError = data?.logs?.find(l => l.step?.includes('Step 6') && l.status === 'Error');
+                            const isCreditError = didError?.details?.toLowerCase().includes('credit');
+
+                            if (isRecent) {
+                              return (
+                                <div className={`mb-4 overflow-hidden rounded-xl border border-dashed ${isCreditError ? 'border-primary/50 bg-primary/5' : 'border-primary/30 bg-primary/5'} group relative`}>
+                                   <div className="aspect-video flex flex-col items-center justify-center text-center space-y-4">
+                                      {isCreditError ? (
+                                        <div className="w-full h-full relative group">
+                                          <video 
+                                            src={`${API_BASE_URL.replace('/api/system-role', '')}/public/videos/strategic_replay.mp4`} 
+                                            controls 
+                                            autoPlay
+                                            muted
+                                            loop
+                                            className="w-full h-full object-cover rounded-xl shadow-2xl border-2 border-primary/20"
+                                          />
+                                          <div className="absolute top-4 left-4 bg-primary text-white px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                            Kyptronix Strategy Replay
+                                          </div>
+                                          <div className="absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter shadow-lg">
+                                            HIGH AUTHORITY
+                                          </div>
+                                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[95%] bg-black/80 backdrop-blur-xl text-white px-6 py-4 rounded-2xl text-[11px] leading-relaxed border border-white/10 shadow-3xl text-center">
+                                            <b className="text-yellow-400">Live Persona Sync paused (D-ID Credits).</b><br/> 
+                                            <span className="opacity-90 italic text-[10px]">Showing High-End Strategic Replay instead. Your unique marketing assets are 100% ready below!</span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <Play className="h-12 w-12 text-primary animate-pulse opacity-50" />
+                                          <div className="space-y-1">
+                                            <p className="text-sm font-bold uppercase tracking-widest text-primary">AI Video Processing...</p>
+                                            <p className="text-[10px] text-muted-foreground italic">Generating Souvik's Avatar Video via D-ID. This takes 2-5 minutes.</p>
+                                          </div>
+                                        </>
+                                      )}
+                                   </div>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="mb-4 overflow-hidden rounded-xl border border-border bg-muted/20 flex items-center justify-center aspect-video">
+                                  <div className="text-center p-6">
+                                    <Play className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                                    <p className="text-xs text-muted-foreground uppercase font-medium tracking-tighter">Video Expired / Not Generated</p>
+                                    <p className="text-[10px] text-muted-foreground/60 italic">Videos are only available for the latest runs.</p>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          })()
                         )}
                         <p className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-xl border border-border leading-relaxed">
                           {c.youtubeScript}
@@ -298,6 +394,35 @@ export default function SystemRoleDashboard() {
                         <p className="text-sm text-muted-foreground bg-blue-500/5 p-4 rounded-xl border border-blue-500/10 leading-relaxed">
                           {c.linkedinPost}
                         </p>
+                      </div>
+
+                      {/* Gmail Outreach Sequence - HIGHER PRIORITY */}
+                      <div className="space-y-4 pt-4 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-red-500 font-semibold">
+                            <Mail className="w-5 h-5" /> Gmail Outreach Sequence
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2 text-[10px] uppercase font-bold border-red-500/20 hover:bg-red-500/10 text-red-600" 
+                            onClick={handleSendEmailReport}
+                            disabled={sendingEmail}
+                          >
+                            {sendingEmail ? 'Sending...' : 'Connect & Send to Gmail'}
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {(c.emailSequence?.split('---') || ["Sequence generating...", "", ""]).map((email, idx) => (
+                            <div key={idx} className="text-[11px] text-muted-foreground bg-red-500/5 p-4 rounded-xl border border-red-500/10 min-h-[140px] whitespace-pre-line group relative">
+                              <span className="font-extrabold text-red-600 block mb-2 uppercase tracking-widest text-[9px]">Email #{idx + 1} Candidate</span>
+                              {email.trim() || "Drafting sequence..."}
+                              <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 h-6 w-6">
+                                <CheckCircle2 className="w-3 h-3 text-red-500" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
@@ -314,8 +439,8 @@ export default function SystemRoleDashboard() {
                          </Button>
                       </div>
                       <div 
-                        className="text-xs text-muted-foreground bg-muted/20 p-4 rounded-xl border border-border max-h-40 overflow-y-auto"
-                        dangerouslySetInnerHTML={{ __html: c.seoBlog.substring(0, 500) + "..." }}
+                        className="text-xs text-muted-foreground bg-muted/20 p-6 rounded-xl border border-border max-h-[500px] overflow-y-auto leading-relaxed space-y-3"
+                        dangerouslySetInnerHTML={{ __html: c.seoBlog.substring(0, 1500) + (c.seoBlog.length > 1500 ? "..." : "") }}
                       />
                     </div>
 
