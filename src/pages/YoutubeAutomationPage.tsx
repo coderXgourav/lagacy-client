@@ -23,7 +23,9 @@ import {
   Loader2,
   Filter,
   UserCheck,
-  Heart
+  Heart,
+  Send,
+  Copy
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -107,50 +109,23 @@ export default function YoutubeAutomationPage() {
 
     try {
       setLoading(true);
-      let endpoint = "";
+      let endpointSuffix = "";
       let payload = {};
 
       switch (pipeline.currentStep) {
         case 1:
-          endpoint = `/youtube-automation/pipeline/${pipeline._id}/filter`;
-          payload = { videos: [] }; 
+          endpointSuffix = "PIPELINE_FILTER";
           break;
-        case 2:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/validate-engagement`;
-          break;
-        case 3:
-          if (leads.length > 0) {
-            endpoint = `/youtube-automation/lead/${leads[0]._id}/pain-detection`;
-            payload = { comment: null };
-          }
-          break;
-        case 4:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/qualify`;
-          break;
-        case 5:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/identity`;
-          break;
-        case 6:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/enrich`;
-          break;
-        case 7:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/structure`;
-          break;
-        case 8:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/outreach`;
-          break;
-        case 9:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/personalize`;
-          break;
-        case 10:
-          if (leads.length > 0) endpoint = `/youtube-automation/lead/${leads[0]._id}/booking`;
-          break;
-        case 11:
-          if (leads.length > 0) {
-            endpoint = `/youtube-automation/lead/${leads[0]._id}/reply`;
-            payload = { replyText: "Interested, tell me more." };
-          }
-          break;
+        case 2: endpointSuffix = "validate-engagement"; break;
+        case 3: endpointSuffix = "pain-detection"; payload = { comment: null }; break;
+        case 4: endpointSuffix = "qualify"; break;
+        case 5: endpointSuffix = "identity"; break;
+        case 6: endpointSuffix = "enrich"; break;
+        case 7: endpointSuffix = "structure"; break;
+        case 8: endpointSuffix = "outreach"; break;
+        case 9: endpointSuffix = "personalize"; break;
+        case 10: endpointSuffix = "booking"; break;
+        case 11: endpointSuffix = "reply"; payload = { replyText: "Interested, tell me more." }; break;
         default:
           toast({ title: "Simulation Mode", description: `Executing Step ${pipeline.currentStep}: ${step.title}` });
           setPipeline({ ...pipeline, currentStep: pipeline.currentStep + 1 });
@@ -158,13 +133,37 @@ export default function YoutubeAutomationPage() {
           return;
       }
 
-      if (endpoint) {
-        const res = await axios.post(`${API_URL}${endpoint}`, payload, getHeaders());
-        toast({ title: `Step ${pipeline.currentStep} Success`, description: `Completed ${step.title}` });
-        loadPipeline();
+      if (endpointSuffix === "PIPELINE_FILTER") {
+        await axios.post(`${API_URL}/youtube-automation/pipeline/${pipeline._id}/filter`, { videos: [] }, getHeaders());
+      } else if (endpointSuffix && leads.length > 0) {
+        addLog(`🔄 Processing ${leads.length} leads for Step ${pipeline.currentStep}...`);
+        for (let i = 0; i < leads.length; i++) {
+          try {
+            await axios.post(`${API_URL}/youtube-automation/lead/${leads[i]._id}/${endpointSuffix}`, payload, getHeaders());
+            addLog(`✅ Processed [${i+1}/${leads.length}] @${leads[i].username}`);
+          } catch (e: any) {
+            addLog(`❌ Failed [${i+1}/${leads.length}] @${leads[i].username}: ${e.message}`);
+          }
+        }
       }
+
+      toast({ title: `Step ${pipeline.currentStep} Success`, description: `Processed ${leads.length} leads for ${step.title}` });
+      loadPipeline();
     } catch (err: any) {
       toast({ title: "Execution Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAutoReply = async (leadId: string) => {
+    try {
+      setLoading(true);
+      await axios.post(`${API_URL}/youtube-automation/lead/${leadId}/reply`, {}, getHeaders());
+      toast({ title: "Success", description: "Automated YouTube reply posted natively!" });
+      loadPipeline();
+    } catch (err: any) {
+      toast({ title: "Auto-Post Failed", description: err.response?.data?.message || err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -399,6 +398,64 @@ export default function YoutubeAutomationPage() {
                                 <div className="mt-3 p-2 bg-emerald-500/5 border border-emerald-500/10 rounded-lg flex flex-wrap gap-3">
                                   {lead.contact.email && <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400"><Mail className="h-3 w-3" /> {lead.contact.email}</div>}
                                   {lead.contact.phone && lead.contact.phone !== 'N/A' && <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400"><Activity className="h-3 w-3" /> {lead.contact.phone}</div>}
+                                </div>
+                              )}
+                              
+                              {lead.outreach && (lead.outreach.finalMessage || lead.outreach.emailBody) && (
+                                <div className="mt-2 bg-red-500/5 rounded-lg p-3 border border-red-500/20 group/reply relative">
+                                  <div className="flex items-center justify-between gap-1 mb-1.5 flex-wrap">
+                                    <div className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase">
+                                      <Send className="h-2.5 w-2.5" /> AI-Generated Reply
+                                    </div>
+                                    {lead.reply_posted ? (
+                                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/20 text-[8px] uppercase">
+                                        Posted Automatically ✅
+                                      </Badge>
+                                    ) : (
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline" 
+                                          className="h-6 text-[9px] px-2 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border-red-500/30 font-bold uppercase tracking-widest transition-all"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(lead.outreach.finalMessage || lead.outreach.emailBody || "");
+                                            toast({ title: "Manual Fallback: Copied!", description: "Opening YouTube tab..." });
+                                            window.open(lead.comment_id ? `https://www.youtube.com/watch?v=${lead.video_id}&lc=${lead.comment_id}` : `https://youtube.com/watch?v=${lead.video_id}`, "_blank");
+                                          }}
+                                        >
+                                          <Copy className="h-3 w-3 mr-1" /> Manual
+                                        </Button>
+                                        <Button 
+                                          size="sm" 
+                                          className="h-6 text-[9px] px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20"
+                                          disabled={loading}
+                                          onClick={() => handleAutoReply(lead._id)}
+                                        >
+                                          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3 mr-1" />}
+                                          Auto-Post Reply
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-red-200 font-medium leading-relaxed">
+                                    {lead.outreach.finalMessage || lead.outreach.emailBody}
+                                  </p>
+                                  {lead.outreach.cta && (
+                                    <p className="text-[9px] text-red-400/70 mt-1 italic">CTA: {lead.outreach.cta}</p>
+                                  )}
+                                </div>
+                              )}
+
+                              {lead.reply && lead.reply.nextAction && (
+                                <div className="mt-2 bg-emerald-500/5 rounded-lg p-3 border border-emerald-500/20">
+                                  <div className="flex items-center gap-1 text-[8px] font-black text-emerald-400 uppercase mb-1.5">
+                                    <MessageSquare className="h-2.5 w-2.5" /> Reply Intelligence
+                                  </div>
+                                  <div className="flex gap-2 mb-1">
+                                    <Badge className="text-[7px] bg-emerald-500/20 text-emerald-400 border-emerald-500/30">{lead.reply.sentiment}</Badge>
+                                    <Badge className="text-[7px] bg-slate-500/20 text-slate-300 border-slate-500/30">{lead.reply.category}</Badge>
+                                  </div>
+                                  <p className="text-[10px] text-emerald-200/80">Next: {lead.reply.nextAction}</p>
                                 </div>
                               )}
                             </div>

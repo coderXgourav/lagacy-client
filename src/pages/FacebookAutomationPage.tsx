@@ -21,7 +21,10 @@ import {
   Loader2,
   Filter,
   UserCheck,
-  Heart
+  Heart,
+  Database,
+  Send,
+  Copy
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -137,6 +140,23 @@ export default function FacebookAutomationPage() {
     finally { setLoading(false); }
   };
 
+  const handleManualAdd = async (manualText: string) => {
+    if (!pipeline) return;
+    try {
+      setLoading(true);
+      addLog(`📥 Manually injecting lead: "${manualText.substring(0, 30)}..."`);
+      const res = await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/fetch-apify`, { 
+        query: manualText,
+        isManual: true 
+      }, getHeaders());
+      addLog(`✅ Lead injected successfully!`);
+      loadPipeline();
+      toast({ title: "Lead Injected", description: "AI is now analyzing your manual lead." });
+    } catch (err: any) {
+      addLog(`❌ Injection Failed: ${err.message}`);
+    } finally { setLoading(false); }
+  };
+
   const syncApify = async () => {
     if (!pipeline) return;
     try {
@@ -162,28 +182,35 @@ export default function FacebookAutomationPage() {
 
     try {
       setLoading(true);
-      let endpoint = "";
+      let endpointSuffix = "";
       let payload = {};
 
       switch (pipeline.currentStep) {
         case 1:
-          endpoint = `/facebook-automation/pipeline/${pipeline._id}/filter`; // Mocked for now to advance
+          await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/filter`, {}, getHeaders());
           break;
         default:
-          if (leads.length > 0) {
-            const map: any = {
-                2: 'validate-engagement', 3: 'pain-detection', 4: 'qualify', 5: 'identity', 
-                6: 'enrich', 7: 'structure', 8: 'outreach', 9: 'personalize', 10: 'booking', 11: 'reply'
-            };
-            endpoint = `/facebook-automation/lead/${leads[0]._id}/${map[pipeline.currentStep]}`;
-          }
+          const map: any = {
+              2: 'validate-engagement', 3: 'pain-detection', 4: 'qualify', 5: 'identity', 
+              6: 'enrich', 7: 'structure', 8: 'outreach', 9: 'personalize', 10: 'booking', 11: 'reply'
+          };
+          endpointSuffix = map[pipeline.currentStep];
       }
 
-      if (endpoint) {
-        await axios.post(`${API_URL}${endpoint}`, payload, getHeaders());
-        toast({ title: `Step ${pipeline.currentStep} Success` });
-        loadPipeline();
+      if (endpointSuffix && leads.length > 0) {
+        addLog(`🔄 Processing ${leads.length} leads for Step ${pipeline.currentStep}...`);
+        for (let i = 0; i < leads.length; i++) {
+          try {
+            await axios.post(`${API_URL}/facebook-automation/lead/${leads[i]._id}/${endpointSuffix}`, payload, getHeaders());
+            addLog(`✅ Processed [${i+1}/${leads.length}] @${leads[i].username}`);
+          } catch (e: any) {
+            addLog(`❌ Failed [${i+1}/${leads.length}] @${leads[i].username}: ${e.message}`);
+          }
+        }
       }
+
+      toast({ title: `Step ${pipeline.currentStep} Success` });
+      loadPipeline();
     } catch (err: any) {
       toast({ title: "Execution Failed", description: err.message, variant: "destructive" });
     } finally {
@@ -279,10 +306,27 @@ export default function FacebookAutomationPage() {
                     </div>
                     <div className="p-4 bg-white/5 rounded-lg italic text-sm text-muted-foreground italic">"{currentStepData.prompt}"</div>
                 </div>
-                <Button onClick={runStep} disabled={loading} size="lg" className="h-20 px-12 text-xl font-black uppercase bg-blue-600 hover:bg-blue-700 shadow-2xl min-w-[280px]">
-                    {loading ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2 fill-current" />}
-                    Execute Step {pipeline.currentStep}
-                </Button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <Input 
+                      placeholder="Paste facebook comment here to manually inject..."
+                      className="h-14 bg-black/40 border-blue-500/20 text-lg rounded-xl focus:ring-2 focus:ring-blue-500/20 text-white placeholder:text-white/20"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Button 
+                        onClick={() => handleManualAdd(searchQuery)} 
+                        disabled={loading || !searchQuery}
+                        className="h-14 px-6 bg-slate-900 border border-blue-500/30 text-blue-400 hover:bg-slate-800 font-bold uppercase tracking-widest rounded-xl whitespace-nowrap"
+                    >
+                      <Zap className="mr-2 h-4 w-4" /> Inject Lead
+                    </Button>
+                  </div>
+                  <Button onClick={runStep} disabled={loading} size="lg" className="h-20 px-12 text-xl font-black uppercase bg-blue-600 hover:bg-blue-700 shadow-2xl w-full">
+                      {loading ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2 fill-current" />}
+                      Execute Step {pipeline.currentStep}
+                  </Button>
+                </div>
            </Card>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -395,9 +439,23 @@ export default function FacebookAutomationPage() {
                               )}
 
                               {lead.outreach && (lead.outreach.finalMessage || lead.outreach.emailBody) && (
-                                <div className="mt-2 bg-blue-500/5 rounded-lg p-3 border border-blue-500/20">
-                                  <div className="flex items-center gap-1 text-[8px] font-black text-blue-400 uppercase mb-1.5">
-                                    <Send className="h-2.5 w-2.5" /> AI-Generated Facebook DM
+                                <div className="mt-2 bg-blue-500/5 rounded-lg p-3 border border-blue-500/20 group/reply relative">
+                                  <div className="flex items-center justify-between gap-1 mb-1.5 flex-wrap">
+                                    <div className="flex items-center gap-1 text-[8px] font-black text-blue-400 uppercase">
+                                      <Send className="h-2.5 w-2.5" /> AI-Generated Facebook DM
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="h-6 text-[9px] px-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-500/30 font-bold uppercase tracking-widest transition-all"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(lead.outreach.finalMessage || lead.outreach.emailBody || "");
+                                        toast({ title: "Reply copied to clipboard!", description: "Paste it on Facebook." });
+                                        window.open(lead.post_url ? lead.post_url : "#", "_blank");
+                                      }}
+                                    >
+                                      <Copy className="h-3 w-3 mr-1" /> Copy & Reply
+                                    </Button>
                                   </div>
                                   <p className="text-[11px] text-blue-200 font-medium leading-relaxed">
                                     {lead.outreach.finalMessage || lead.outreach.emailBody}
