@@ -53,7 +53,6 @@ const keywordPresets = [
 ];
 
 export default function FacebookAutomationPage() {
-  console.log("Copy Icon defined:", !!CopyIcon);
   const [pipeline, setPipeline] = useState<any>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,7 +63,8 @@ export default function FacebookAutomationPage() {
   const [settingsForm, setSettingsForm] = useState({
     facebookPageId: "",
     metaAccessToken: "",
-    facebookPageAccessToken: ""
+    facebookPageAccessToken: "",
+    facebookCookie: ""
   });
   const [logs, setLogs] = useState<string[]>(["[SYSTEM] Facebook Engine Standby...", "[READY] Meta Discovery Framework v1.0"]);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -86,7 +86,8 @@ export default function FacebookAutomationPage() {
         setSettingsForm({
           facebookPageId: res.data.data.pipeline.facebookPageId || "",
           metaAccessToken: res.data.data.pipeline.metaAccessToken || "",
-          facebookPageAccessToken: res.data.data.pipeline.facebookPageAccessToken || ""
+          facebookPageAccessToken: res.data.data.pipeline.facebookPageAccessToken || "",
+          facebookCookie: res.data.data.pipeline.facebookCookie || ""
         });
       }
     } catch (err) { console.error(err); }
@@ -162,13 +163,22 @@ export default function FacebookAutomationPage() {
           6: 'enrich', 7: 'structure', 8: 'outreach', 9: 'personalize', 10: 'booking', 11: 'reply'
       };
       const endpointSuffix = map[pipeline.currentStep];
+      // Updated validation: Ignore blockage if session cookie is active OR if they are simulation leads
+      if (endpointSuffix === 'reply' && !pipeline.facebookCookie && leads.some(l => !l.comment_id?.startsWith('sim-') && l.post_url?.includes('groups') && l.groupJoinStatus !== 'joined')) {
+        addLog(`⚠️ Cannot Execute: Some REAL leads still need group membership. Please join groups first (or use a Session Cookie).`);
+        toast({ title: "Wait!", description: "You must join groups for real leads before AI can post, or connect a Session Cookie in settings.", variant: "destructive" });
+        return;
+      }
       if (endpointSuffix && leads.length > 0) {
         addLog(`🔄 Processing ${leads.length} leads for Step ${pipeline.currentStep}...`);
         for (let i = 0; i < leads.length; i++) {
           try {
             await axios.post(`${API_URL}/facebook-automation/lead/${leads[i]._id}/${endpointSuffix}`, {}, getHeaders());
             addLog(`✅ Processed [${i+1}/${leads.length}] @${leads[i].username}`);
-          } catch (e: any) { addLog(`❌ Failed @${leads[i].username}: ${e.message}`); }
+          } catch (e: any) { 
+            const msg = e.response?.data?.message || e.message;
+            addLog(`❌ Failed @${leads[i].username}: ${msg}`); 
+          }
         }
       }
       toast({ title: `Step ${pipeline.currentStep} Success` });
@@ -193,11 +203,35 @@ export default function FacebookAutomationPage() {
     } finally { setLoading(false); }
   };
 
+  const handleAutoJoin = async (leadId: string, url: string) => {
+    try {
+      addLog(`🤖 Launching REAL browser to join group: ${url}`);
+      setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'pending' } : l));
+      toast({ title: "🤖 Browser Launching...", description: "Puppeteer is navigating to Facebook and clicking Join Group..." });
+      
+      const res = await axios.post(`${API_URL}/facebook-automation/lead/${leadId}/auto-join`, {}, getHeaders());
+      if (res.data.success) {
+        const status = res.data.data?.groupJoinStatus || 'pending';
+        setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: status } : l));
+        addLog(`✅ ${res.data.message || 'Join request sent successfully!'}`);
+        toast({ title: "✅ Group Join Success!", description: res.data.message || "Check Facebook to verify." });
+        loadPipeline();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message;
+      addLog(`❌ Auto-Join Failed: ${msg}`);
+      setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'required' } : l));
+      toast({ title: "Auto-Join Failed", description: msg, variant: "destructive" });
+    }
+  };
+
   const handleJoinAction = async (leadId: string, url: string) => {
     window.open(url, '_blank');
+    addLog(`🌐 Opening Facebook Group: ${url}`);
     setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'pending' } : l));
     try {
       await axios.post(`${API_URL}/facebook-automation/lead/${leadId}/update-join-status`, { status: 'pending' }, getHeaders());
+      addLog(`🕒 Lead status updated to PENDING.`);
       loadPipeline();
     } catch (err) { 
       console.error(err);
@@ -231,7 +265,8 @@ export default function FacebookAutomationPage() {
       <Card className="max-w-4xl mx-auto border-blue-500/20 shadow-2xl overflow-hidden bg-card">
         <CardHeader className="bg-blue-500/5 border-b border-blue-500/10 flex flex-row items-center justify-between">
           <CardTitle className="text-2xl font-black uppercase tracking-tighter">⚙️ MASTER CONTROL PROMPT</CardTitle>
-          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
+            {pipeline?.facebookCookie && <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/30 text-[10px]"><Zap className="h-3 w-3 mr-1" /> SESSION ACTIVE (li_at style)</Badge>}
             <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)} className="text-blue-400 hover:text-blue-300 gap-2">
                 <Settings2 className="h-4 w-4" /> META API SETTINGS
             </Button>
@@ -313,44 +348,74 @@ export default function FacebookAutomationPage() {
                                       {lead.groupJoinStatus === 'required' && <Badge variant="destructive" className="text-[8px] font-black animate-pulse uppercase"><AlertTriangle className="h-2 w-2 mr-1" /> Manual Join Needed</Badge>}
                                       {lead.groupJoinStatus === 'pending' && <Badge className="text-[8px] font-black bg-orange-500/20 text-orange-400 uppercase">Approval Pending</Badge>}
                                       {lead.groupJoinStatus === 'joined' && <Badge className="text-[8px] font-black bg-green-500/20 text-green-400 uppercase">Group Joined ✅</Badge>}
+                                      {pipeline?.facebookCookie && <Badge variant="outline" className="text-[8px] font-black text-blue-400 border-blue-500/20 uppercase tracking-tighter">Session Linked</Badge>}
                                       <Button variant="link" size="sm" className="h-4 p-0 text-[10px] font-bold text-blue-400" onClick={() => window.open(lead.post_url, '_blank')}>VIEW ON FACEBOOK ↗</Button>
                                    </div>
                                 </div>
 
                                <div className="pt-4 border-t border-white/5 space-y-3">
-                                 {lead.post_url?.includes('groups') && (lead.groupJoinStatus === 'required' || lead.groupJoinStatus === 'pending') && !lead.reply_posted ? (
+                                 {(lead.groupJoinStatus === 'required' || lead.groupJoinStatus === 'pending') && !lead.reply_posted ? (
                                     <div className="bg-slate-800/50 border border-blue-500/20 rounded-xl p-4 space-y-3">
                                         <p className="text-[10px] font-black text-blue-400 uppercase text-center tracking-widest">Step 1: Join This Group First</p>
                                         {lead.groupJoinStatus === 'pending' ? (
-                                          <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-center space-y-3">
-                                            <div className="space-y-1">
-                                              <p className="text-orange-400 font-bold text-sm">Your membership is pending</p>
-                                              <p className="text-orange-400/70 text-[10px]">You'll be notified if your request to join has been approved.</p>
+                                          <div className="bg-slate-800/80 border border-orange-500/20 rounded-xl p-4 text-center space-y-4 shadow-inner">
+                                            <div className="flex flex-col items-center gap-1">
+                                              <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center mb-1">
+                                                <Users className="h-5 w-5 text-orange-500 animate-pulse" />
+                                              </div>
+                                              <p className="text-orange-400 font-black text-sm uppercase tracking-tight">
+                                                {pipeline?.facebookCookie ? "AI JOIN REQUEST SENT" : "Your membership is pending"}
+                                              </p>
+                                              <p className="text-muted-foreground text-[10px] px-4">
+                                                {pipeline?.facebookCookie 
+                                                  ? "The AI used your session cookie to send a join request automatically. Waiting for admin approval." 
+                                                  : "You'll be notified if your request to join has been approved by the Group Admin."}
+                                              </p>
                                             </div>
-                                            <div className="flex gap-2">
-                                              <Button variant="outline" onClick={() => window.open(lead.post_url, '_blank')} className="flex-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 text-[10px] font-bold h-9">
-                                                <Users className="mr-1 h-3 w-3" /> Re-open Group
+                                            
+                                            <div className="grid grid-cols-2 gap-3">
+                                              <Button 
+                                                variant="outline"
+                                                onClick={async () => {
+                                                  try {
+                                                    await axios.post(`${API_URL}/facebook-automation/lead/${lead._id}/update-join-status`, { status: 'required' }, getHeaders());
+                                                    loadPipeline();
+                                                    toast({ title: "Request Cancelled", description: "Status reset to Required." });
+                                                  } catch (err) { console.error(err); }
+                                                }}
+                                                className="border-white/10 text-white hover:bg-white/5 text-[11px] font-bold h-10 tracking-tight"
+                                              >
+                                                Cancel Request
                                               </Button>
-                                              <Button variant="outline" onClick={() => handleJoinSuccess(lead._id)} className="flex-1 border-green-500/50 text-green-400 hover:bg-green-500/10 text-[10px] font-bold h-9">
-                                                <CheckCircle2 className="mr-1 h-3 w-3" /> Confirm Joined
+                                              <Button 
+                                                onClick={() => handleJoinSuccess(lead._id)}
+                                                className="bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold h-10 shadow-lg"
+                                              >
+                                                <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm Joined
                                               </Button>
                                             </div>
-                                            <Button variant="ghost" size="sm" onClick={async () => {
-                                                try {
-                                                  await axios.post(`${API_URL}/facebook-automation/lead/${lead._id}/update-join-status`, { status: 'required' }, getHeaders());
-                                                  loadPipeline();
-                                                } catch (err) { console.error(err); }
-                                              }}
-                                              className="text-[9px] text-muted-foreground hover:text-white underline"
+                                            <Button 
+                                                variant="link" 
+                                                onClick={() => window.open(lead.post_url, '_blank')}
+                                                className="text-[10px] text-blue-400 font-bold uppercase tracking-widest hover:text-blue-300"
                                             >
-                                              Wait, I haven't requested yet (Reset)
+                                              Re-verify on Facebook ↗
                                             </Button>
                                           </div>
                                         ) : (
                                           <div className="flex gap-2">
-                                            <Button onClick={() => handleJoinAction(lead._id, lead.post_url)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs font-bold">
-                                              <Users className="mr-2 h-4 w-4" /> Request Join ↗
-                                            </Button>
+                                            {pipeline?.facebookCookie ? (
+                                              <Button 
+                                                onClick={() => handleAutoJoin(lead._id, lead.post_url)} 
+                                                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-xs font-black shadow-lg animate-pulse"
+                                              >
+                                                <Sparkles className="mr-2 h-4 w-4" /> ✨ AUTO-SEND JOIN REQUEST
+                                              </Button>
+                                            ) : (
+                                              <Button onClick={() => handleJoinAction(lead._id, lead.post_url)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs font-bold">
+                                                <Users className="mr-2 h-4 w-4" /> Request Join ↗
+                                              </Button>
+                                            )}
                                             <Button variant="outline" onClick={() => handleJoinSuccess(lead._id)} className="flex-1 border-green-500/50 text-green-400 hover:bg-green-500/10 text-xs font-bold">
                                               <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm Joined
                                             </Button>
@@ -437,6 +502,15 @@ export default function FacebookAutomationPage() {
                             Page Access Token <span className="text-blue-400 font-normal normal-case italic">(For Page Posting)</span>
                         </label>
                         <Input type="password" value={settingsForm.facebookPageAccessToken} onChange={e => setSettingsForm({...settingsForm, facebookPageAccessToken: e.target.value})} className="bg-black/50 border-white/10" placeholder="EAANBG..." />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase flex justify-between">
+                            Facebook Session Cookie <span className="text-emerald-400 font-normal normal-case italic">(For Auto-Join Groups)</span>
+                        </label>
+                        <Input type="password" value={settingsForm.facebookCookie} onChange={e => setSettingsForm({...settingsForm, facebookCookie: e.target.value})} className="bg-black/50 border-white/10" placeholder="c_user=123456789; xs=abc123..." />
+                        <p className="text-[9px] text-yellow-400/70 italic">
+                          ⚠️ Format: c_user=YOUR_FACEBOOK_ID; xs=YOUR_XS_VALUE — Get both from Chrome DevTools → Application → Cookies → facebook.com
+                        </p>
                     </div>
                     <div className="pt-4 flex gap-3">
                         <Button onClick={() => setShowSettings(false)} variant="ghost" className="flex-1">Cancel</Button>
