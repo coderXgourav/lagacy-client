@@ -41,7 +41,8 @@ import {
   Zap,
   Youtube,
   Facebook,
-  Twitter
+  Twitter,
+  FileSpreadsheet
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -237,6 +238,14 @@ export default function OfferingsPage() {
       available: true,
       route: "/twitter-automation",
       beta: true,
+    },
+    {
+      id: "json-converter",
+      title: "JSON to Excel/CSV Pro",
+      description: "Instantly convert raw JSON data or API responses into professional spreadsheets.",
+      icon: FileSpreadsheet,
+      available: true,
+      route: "/json-converter",
     },
   ];
 

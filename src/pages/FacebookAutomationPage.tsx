@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Facebook, 
-  Search, 
   Users, 
   Mail, 
   MessageSquare, 
@@ -22,13 +21,14 @@ import {
   Filter,
   UserCheck,
   Heart,
-  Database,
-  Send,
-  Copy
+  AlertTriangle,
+  Settings2,
+  Key,
+  Copy as CopyIcon
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const fbStepData = [
   { step: 1, title: "POST RELEVANCE FILTER", icon: Filter, color: "text-blue-500", bg: "bg-blue-500/10", prompt: "Filter Facebook posts relevant to business struggles." },
@@ -45,64 +45,29 @@ const fbStepData = [
 ];
 
 const keywordPresets = [
-  { 
-    id: "website", 
-    label: "Website Problems", 
-    keywords: ["website redesign needed", "website developer needed", "need a website developer", "website redesign help", "website looks outdated", "slow website problem", "website not converting", "website loading too slow", "shopify developer needed", "wordpress developer needed", "need ecommerce website", "website UX problems", "website design agency recommendation", "website revamp cost", "website optimization help"]
-  },
-  { 
-    id: "leads", 
-    label: "Lead Generation", 
-    keywords: ["need more leads", "lead generation help", "how to generate B2B leads", "lead generation agency", "struggling to get leads", "not getting clients online", "how to get customers online", "local business marketing help", "how to generate leads for my business", "sales pipeline empty", "need appointment setting"]
-  },
-  { 
-    id: "marketing", 
-    label: "Marketing Problems", 
-    keywords: ["facebook ads not working", "google ads not converting", "ads expensive no results", "marketing agency recommendation", "paid ads ROI problem", "how to improve ad conversion", "instagram ads not working", "meta ads expensive", "customer acquisition cost too high", "ads wasting money"]
-  },
-  { 
-    id: "automation", 
-    label: "Automation Problems", 
-    keywords: ["business automation tools", "how to automate business processes", "crm automation help", "workflow automation", "zapier alternative", "make.com automation", "n8n automation help", "automate lead follow up", "automate marketing workflow", "AI automation for business"]
-  },
-  { 
-    id: "crm", 
-    label: "CRM Problems", 
-    keywords: ["crm recommendation for small business", "crm implementation help", "crm integration help", "crm setup cost", "crm automation problems", "hubspot integration help", "salesforce integration help", "crm migration help"]
-  },
-  { 
-    id: "ecommerce", 
-    label: "E-commerce Problems", 
-    keywords: ["shopify store not converting", "ecommerce conversion problems", "shopify developer needed urgently", "woocommerce developer help", "abandoned cart high", "how to increase ecommerce conversion", "product page not converting"]
-  },
-  { 
-    id: "branding", 
-    label: "Founder Personal Branding", 
-    keywords: ["personal branding for founders", "linkedin growth help", "how to grow linkedin audience", "linkedin content strategy", "personal branding agency", "build founder brand online"]
-  },
-  { 
-    id: "growth", 
-    label: "Startup Growth Problems", 
-    keywords: ["startup marketing strategy", "startup growth help", "startup lead generation", "startup go to market strategy", "b2b saas growth strategy", "startup struggling with traction"]
-  },
-  { 
-    id: "realestate", 
-    label: "Real Estate / Local Business", 
-    keywords: ["real estate lead generation", "real estate website developer", "property portal development", "crm for real estate", "real estate marketing automation"]
-  },
-  { 
-    id: "emergency", 
-    label: "Emergency Signals", 
-    keywords: ["agency recommendation urgently", "looking for marketing agency", "need developer urgently", "need automation consultant", "hire growth consultant", "looking for web development agency", "need help scaling business"]
-  }
+  { id: "website", label: "Website Problems" },
+  { id: "leads", label: "Lead Generation" },
+  { id: "marketing", label: "Marketing Problems" },
+  { id: "automation", label: "Automation Problems" },
+  { id: "ecommerce", label: "E-commerce Problems" }
 ];
 
 export default function FacebookAutomationPage() {
+  console.log("Copy Icon defined:", !!CopyIcon);
   const [pipeline, setPipeline] = useState<any>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [discoveryQuery, setDiscoveryQuery] = useState("");
+  const [manualLeadText, setManualLeadText] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    facebookPageId: "",
+    metaAccessToken: "",
+    facebookPageAccessToken: ""
+  });
   const [logs, setLogs] = useState<string[]>(["[SYSTEM] Facebook Engine Standby...", "[READY] Meta Discovery Framework v1.0"]);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   const addLog = (msg: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -118,18 +83,33 @@ export default function FacebookAutomationPage() {
       if (res.data.data) {
         setPipeline(res.data.data.pipeline);
         setLeads(res.data.data.leads || []);
+        setSettingsForm({
+          facebookPageId: res.data.data.pipeline.facebookPageId || "",
+          metaAccessToken: res.data.data.pipeline.metaAccessToken || "",
+          facebookPageAccessToken: res.data.data.pipeline.facebookPageAccessToken || ""
+        });
       }
     } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setIsRefreshing(false); }
   };
 
-  useEffect(() => { loadPipeline(); }, []);
+  useEffect(() => { 
+    loadPipeline(); 
+    const interval = setInterval(() => {
+       if (leads.some(l => !l.outreach?.finalMessage && !l.outreach?.emailBody)) {
+          loadPipeline();
+       }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [leads.length]);
+
+  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
 
   const handleLaunch = async () => {
     try {
       setLoading(true);
-      addLog(`🚀 Launching Facebook Discovery for: "${searchQuery}"`);
-      const res = await axios.post(`${API_URL}/facebook-automation/initialize`, { query: searchQuery }, getHeaders());
+      addLog(`🚀 Launching Facebook Discovery for: "${discoveryQuery}"`);
+      const res = await axios.post(`${API_URL}/facebook-automation/initialize`, { query: discoveryQuery }, getHeaders());
       setPipeline(res.data.data);
       setLeads([]);
       addLog(`✅ Facebook Pipeline initialized.`);
@@ -145,16 +125,13 @@ export default function FacebookAutomationPage() {
     try {
       setLoading(true);
       addLog(`📥 Manually injecting lead: "${manualText.substring(0, 30)}..."`);
-      const res = await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/fetch-apify`, { 
-        query: manualText,
-        isManual: true 
-      }, getHeaders());
+      await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/fetch-apify`, { query: manualText, isManual: true }, getHeaders());
       addLog(`✅ Lead injected successfully!`);
+      setManualLeadText("");
       loadPipeline();
       toast({ title: "Lead Injected", description: "AI is now analyzing your manual lead." });
-    } catch (err: any) {
-      addLog(`❌ Injection Failed: ${err.message}`);
-    } finally { setLoading(false); }
+    } catch (err: any) { addLog(`❌ Injection Failed: ${err.message}`); } 
+    finally { setLoading(false); }
   };
 
   const syncApify = async () => {
@@ -162,63 +139,85 @@ export default function FacebookAutomationPage() {
     try {
       setLoading(true);
       addLog(`🌐 Connecting to Apify Facebook Scraper...`);
-      const res = await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/fetch-apify`, { query: searchQuery }, getHeaders());
-      const newLeads = res.data.data;
-      addLog(`🎯 Captured ${newLeads.length} Facebook leads.`);
+      const res = await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/fetch-apify`, { query: discoveryQuery }, getHeaders());
+      addLog(`🎯 Captured ${res.data.data.length} Facebook leads.`);
       loadPipeline();
-      toast({ title: "Apify Sync Complete", description: `Captured ${newLeads.length} leads.` });
+      toast({ title: "Apify Sync Complete" });
     } catch (err: any) {
       addLog(`❌ Sync Failed: ${err.message}`);
       toast({ title: "Sync Failed", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const runStep = async () => {
     if (!pipeline) return;
-    const currentStepIndex = pipeline.currentStep - 1;
-    const step = fbStepData[currentStepIndex];
-
+    if (manualLeadText) {
+      await handleManualAdd(manualLeadText);
+      return;
+    }
     try {
       setLoading(true);
-      let endpointSuffix = "";
-      let payload = {};
-
-      switch (pipeline.currentStep) {
-        case 1:
-          await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/filter`, {}, getHeaders());
-          break;
-        default:
-          const map: any = {
-              2: 'validate-engagement', 3: 'pain-detection', 4: 'qualify', 5: 'identity', 
-              6: 'enrich', 7: 'structure', 8: 'outreach', 9: 'personalize', 10: 'booking', 11: 'reply'
-          };
-          endpointSuffix = map[pipeline.currentStep];
-      }
-
+      const map: any = {
+          2: 'validate-engagement', 3: 'pain-detection', 4: 'qualify', 5: 'identity', 
+          6: 'enrich', 7: 'structure', 8: 'outreach', 9: 'personalize', 10: 'booking', 11: 'reply'
+      };
+      const endpointSuffix = map[pipeline.currentStep];
       if (endpointSuffix && leads.length > 0) {
         addLog(`🔄 Processing ${leads.length} leads for Step ${pipeline.currentStep}...`);
         for (let i = 0; i < leads.length; i++) {
           try {
-            await axios.post(`${API_URL}/facebook-automation/lead/${leads[i]._id}/${endpointSuffix}`, payload, getHeaders());
+            await axios.post(`${API_URL}/facebook-automation/lead/${leads[i]._id}/${endpointSuffix}`, {}, getHeaders());
             addLog(`✅ Processed [${i+1}/${leads.length}] @${leads[i].username}`);
-          } catch (e: any) {
-            addLog(`❌ Failed [${i+1}/${leads.length}] @${leads[i].username}: ${e.message}`);
-          }
+          } catch (e: any) { addLog(`❌ Failed @${leads[i].username}: ${e.message}`); }
         }
       }
-
       toast({ title: `Step ${pipeline.currentStep} Success` });
       loadPipeline();
+    } catch (err: any) { 
+        const msg = err.response?.data?.message || err.message;
+        toast({ title: "Execution Failed", description: msg, variant: "destructive" }); 
+    } 
+    finally { setLoading(false); }
+  };
+
+  const handleUpdateSettings = async () => {
+    if (!pipeline) return;
+    try {
+      setLoading(true);
+      await axios.post(`${API_URL}/facebook-automation/pipeline/${pipeline._id}/update-tokens`, settingsForm, getHeaders());
+      toast({ title: "Settings Updated", description: "Meta Cloud tokens saved successfully." });
+      setShowSettings(false);
+      loadPipeline();
     } catch (err: any) {
-      toast({ title: "Execution Failed", description: err.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
+      toast({ title: "Update Failed", description: err.response?.data?.message || err.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
+  const handleJoinAction = async (leadId: string, url: string) => {
+    window.open(url, '_blank');
+    setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'pending' } : l));
+    try {
+      await axios.post(`${API_URL}/facebook-automation/lead/${leadId}/update-join-status`, { status: 'pending' }, getHeaders());
+      loadPipeline();
+    } catch (err) { 
+      console.error(err);
+      setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'required' } : l));
     }
   };
 
-  const currentStepData = fbStepData[pipeline?.currentStep - 1] || fbStepData[0];
+  const handleJoinSuccess = async (leadId: string) => {
+    setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'joined' } : l));
+    try {
+      await axios.post(`${API_URL}/facebook-automation/lead/${leadId}/update-join-status`, { status: 'joined' }, getHeaders());
+      toast({ title: "✅ Group Joined!", description: "You can now post the AI comment to this group." });
+      addLog(`✅ Group join confirmed for lead ${leadId}. Commenting enabled.`);
+      loadPipeline();
+    } catch (err) { 
+      console.error(err); 
+      setLeads(prev => prev.map(l => l._id === leadId ? { ...l, groupJoinStatus: 'required' } : l));
+      toast({ title: "Update Failed", description: "Could not update join status.", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-12 animate-fade-in pb-20">
@@ -230,52 +229,32 @@ export default function FacebookAutomationPage() {
       </div>
 
       <Card className="max-w-4xl mx-auto border-blue-500/20 shadow-2xl overflow-hidden bg-card">
-        <CardHeader className="bg-blue-500/5 border-b border-blue-500/10">
+        <CardHeader className="bg-blue-500/5 border-b border-blue-500/10 flex flex-row items-center justify-between">
           <CardTitle className="text-2xl font-black uppercase tracking-tighter">⚙️ MASTER CONTROL PROMPT</CardTitle>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)} className="text-blue-400 hover:text-blue-300 gap-2">
+                <Settings2 className="h-4 w-4" /> META API SETTINGS
+            </Button>
+            <Badge className="bg-blue-600/20 text-blue-400 border-blue-500/30">PAGE ID: {pipeline?.facebookPageId || '61584166509385'}</Badge>
+          </div>
         </CardHeader>
         <CardContent className="p-8 space-y-6">
-          <div className="space-y-4">
-            <label className="text-xs font-bold uppercase opacity-70">Discovery Presets (Select to populate)</label>
-            <div className="flex flex-wrap gap-2">
-              {keywordPresets.map((preset) => {
-                const currentQueries = searchQuery.split(', ').filter(q => q.trim() !== "");
-                const isActive = currentQueries.includes(preset.label);
-                
-                const togglePreset = () => {
-                  if (isActive) {
-                    setSearchQuery(currentQueries.filter(q => q !== preset.label).join(', '));
-                  } else {
-                    setSearchQuery([...currentQueries, preset.label].join(', '));
-                  }
-                };
-
-                return (
-                  <Badge 
-                    key={preset.id} 
-                    variant={isActive ? "default" : "outline"} 
-                    className={`cursor-pointer transition-all py-1.5 px-4 text-[10px] uppercase font-black tracking-widest border-blue-500/30 ${isActive ? "bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)] border-blue-500" : "hover:bg-blue-500/10 hover:border-blue-500/50 text-muted-foreground"}`}
-                    onClick={togglePreset}
-                  >
-                    {preset.label}
-                  </Badge>
-                );
-              })}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {keywordPresets.map((p) => (
+              <Badge key={p.id} variant="outline" className="cursor-pointer py-1.5 px-4 text-[10px] uppercase font-black tracking-widest border-blue-500/30 hover:bg-blue-500/10" onClick={() => setDiscoveryQuery(p.label)}>{p.label}</Badge>
+            ))}
           </div>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase opacity-70">Facebook Search Target</label>
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-muted/50 border-blue-500/10 h-12" placeholder="Search for pain points..." />
-          </div>
+          <Input value={discoveryQuery} onChange={(e) => setDiscoveryQuery(e.target.value)} className="bg-muted/50 border-blue-500/10 h-12" placeholder="Search for pain points..." />
           <div className="flex gap-4">
             <Button onClick={handleLaunch} className="flex-1 h-14 bg-blue-600 hover:bg-blue-700 font-bold uppercase" disabled={loading || pipeline}>
               {loading ? <Loader2 className="mr-2 animate-spin" /> : <Zap className="mr-2" />}
               {pipeline ? "PIPELINE ACTIVE" : "Trigger n8n Workflow"}
             </Button>
             {pipeline && (
-              <Button onClick={syncApify} variant="outline" className="h-14 px-8 border-blue-500 text-blue-500 font-bold uppercase" disabled={loading}>
-                <Globe className="mr-2" /> Sync Apify
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={syncApify} variant="outline" className="h-14 px-8 border-blue-500 text-blue-500 font-bold uppercase" disabled={loading}>Sync Apify</Button>
+                <Button onClick={() => handleManualAdd(discoveryQuery || "https://facebook.com/groups")} variant="outline" className="h-14 px-8 border-emerald-500 text-emerald-500 font-bold uppercase">🚀 Live Test</Button>
+              </div>
             )}
           </div>
         </CardContent>
@@ -283,224 +262,190 @@ export default function FacebookAutomationPage() {
 
       {pipeline && (
         <div className="space-y-12">
-           <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {fbStepData.map((step) => (
-                <Card key={step.step} className={`p-4 border-blue-500/10 relative transition-all ${pipeline.currentStep === step.step ? "ring-2 ring-blue-500 bg-blue-500/5 scale-105" : pipeline.currentStep > step.step ? "bg-emerald-500/5 opacity-80" : "opacity-40"}`}>
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <div className={`p-2 rounded-lg ${step.bg} ${step.color}`}><step.icon className="h-4 w-4" /></div>
-                    <p className="text-[9px] font-bold uppercase">{step.title}</p>
-                    {pipeline.currentStep > step.step && <CheckCircle2 className="h-3 w-3 text-emerald-500 absolute top-2 right-2" />}
-                  </div>
-                </Card>
-              ))}
-           </div>
-
-           <Card className="border-blue-500/30 bg-black/40 shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="space-y-4 max-w-2xl">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-xl ${currentStepData.bg} ${currentStepData.color}`}><currentStepData.icon className="h-6 w-6" /></div>
-                        <div>
-                            <p className="text-xs font-black text-blue-500 uppercase tracking-widest">Active Step {pipeline.currentStep}</p>
-                            <h3 className="text-2xl font-black uppercase tracking-tighter">{currentStepData.title}</h3>
-                        </div>
+           <Card className="border-blue-500/30 bg-black/40 p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="space-y-2 max-w-lg text-center md:text-left">
+                    <div className="flex items-center gap-3 justify-center md:justify-start">
+                        <div className={`p-3 rounded-xl ${fbStepData[(pipeline?.currentStep || 1)-1]?.bg} ${fbStepData[(pipeline?.currentStep || 1)-1]?.color}`}><Brain className="h-6 w-6" /></div>
+                        <h3 className="text-2xl font-black uppercase tracking-tighter">{fbStepData[(pipeline?.currentStep || 1)-1]?.title}</h3>
                     </div>
-                    <div className="p-4 bg-white/5 rounded-lg italic text-sm text-muted-foreground italic">"{currentStepData.prompt}"</div>
+                    <p className="text-xs text-muted-foreground italic">"{fbStepData[(pipeline?.currentStep || 1)-1]?.prompt}"</p>
                 </div>
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-4">
-                    <Input 
-                      placeholder="Paste facebook comment here to manually inject..."
-                      className="h-14 bg-black/40 border-blue-500/20 text-lg rounded-xl focus:ring-2 focus:ring-blue-500/20 text-white placeholder:text-white/20"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <Button 
-                        onClick={() => handleManualAdd(searchQuery)} 
-                        disabled={loading || !searchQuery}
-                        className="h-14 px-6 bg-slate-900 border border-blue-500/30 text-blue-400 hover:bg-slate-800 font-bold uppercase tracking-widest rounded-xl whitespace-nowrap"
-                    >
-                      <Zap className="mr-2 h-4 w-4" /> Inject Lead
+                <div className="flex flex-col gap-4 w-full md:w-auto">
+                    <Input placeholder="Paste Facebook URL..." className="h-12 bg-black/40 border-blue-500/20" value={manualLeadText} onChange={(e) => setManualLeadText(e.target.value)} />
+                    <Button onClick={runStep} disabled={loading} size="lg" className="h-16 px-12 text-xl font-black uppercase bg-blue-600 hover:bg-blue-700 shadow-2xl">
+                        {loading ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2" />} {manualLeadText ? "INJECT URL" : `EXECUTE STEP ${pipeline.currentStep}`}
                     </Button>
-                  </div>
-                  <Button onClick={runStep} disabled={loading} size="lg" className="h-20 px-12 text-xl font-black uppercase bg-blue-600 hover:bg-blue-700 shadow-2xl w-full">
-                      {loading ? <Loader2 className="mr-2 animate-spin" /> : <Play className="mr-2 fill-current" />}
-                      Execute Step {pipeline.currentStep}
-                  </Button>
                 </div>
            </Card>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                 <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2">
-                   <Users className="h-6 w-6 text-blue-500" /> Discovered Leads ({
-                     leads.filter(l => {
-                       const activePresets = searchQuery.split(', ').filter(q => q.trim() !== "");
-                       if (activePresets.length === 0) return true;
-                       return activePresets.some(p => l.category?.toLowerCase().includes(p.toLowerCase()) || l.matched_keyword?.toLowerCase().includes(p.toLowerCase()));
-                     }).length
-                   })
-                 </h2>
-                 <div className="space-y-4 max-h-[600px] overflow-auto pr-2 custom-scrollbar">
-                    {leads.length > 0 ? leads.filter(l => {
-                       const activePresets = searchQuery.split(', ').filter(q => q.trim() !== "");
-                       if (activePresets.length === 0) return true;
-                       return activePresets.some(p => l.category?.toLowerCase().includes(p.toLowerCase()) || l.matched_keyword?.toLowerCase().includes(p.toLowerCase()));
-                    }).map((lead) => (
-                      <Card key={lead._id} className={`mb-3 border-l-4 ${lead.status === 'qualified' ? 'border-l-emerald-500' : 'border-l-slate-700'} bg-slate-900/40 backdrop-blur-md`}>
-                        <CardContent className="p-4 flex gap-4">
-                            <div className="relative">
-                              <Avatar className="h-10 w-10 border-2 border-slate-700">
-                                <AvatarImage src={lead.profile_image} />
-                                <AvatarFallback className="bg-slate-800 text-slate-400">FB</AvatarFallback>
-                              </Avatar>
-                            </div>
-                            <div className="flex-1 space-y-2">
-                              <div className="flex justify-between items-start">
-                                <div className="space-y-0.5">
-                                  <a 
-                                    href={lead.post_url || "#"} 
-                                    target="_blank" 
-                                    rel="noreferrer"
-                                    className="font-bold text-sm hover:text-blue-500 flex items-center gap-1"
-                                  >
-                                    @{lead.username || "User"} <Globe className="h-3 w-3 opacity-50" />
-                                  </a>
-                                  {lead.title && <p className="text-[9px] opacity-40 truncate max-w-[150px]">{lead.title}</p>}
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                  <Badge variant="outline" className={`text-[8px] uppercase ${lead.status === 'qualified' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' : ''}`}>{lead.status}</Badge>
-                                  {lead.post_url && (
-                                    <a 
-                                      href={lead.post_url} 
-                                      target="_blank" 
-                                      rel="noreferrer"
-                                      className="text-[9px] font-bold text-blue-500 hover:underline flex items-center gap-1"
-                                    >
-                                      <Facebook className="h-2.5 w-2.5" /> View Comment
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border-l-2 border-blue-500/10 transition-all">
-                                {lead.matched_keyword && lead.comment && lead.comment.toLowerCase().includes(lead.matched_keyword.toLowerCase()) ? (
-                                  (() => {
-                                    const parts = lead.comment.split(new RegExp(`(${lead.matched_keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-                                    return (
-                                      <>
-                                        {parts.map((part: string, i: number) => 
-                                          part.toLowerCase() === lead.matched_keyword.toLowerCase() ? 
-                                          <span key={i} className="bg-yellow-500/30 text-yellow-200 font-black px-1 rounded border border-yellow-500/50">{part}</span> : 
-                                          part
+                 <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2"><Users className="h-6 w-6 text-blue-500" /> Discovered Leads ({leads.length})</h2>
+                    <Button variant="ghost" size="sm" onClick={() => { setIsRefreshing(true); loadPipeline(); }} disabled={isRefreshing} className="text-blue-400 hover:text-blue-300">
+                      <Activity className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+                    </Button>
+                 </div>
+                 <div className="grid grid-cols-1 gap-6">
+                    {leads.map((lead) => (
+                      <Card key={lead._id} className="bg-slate-900 border border-white/5 overflow-hidden hover:border-primary/30 transition-all">
+                        <CardContent className="p-0">
+                          <div className="flex flex-col md:flex-row">
+                             <div className="p-6 border-r border-white/5 flex flex-col items-center justify-center bg-white/[0.02] min-w-[140px]">
+                               <Avatar className="h-16 w-16 mb-2 border-2 border-primary/20"><AvatarImage src={lead.profile_image} /><AvatarFallback>FB</AvatarFallback></Avatar>
+                               <h4 className="font-bold text-white text-[12px]">@{lead.username}</h4>
+                               <Badge variant="outline" className="text-[8px] uppercase tracking-tighter mt-1">{lead.category || "Lead"}</Badge>
+                             </div>
+                             <div className="flex-1 p-6 space-y-4">
+                               <div className="flex justify-between">
+                                  <div className="space-y-2">
+                                     <div className="flex gap-2">
+                                        <Badge className="text-[9px] font-black uppercase bg-muted/50">{lead.status}</Badge>
+                                        {lead.reply_posted && (
+                                          <Badge className={`${lead.comment_id?.startsWith('sim-') ? 'bg-orange-600/20 text-orange-400 border-orange-500/20' : 'bg-blue-600 text-white'} text-[9px] font-black`}>
+                                            {lead.comment_id?.startsWith('sim-') ? '🧪 SIMULATION POST' : 'REPLY POSTED ✅'}
+                                          </Badge>
                                         )}
-                                      </>
-                                    );
-                                  })()
-                                ) : lead.pain_snippet && lead.comment ? (
-                                  <>
-                                    {lead.comment.split(lead.pain_snippet)[0]}
-                                    <span className="bg-blue-500/20 text-blue-400 font-bold px-1 rounded">{lead.pain_snippet}</span>
-                                    {lead.comment.split(lead.pain_snippet)[1]}
-                                  </>
-                                ) : (
-                                  `"${lead.comment || 'N/A'}"`
-                                )}
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2 mt-2">
-                                {lead.matched_keyword && (
-                                  <Badge variant="outline" className="text-[9px] border-yellow-500/50 text-yellow-500 bg-yellow-500/5 uppercase font-black tracking-tighter">
-                                    🎯 SIGNAL: {lead.matched_keyword}
-                                  </Badge>
-                                )}
-                                {lead.category && (
-                                  <Badge className="text-[9px] bg-blue-600 hover:bg-blue-600 uppercase font-black">
-                                    🔥 PAIN: {lead.category}
-                                  </Badge>
-                                )}
-                                {lead.problem_summary && (
-                                  <p className="text-[10px] text-blue-400 font-bold uppercase">{lead.problem_summary}</p>
-                                )}
-                              </div>
-                              {lead.contact && (
-                                <div className="flex flex-col gap-1.5 text-[10px] font-bold text-slate-400 border-t border-slate-800/50 pt-3 mt-3">
-                                  {lead.contact.email && lead.contact.email !== 'N/A' && <span className="flex items-center gap-1">📧 {lead.contact.email}</span>}
-                                  {lead.contact.phone && lead.contact.phone !== 'N/A' && <span className="flex items-center gap-1">📞 {lead.contact.phone}</span>}
-                                  {lead.contact.company && lead.contact.company !== 'N/A' && <span className="flex items-center gap-1 text-slate-300"><Database className="h-3 w-3" /> {lead.contact.company}</span>}
-                                  {lead.contact.website && lead.contact.website !== 'N/A' && (
-                                    <a href={lead.contact.website} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-400 hover:underline">
-                                      <Globe className="h-3 w-3" /> {lead.contact.website}
-                                    </a>
-                                  )}
-                                  {lead.post_url && (
-                                    <a href={lead.post_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-400 hover:underline">
-                                      <Facebook className="h-3 w-3" /> Facebook Post Link
-                                    </a>
-                                  )}
+                                     </div>
+                                     <p className="text-[11px] text-muted-foreground italic">"{lead.comment}"</p>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-2 shrink-0">
+                                      {lead.groupJoinStatus === 'required' && <Badge variant="destructive" className="text-[8px] font-black animate-pulse uppercase"><AlertTriangle className="h-2 w-2 mr-1" /> Manual Join Needed</Badge>}
+                                      {lead.groupJoinStatus === 'pending' && <Badge className="text-[8px] font-black bg-orange-500/20 text-orange-400 uppercase">Approval Pending</Badge>}
+                                      {lead.groupJoinStatus === 'joined' && <Badge className="text-[8px] font-black bg-green-500/20 text-green-400 uppercase">Group Joined ✅</Badge>}
+                                      <Button variant="link" size="sm" className="h-4 p-0 text-[10px] font-bold text-blue-400" onClick={() => window.open(lead.post_url, '_blank')}>VIEW ON FACEBOOK ↗</Button>
+                                   </div>
                                 </div>
-                              )}
 
-                              {lead.outreach && (lead.outreach.finalMessage || lead.outreach.emailBody) && (
-                                <div className="mt-2 bg-blue-500/5 rounded-lg p-3 border border-blue-500/20 group/reply relative">
-                                  <div className="flex items-center justify-between gap-1 mb-1.5 flex-wrap">
-                                    <div className="flex items-center gap-1 text-[8px] font-black text-blue-400 uppercase">
-                                      <Send className="h-2.5 w-2.5" /> AI-Generated Facebook DM
+                               <div className="pt-4 border-t border-white/5 space-y-3">
+                                 {lead.post_url?.includes('groups') && (lead.groupJoinStatus === 'required' || lead.groupJoinStatus === 'pending') && !lead.reply_posted ? (
+                                    <div className="bg-slate-800/50 border border-blue-500/20 rounded-xl p-4 space-y-3">
+                                        <p className="text-[10px] font-black text-blue-400 uppercase text-center tracking-widest">Step 1: Join This Group First</p>
+                                        {lead.groupJoinStatus === 'pending' ? (
+                                          <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 text-center space-y-3">
+                                            <div className="space-y-1">
+                                              <p className="text-orange-400 font-bold text-sm">Your membership is pending</p>
+                                              <p className="text-orange-400/70 text-[10px]">You'll be notified if your request to join has been approved.</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                              <Button variant="outline" onClick={() => window.open(lead.post_url, '_blank')} className="flex-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 text-[10px] font-bold h-9">
+                                                <Users className="mr-1 h-3 w-3" /> Re-open Group
+                                              </Button>
+                                              <Button variant="outline" onClick={() => handleJoinSuccess(lead._id)} className="flex-1 border-green-500/50 text-green-400 hover:bg-green-500/10 text-[10px] font-bold h-9">
+                                                <CheckCircle2 className="mr-1 h-3 w-3" /> Confirm Joined
+                                              </Button>
+                                            </div>
+                                            <Button variant="ghost" size="sm" onClick={async () => {
+                                                try {
+                                                  await axios.post(`${API_URL}/facebook-automation/lead/${lead._id}/update-join-status`, { status: 'required' }, getHeaders());
+                                                  loadPipeline();
+                                                } catch (err) { console.error(err); }
+                                              }}
+                                              className="text-[9px] text-muted-foreground hover:text-white underline"
+                                            >
+                                              Wait, I haven't requested yet (Reset)
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <div className="flex gap-2">
+                                            <Button onClick={() => handleJoinAction(lead._id, lead.post_url)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs font-bold">
+                                              <Users className="mr-2 h-4 w-4" /> Request Join ↗
+                                            </Button>
+                                            <Button variant="outline" onClick={() => handleJoinSuccess(lead._id)} className="flex-1 border-green-500/50 text-green-400 hover:bg-green-500/10 text-xs font-bold">
+                                              <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm Joined
+                                            </Button>
+                                          </div>
+                                        )}
                                     </div>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="h-6 text-[9px] px-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-500/30 font-bold uppercase tracking-widest transition-all"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(lead.outreach.finalMessage || lead.outreach.emailBody || "");
-                                        toast({ title: "Reply copied to clipboard!", description: "Paste it on Facebook." });
-                                        window.open(lead.post_url ? lead.post_url : "#", "_blank");
-                                      }}
-                                    >
-                                      <Copy className="h-3 w-3 mr-1" /> Copy & Reply
-                                    </Button>
-                                  </div>
-                                  <p className="text-[11px] text-blue-200 font-medium leading-relaxed">
-                                    {lead.outreach.finalMessage || lead.outreach.emailBody}
-                                  </p>
-                                  {lead.outreach.cta && (
-                                    <p className="text-[9px] text-blue-400/70 mt-1 italic">CTA: {lead.outreach.cta}</p>
-                                  )}
-                                </div>
-                              )}
-
-                              {lead.reply && lead.reply.nextAction && (
-                                <div className="mt-2 bg-emerald-500/5 rounded-lg p-3 border border-emerald-500/20">
-                                  <div className="flex items-center gap-1 text-[8px] font-black text-emerald-400 uppercase mb-1.5">
-                                    <MessageSquare className="h-2.5 w-2.5" /> Reply Intelligence
-                                  </div>
-                                  <div className="flex gap-2 mb-1">
-                                    <Badge className="text-[7px] bg-emerald-500/20 text-emerald-400 border-emerald-500/30">{lead.reply.sentiment}</Badge>
-                                    <Badge className="text-[7px] bg-slate-500/20 text-slate-300 border-slate-500/30">{lead.reply.category}</Badge>
-                                  </div>
-                                  <p className="text-[10px] text-emerald-200/80">Next: {lead.reply.nextAction}</p>
-                                </div>
-                              )}
-                            </div>
+                                 ) : (
+                                   (lead.outreach?.finalMessage || lead.outreach?.emailBody) ? (
+                                      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                                         <div className="flex items-center gap-2 text-primary text-[10px] font-black uppercase tracking-widest"><Brain className="h-4 w-4" /> AI Suggested Response</div>
+                                         <p className="text-[12px] font-medium text-slate-200">"{lead.outreach.finalMessage || lead.outreach.emailBody}"</p>
+                                         <div className="flex flex-col gap-2">
+                                            <div className="flex gap-2">
+                                                <Button 
+                                                 className={`flex-1 font-black text-[12px] py-6 shadow-lg transition-all ${lead.reply_posted ? 'bg-green-600/50 hover:bg-green-600/50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/20 shadow-lg'}`} 
+                                                 disabled={lead.reply_posted}
+                                                 onClick={() => {
+                                                    axios.post(`${API_URL}/facebook-automation/lead/${lead._id}/reply`, {}, getHeaders())
+                                                      .then(() => {
+                                                         toast({ title: "Reply Sent!", description: "Your AI message was posted." });
+                                                         loadPipeline();
+                                                      })
+                                                       .catch(e => {
+                                                          const errorMsg = e.response?.data?.message || "Internal Token Error";
+                                                          toast({ title: "Facebook API Error", description: errorMsg, variant: "destructive" });
+                                                       });
+                                                 }}
+                                                >
+                                                  {lead.reply_posted ? '✅ Reply Posted Successfully' : '🚀 Auto-Post to Facebook'}
+                                                </Button>
+                                                <Button variant="outline" className="h-14 w-14 p-0 border-white/10" onClick={() => navigator.clipboard.writeText(lead.outreach.finalMessage || lead.outreach.emailBody || "")}><CopyIcon className="h-5 w-5" /></Button>
+                                            </div>
+                                         </div>
+                                      </div>
+                                   ) : (
+                                      <div className="bg-muted/5 border border-dashed border-white/10 rounded-xl p-4 flex flex-col items-center gap-2 text-blue-400">
+                                        <Loader2 className="h-4 w-4 animate-spin" /><span className="text-[9px] font-bold uppercase tracking-widest">Generating AI Outreach...</span>
+                                      </div>
+                                   )
+                                 )}
+                               </div>
+                             </div>
+                          </div>
                         </CardContent>
                       </Card>
-                    )) : (
-                      <div className="p-12 text-center opacity-30 italic">No leads discovered yet. Click "Sync Apify" to start.</div>
-                    )}
+                    ))}
                  </div>
               </div>
               <div className="space-y-6">
                  <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-2"><Activity className="h-6 w-6 text-blue-500" /> Extraction Logs</h2>
-                 <Card className="bg-black/90 font-mono text-[11px] p-6 h-[600px] overflow-auto border-blue-500/20 shadow-inner custom-scrollbar relative">
-                    <div className="absolute top-0 right-0 p-2 opacity-20"><Facebook className="h-10 w-10 text-blue-600" /></div>
-                    <div className="space-y-1.5">
-                      {logs.map((log, i) => (
-                        <p key={i} className={`${log.includes('❌') ? 'text-red-400' : log.includes('✅') ? 'text-emerald-400' : log.includes('🚀') ? 'text-blue-400 font-bold' : 'text-blue-400/80'}`}>
-                          {log}
-                        </p>
-                      ))}
-                      <div className="animate-pulse inline-block w-2 h-4 bg-blue-500 ml-1 mt-2" />
+                 <Card className="bg-black/90 font-mono text-[11px] p-6 h-[500px] overflow-auto border-white/10 custom-scrollbar">
+                    <div className="space-y-1.5 text-blue-400/80">
+                      {logs.map((L, i) => <p key={i}>{L}</p>)}
+                      <div ref={logEndRef} />
+                      <div className="animate-pulse inline-block w-2 h-4 bg-blue-500" />
                     </div>
                  </Card>
               </div>
            </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-lg border-blue-500/30 bg-slate-900 shadow-2xl">
+                <CardHeader className="border-b border-white/5">
+                    <CardTitle className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
+                        <Key className="h-5 w-5 text-blue-500" /> Meta API Configuration
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase">Facebook Page ID</label>
+                        <Input value={settingsForm.facebookPageId} onChange={e => setSettingsForm({...settingsForm, facebookPageId: e.target.value})} className="bg-black/50 border-white/10" placeholder="e.g. 6158416650..." />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase flex justify-between">
+                            Meta User Access Token <span className="text-blue-400 font-normal normal-case italic">(For Group Posting)</span>
+                        </label>
+                        <Input type="password" value={settingsForm.metaAccessToken} onChange={e => setSettingsForm({...settingsForm, metaAccessToken: e.target.value})} className="bg-black/50 border-white/10" placeholder="EAANBG..." />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase flex justify-between">
+                            Page Access Token <span className="text-blue-400 font-normal normal-case italic">(For Page Posting)</span>
+                        </label>
+                        <Input type="password" value={settingsForm.facebookPageAccessToken} onChange={e => setSettingsForm({...settingsForm, facebookPageAccessToken: e.target.value})} className="bg-black/50 border-white/10" placeholder="EAANBG..." />
+                    </div>
+                    <div className="pt-4 flex gap-3">
+                        <Button onClick={() => setShowSettings(false)} variant="ghost" className="flex-1">Cancel</Button>
+                        <Button onClick={handleUpdateSettings} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700 font-bold uppercase">
+                            {loading ? <Loader2 className="mr-2 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />} Save Settings
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
       )}
     </div>

@@ -412,14 +412,24 @@ export default function SystemRoleDashboard() {
                             {sendingEmail ? 'Sending...' : 'Connect & Send to Gmail'}
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           {(c.emailSequence?.split('---') || ["Sequence generating...", "", ""]).map((email, idx) => (
-                            <div key={idx} className="text-[11px] text-muted-foreground bg-red-500/5 p-4 rounded-xl border border-red-500/10 min-h-[140px] whitespace-pre-line group relative">
-                              <span className="font-extrabold text-red-600 block mb-2 uppercase tracking-widest text-[9px]">Email #{idx + 1} Candidate</span>
-                              {email.trim() || "Drafting sequence..."}
-                              <Button variant="ghost" size="icon" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 h-6 w-6">
-                                <CheckCircle2 className="w-3 h-3 text-red-500" />
-                              </Button>
+                            <div key={idx} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group relative flex flex-col">
+                              <div className="bg-slate-50 dark:bg-slate-900 px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Stage 0{idx + 1} Outreach</span>
+                                <div className="flex gap-1">
+                                  <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                  <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                </div>
+                              </div>
+                              <div className="p-4 text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed whitespace-pre-line flex-1">
+                                {email.trim() || "Drafting sequence..."}
+                              </div>
+                              <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                                <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <CheckCircle2 className="w-3 h-3 text-green-500" /> Use Draft
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>

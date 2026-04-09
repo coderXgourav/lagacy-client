@@ -155,14 +155,44 @@ export default function SystemArchitecturePage() {
   const [loading, setLoading] = useState(false);
   const [autoRun, setAutoRun] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const [formData, setFormData] = useState({
-    niche: "AI SaaS for Venture Capital",
-    stage: "Seed",
-    geography: "USA / Global",
-    fundingAsk: "$2M at $10M Post-money",
-    summary: "Kyptronix AI is an autonomous fundraising machine that helps founders target the right investors with hyper-personalized outreach.",
-    traction: "Beta launched, 50 founder waitlist, MVP ready."
-  });
+  const demoProfiles = [
+    {
+      niche: "AI SaaS for Venture Capital",
+      stage: "Seed",
+      geography: "USA / Global",
+      fundingAsk: "$2M at $10M Post-money",
+      summary: "Kyptronix AI is an autonomous fundraising machine that helps founders target the right investors with hyper-personalized outreach.",
+      traction: "Beta launched, 50 founder waitlist, MVP ready."
+    },
+    {
+      niche: "Web3 Infrastructure for India",
+      stage: "Seed",
+      geography: "India / APAC",
+      fundingAsk: "$1.5M at $8M Post-money",
+      summary: "Kyptronix Node is a decentralized RPC layer providing ultra-low latency for Indian dApps.",
+      traction: "10M requests/day, 5 pilot partners, mainnet in 3 months."
+    },
+    {
+      niche: "Sustainable E-commerce Logistics",
+      stage: "Series A",
+      geography: "Europe",
+      fundingAsk: "$5M at $25M Post-money",
+      summary: "GreenPath is an AI-driven last-mile delivery network using 100% electric cargo bikes.",
+      traction: "$200K MRR, 15 city partnerships, 98% carbon reduction."
+    },
+    {
+      niche: "Fintech for Gig Economy",
+      stage: "Pre-seed",
+      geography: "Latin America / SE Asia",
+      fundingAsk: "$500K at $3M Post-money",
+      summary: "GigPay provides instant credit and insurance products for independent delivery and ride-share workers.",
+      traction: "1.2K active users, Partnership with 2 major platforms."
+    }
+  ];
+
+  const [demoIndex, setDemoIndex] = useState(0);
+
+  const [formData, setFormData] = useState(demoProfiles[0]);
 
   const getHeaders = () => {
     const token = localStorage.getItem('token');
@@ -268,16 +298,14 @@ export default function SystemArchitecturePage() {
   }, [autoRun, loading, pipeline?.currentStep, pipeline?._id]);
 
   const handleQuickFill = () => {
-    setFormData({
-      niche: "Web3 Infrastructure for India",
-      stage: "Seed",
-      geography: "India / APAC",
-      fundingAsk: "$1.5M at $8M Post-money",
-      summary: "Kyptronix Node is a decentralized RPC layer providing ultra-low latency for Indian dApps.",
-      traction: "10M requests/day, 5 pilot partners, mainnet in 3 months."
+    const nextIndex = (demoIndex + 1) % demoProfiles.length;
+    setDemoIndex(nextIndex);
+    setFormData(demoProfiles[nextIndex]);
+    toast({ 
+      title: "DNA Initialized", 
+      description: `Loaded ${demoProfiles[nextIndex].niche} Profile.` 
     });
-    toast({ title: "Form Filled", description: "Default data loaded." });
-    addLog("Form quick-filled with demo data.");
+    addLog(`Switched to demo profile: ${demoProfiles[nextIndex].niche}`);
   };
 
   return (

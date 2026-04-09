@@ -72,6 +72,7 @@ import SystemArchitecturePage from "./pages/SystemArchitecturePage";
 import YoutubeAutomationPage from "./pages/YoutubeAutomationPage";
 import FacebookAutomationPage from "./pages/FacebookAutomationPage";
 import TwitterAutomationPage from "./pages/TwitterAutomationPage";
+import JsonConverterPage from "./pages/JsonConverterPage";
 
 const queryClient = new QueryClient();
 
@@ -172,6 +173,9 @@ const App = () => (
               <Route path="/youtube-automation" element={<ProtectedRoute><YoutubeAutomationPage /></ProtectedRoute>} />
               <Route path="/facebook-automation" element={<ProtectedRoute><FacebookAutomationPage /></ProtectedRoute>} />
               <Route path="/twitter-automation" element={<ProtectedRoute><TwitterAutomationPage /></ProtectedRoute>} />
+              <Route path="/json-converter" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                <Route index element={<JsonConverterPage />} />
+              </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
