@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Send, Mail, User, Phone, Loader2, Activity, Clock, Zap, StopCircle, Eye, EyeOff, MessageSquare, PhoneCall } from "lucide-react";
@@ -28,6 +29,9 @@ interface EmailResult {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export default function CsvUploaderDashboard() {
+    const { pathname } = useLocation();
+    const isMarketing = pathname.startsWith('/csv-marketing-uploader');
+
     const [isDragging, setIsDragging] = useState(false);
     const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem('csv_uploader_filename'));
     const [contacts, setContacts] = useState<Contact[]>(() => {
@@ -723,9 +727,14 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">CSV Uploader Pro</h1>
+                <h1 className="text-3xl font-bold tracking-tight">
+                    {isMarketing ? "CSV Marketing Uploader" : "CSV Uploader Pro"}
+                </h1>
                 <p className="text-muted-foreground mt-1">
-                    Upload CSV or Excel files, extract contacts, and send bulk emails
+                    {isMarketing 
+                        ? "Upload marketing lead CSV or Excel files, extract contacts, and run multi-stage sequences"
+                        : "Upload CSV or Excel files, extract contacts, and send bulk emails"
+                    }
                 </p>
             </div>
 

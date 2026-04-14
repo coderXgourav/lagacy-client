@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
     Mail,
     MessageSquare,
@@ -65,6 +66,9 @@ interface StageInfo {
 }
 
 export default function CsvUploaderStats() {
+    const { pathname } = useLocation();
+    const isMarketing = pathname.startsWith('/csv-marketing-uploader');
+
     const [stats, setStats] = useState<Stats | null>(null);
     const [stages, setStages] = useState<StageInfo[]>([]);
     const [stagesExpanded, setStagesExpanded] = useState(false);
@@ -224,10 +228,10 @@ export default function CsvUploaderStats() {
                 <div>
                     <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                         <BarChart3 className="w-8 h-8 text-primary" />
-                        Campaign Statistics
+                        {isMarketing ? "Marketing Campaign Statistics" : "Campaign Statistics"}
                     </h1>
                     <p className="text-muted-foreground mt-1">
-                        Real-time tracking of requests
+                        {isMarketing ? "Real-time tracking of marketing leads and outreach" : "Real-time tracking of requests"}
                     </p>
                 </div>
                 <div className="flex gap-2">

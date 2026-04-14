@@ -135,6 +135,16 @@ const App = () => (
                   <Route path="templates" element={<CsvUploaderTemplates />} />
                   <Route path="transcripts" element={<CsvUploaderTranscripts />} />
                 </Route>
+                <Route path="/csv-marketing-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
+                  <Route index element={<CsvUploaderDashboard />} />
+                  <Route path="stats" element={<CsvUploaderStats />} />
+                  <Route path="email-logs" element={<CsvUploaderEmailLogs />} />
+                  <Route path="sms-logs" element={<CsvUploaderSmsLogs />} />
+                  <Route path="whatsapp-chat" element={<CsvUploaderWhatsAppChat />} />
+                  <Route path="inbox" element={<CsvUploaderInbox />} />
+                  <Route path="templates" element={<CsvUploaderTemplates />} />
+                  <Route path="transcripts" element={<CsvUploaderTranscripts />} />
+                </Route>
               <Route path="/hr-portal" element={<ProtectedRoute><HrPortalLayout /></ProtectedRoute>}>
                 <Route index element={<HrPortalDashboard />} />
                 <Route path="employees" element={<HrEmployeeDirectory />} />

@@ -134,6 +134,15 @@ export default function OfferingsPage() {
       route: "/csv-uploader",
     },
     {
+      id: "csv-marketing-uploader",
+      title: "CSV marketing Uploader",
+      description:
+        "Specialized marketing campaign uploader with full bulk processing and lead management features",
+      icon: Upload,
+      available: true,
+      route: "/csv-marketing-uploader",
+    },
+    {
       id: "hr-portal",
       title: "HR Portal",
       description:

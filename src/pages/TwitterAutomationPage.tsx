@@ -32,16 +32,15 @@ const twitterStepData = [
 ];
 
 const keywordPresets = [
-  { id: "website", label: "Website Problems", keywords: ["website redesign needed"] },
-  { id: "leads", label: "Lead Generation", keywords: ["need more leads"] },
-  { id: "marketing", label: "Marketing Problems", keywords: ["facebook ads not working"] },
-  { id: "automation", label: "Automation Problems", keywords: ["business automation tools"] },
-  { id: "crm", label: "CRM Problems", keywords: ["crm setup cost"] },
-  { id: "ecommerce", label: "E-commerce Problems", keywords: ["product page not converting"] },
-  { id: "branding", label: "Founder Personal Branding", keywords: ["linkedin growth help"] },
-  { id: "growth", label: "Startup Growth Problems", keywords: ["startup growth help"] },
-  { id: "realestate", label: "Real Estate", keywords: ["real estate lead generation"] },
-  { id: "emergency", label: "Emergency Signals", keywords: ["need help scaling business"] }
+  { id: "web", label: "Web Development", keywords: ["website redesign needed", "website developer needed"] },
+  { id: "leads", label: "Lead Generation", keywords: ["need more leads", "lead generation help"] },
+  { id: "marketing", label: "Digital Marketing", keywords: ["facebook ads not working", "google ads help"] },
+  { id: "automation", label: "AI & Automation", keywords: ["business automation tools", "AI marketing help"] },
+  { id: "blockchain", label: "Blockchain", keywords: ["blockchain developer", "token creation help"] },
+  { id: "crm", label: "CRM & Software", keywords: ["crm setup cost", "custom software development"] },
+  { id: "ecommerce", label: "E-commerce", keywords: ["shopify developer", "ecommerce conversion help"] },
+  { id: "branding", label: "Founders & Growth", keywords: ["personal branding for founders", "linkedin growth help"] },
+  { id: "emergency", label: "Emergency Signals", keywords: ["need agency urgently", "help scaling business"] }
 ];
 
 const ALL_PAIN_SIGNALS = keywordPresets.flatMap(p => p.keywords);
@@ -88,8 +87,9 @@ export default function TwitterAutomationPage() {
     try {
       const { data } = await axios.post(`${API_URL}/twitter-automation/pipeline`, { query: searchQuery }, getHeaders());
       setPipeline(data);
+      setLeads([]); // Clear old leads when starting a new pipeline
       toast.success("Project Initiated");
-      addLog("Pipeline created. Ready for Step 1.");
+      addLog("Pipeline created. Ready for Step 1 (Discovery).");
     } catch (err) { toast.error("Launch failed"); }
     finally { setLoading(false); }
   };
@@ -109,6 +109,22 @@ export default function TwitterAutomationPage() {
     } catch (err: any) {
       addLog(`❌ Injection Failed: ${err.message}`);
     } finally { setLoading(false); }
+  };
+
+  const handleAutoReply = async (leadId: string) => {
+    try {
+      setLoading(true);
+      addLog(`🚀 Triggering Automated X Reply for Lead ID: ${leadId}`);
+      await axios.post(`${API_URL}/twitter-automation/lead/${leadId}/reply`, {}, getHeaders());
+      addLog(`✅ Automated X Reply posted successfully!`);
+      toast.success("X Reply Posted Natively");
+      if (pipeline) fetchLeads(pipeline._id);
+    } catch (err: any) {
+      addLog(`❌ Auto-Post Failed: ${err.response?.data?.message || err.message}`);
+      toast.error("Auto-Post Failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const executeStep = async () => {
@@ -143,7 +159,7 @@ export default function TwitterAutomationPage() {
             await axios.post(`${API_URL}/twitter-automation/lead/${lead._id}/${endpointSuffix}`, payload, getHeaders());
             addLog(`✅ Processed @${lead.username}`);
           } catch (e: any) {
-            addLog(`❌ Failed @${lead.username}: ${e.message}`);
+            addLog(`❌ Failed @${lead.username}: ${e.response?.data?.message || e.message}`);
           }
         }
       }
@@ -198,11 +214,11 @@ export default function TwitterAutomationPage() {
             />
             <Button 
                 onClick={handleLaunch} 
-                disabled={loading || !!pipeline}
+                disabled={loading}
                 className="h-16 px-10 bg-white text-black hover:bg-slate-200 font-black text-lg uppercase tracking-tighter rounded-2xl"
             >
               {loading ? <Loader2 className="animate-spin" /> : <Play className="mr-2 h-6 w-6 fill-current" />}
-              {pipeline ? "PIPELINE ACTIVE" : "Launch"}
+              {pipeline && pipeline.currentStep >= 1 ? "START NEW PIPELINE" : "Launch"}
             </Button>
           </div>
         </CardContent>
@@ -283,7 +299,7 @@ export default function TwitterAutomationPage() {
                           <span className="font-bold text-sm">@{lead.username}</span>
                           {lead.is_pain && <Badge className="bg-amber-500 text-black text-[8px] font-black">PAIN DETECTED</Badge>}
                        </div>
-                       <p className="text-xs text-slate-400 italic line-clamp-2">"{lead.tweet_text}"</p>
+                       <p className="text-xs text-slate-400 italic line-clamp-2">"{lead.comment || lead.tweet_text || 'No content'}"</p>
                        
                        {lead.outreach && (lead.outreach.finalMessage || lead.outreach.emailBody) && (
                         <div className="mt-2 bg-blue-500/5 rounded-lg p-3 border border-blue-500/20 relative group">
@@ -293,7 +309,17 @@ export default function TwitterAutomationPage() {
                               navigator.clipboard.writeText(lead.outreach.finalMessage || lead.outreach.emailBody || "");
                               toast.success("Ready! Clipboard updated.");
                               window.open(lead.tweet_url || "https://twitter.com", "_blank");
-                            }}><Copy className="h-2 w-2 mr-1" /> Copy & Reply</Button>
+                            }}><Copy className="h-2 w-2 mr-1" /> Copy</Button>
+                            
+                            <Button 
+                              size="sm" 
+                              className={`h-6 text-[8px] px-2 font-bold uppercase tracking-widest ${lead.reply_posted ? "bg-emerald-600 hover:bg-emerald-700" : "bg-sky-600 hover:bg-sky-500"} text-white border-transparent shadow-lg shadow-sky-500/20`}
+                              disabled={loading || lead.reply_posted}
+                              onClick={() => handleAutoReply(lead._id)}
+                            >
+                              {loading ? <Loader2 className="h-2 w-2 animate-spin mr-1" /> : lead.reply_posted ? <CheckCircle2 className="h-2 w-2 mr-1" /> : <Zap className="h-2 w-2 mr-1" />}
+                              {lead.reply_posted ? "Posted" : "Auto-Post"}
+                            </Button>
                           </div>
                           <p className="text-[10px] text-blue-200 leading-tight">{lead.outreach.finalMessage || lead.outreach.emailBody}</p>
                         </div>
