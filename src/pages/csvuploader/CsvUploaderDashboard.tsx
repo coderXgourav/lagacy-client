@@ -31,15 +31,131 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 export default function CsvUploaderDashboard() {
     const { pathname } = useLocation();
     const isMarketing = pathname.startsWith('/csv-marketing-uploader');
+    const storagePrefix = isMarketing ? 'csv_marketing_uploader' : 'csv_uploader';
+
+    const MARKETING_DEFAULT_SUBJECT = "How we help 100+ businesses scale without juggling agencies";
+    const MARKETING_DEFAULT_BODY = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How we help 100+ businesses scale without juggling agencies</title>
+<style>
+body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6; font-family: Helvetica, Arial, sans-serif; }
+@media screen and (max-width:600px){ .mobile-width{width:100%!important} .mobile-padding{padding:20px!important} .mobile-menu a{font-size:10px!important;padding:0 4px!important;letter-spacing:0!important} .mobile-menu span{padding:0 2px!important} .mobile-social{display:inline-block!important;margin:0 5px!important} }
+</style>
+</head>
+<body>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f6;">
+<tr>
+<td align="center" style="padding:40px 10px;">
+<table width="600" class="mobile-width" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,.05);overflow:hidden;">
+<tr><td height="6" style="background:#0056b3"></td></tr>
+<tr>
+<td align="center" style="padding:40px 40px 25px;border-bottom:1px solid #eeeeee;">
+<a href="https://kyptronix.us" target="_blank">
+<img src="https://media.designrush.com/agencies/325222/conversions/Kyptronix-logo-profile.jpg" width="180" alt="Kyptronix Logo" style="display:block;">
+</a>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:25px;" class="mobile-menu">
+<tr>
+<td align="center">
+<a href="https://kyptronix.us/about-us" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">About</a>
+<span style="color:#e0e0e0;">|</span>
+<a href="https://kyptronix.us/services" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Services</a>
+<span style="color:#e0e0e0;">|</span>
+<a href="https://kyptronix.us/package-and-pricing" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Packages</a>
+<span style="color:#e0e0e0;">|</span>
+<a href="https://kyptronix.us/portfolio" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Portfolio</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td class="mobile-padding" style="padding:40px 50px;color:#374151;font-size:16px;line-height:1.6;">
+<h1 style="margin:0 0 20px;font-size:22px;color:#1F2937;">Hi {{name}},</h1>
+<p>I'll keep this short.</p>
+<p>Kyptronix works with 100+ businesses globally — from early-stage startups to established brands — and the one thing they have in common is that they needed both a development partner and a marketing partner, and didn't want to manage two separate vendors.</p>
+<p><strong>So we built a model where we do both.</strong></p>
+<ul style="padding-left:18px;margin:0 0 20px;">
+  <li><strong>Development:</strong> Web, mobile, SaaS, AI integrations</li>
+  <li><strong>Marketing:</strong> Paid ads, SEO, content, performance strategy</li>
+  <li><strong>AI-first:</strong> We bring automation and AI into everything — from workflows to campaigns</li>
+</ul>
+<p>The result is that our clients move faster, spend smarter, and don't have communication gaps between their tech and marketing teams — because there's only one team.</p>
+<p>You're actively scaling your digital campaigns and positioning <strong>{{domainName}}</strong> more aggressively online.</p>
+<p>Wanted to reach out directly.</p>
+<p>If you're open to it, I'd love to share how we've helped businesses in a similar space. <strong>15–20 minutes</strong> on a call is all it takes to know if this is worth exploring.</p>
+<p>Either way, appreciate you reading this far.</p>
+<p style="margin-top:30px;">—<br><strong>Souvik Karmakar</strong><br>CEO, Kyptronix LLP</p>
+<p style="font-size:14px;color:#4B5563;"><a href="https://kyptronix.us" style="color:#0056b3;text-decoration:none;">kyptronix.us</a></p>
+</td>
+</tr>
+<tr>
+<td align="center" style="background-color:#2c3e50; background-image:linear-gradient(135deg,#2c3e50 0%,#0056b3 100%); padding:40px 30px;">
+<h2 style="margin:0 0 15px;color:#ffffff;font-size:22px;">Want to see what this looks like for {{domainName}}?</h2>
+<p style="margin:0 0 25px;color:#e0e0e0;font-size:14px;line-height:1.5;max-width:420px;">Happy to share a quick plan based on your current tech + marketing setup.</p>
+<table cellpadding="0" cellspacing="0">
+<tr>
+<td style="background:#ffffff;border-radius:50px;">
+<a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1kzqqp92tBVNRFyNSo_sdyCg68VzzRMbv947cCXtze9o3lML1qr7B-xhYMp8myDqwLR4vbhrr2" target="_blank" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:bold;color:#0056b3;text-decoration:none;border-radius:50px;border:2px solid #ffffff;">Book a 15–20 Min Call</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td style="background:#f8f9fa;padding:40px;border-top:1px solid #eeeeee;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="padding-bottom:25px;">
+<a href="https://www.facebook.com/kyptronixllp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/145/145802.png" width="32" height="32"></a>
+<a href="https://x.com/Kyptronixus" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/5969/5969020.png" width="32" height="32"></a>
+<a href="https://www.linkedin.com/company/kyptronixllp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="32" height="32"></a>
+<a href="https://www.instagram.com/kyptronix_llp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/3955/3955024.png" width="32" height="32"></a>
+<a href="https://www.youtube.com/@kyptronixllp2467" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="32" height="32"></a>
+</td>
+</tr>
+<tr>
+<td align="center" style="font-size:12px;color:#999999;line-height:1.6;">
+<p style="margin:0 0 10px;"><strong>Kyptronix LLP</strong></p>
+<p style="margin:0 0 20px;">Professional digital solutions and automation systems since 2015.<br>Trusted by professionals worldwide.</p>
+<p style="margin:0;">
+<a href="https://kyptronix.us/PrivacyPolicies" style="color:#bbbbbb;text-decoration:none;">Privacy Policy</a> &nbsp;|&nbsp;
+<a href="https://kyptronix.us/terms-and-conditions" style="color:#bbbbbb;text-decoration:none;">Terms of Service</a> &nbsp;|&nbsp;
+<a href="#" style="color:#bbbbbb;text-decoration:none;">Unsubscribe</a>
+</p>
+<p style="margin-top:20px;font-size:11px;color:#cccccc;">© 2015–2026 Kyptronix LLP. All rights reserved.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>`;
 
     const [isDragging, setIsDragging] = useState(false);
-    const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem('csv_uploader_filename'));
+    const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem(`${storagePrefix}_filename`));
     const [contacts, setContacts] = useState<Contact[]>(() => {
-        const saved = localStorage.getItem('csv_uploader_contacts');
+        const saved = localStorage.getItem(`${storagePrefix}_contacts`);
         return saved ? JSON.parse(saved) : [];
     });
-    const [subject, setSubject] = useState("Brutal truth about {{domainName}} new businesses");
-    const [body, setBody] = useState(`<!DOCTYPE html>
+    const [subject, setSubject] = useState(() =>
+        isMarketing
+            ? (localStorage.getItem(`${storagePrefix}_subject`) || MARKETING_DEFAULT_SUBJECT)
+            : "Brutal truth about {{domainName}} new businesses"
+    );
+    const [body, setBody] = useState(() =>
+        isMarketing
+            ? (localStorage.getItem(`${storagePrefix}_body`) || MARKETING_DEFAULT_BODY)
+            : `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -149,7 +265,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 </tr>
 </table>
 </body>
-</html>`);
+</html>`
+    );
     const [isSending, setIsSending] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [sendResults, setSendResults] = useState<any[] | null>(null);
@@ -200,19 +317,29 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     // Persistence effects
     useEffect(() => {
         if (contacts.length > 0) {
-            localStorage.setItem('csv_uploader_contacts', JSON.stringify(contacts));
+            localStorage.setItem(`${storagePrefix}_contacts`, JSON.stringify(contacts));
         } else {
-            localStorage.removeItem('csv_uploader_contacts');
+            localStorage.removeItem(`${storagePrefix}_contacts`);
         }
-    }, [contacts]);
+    }, [contacts, storagePrefix]);
 
     useEffect(() => {
         if (fileName) {
-            localStorage.setItem('csv_uploader_filename', fileName);
+            localStorage.setItem(`${storagePrefix}_filename`, fileName);
         } else {
-            localStorage.removeItem('csv_uploader_filename');
+            localStorage.removeItem(`${storagePrefix}_filename`);
         }
-    }, [fileName]);
+    }, [fileName, storagePrefix]);
+
+    useEffect(() => {
+        if (!isMarketing) return;
+        if (subject) localStorage.setItem(`${storagePrefix}_subject`, subject);
+    }, [isMarketing, subject, storagePrefix]);
+
+    useEffect(() => {
+        if (!isMarketing) return;
+        if (body) localStorage.setItem(`${storagePrefix}_body`, body);
+    }, [isMarketing, body, storagePrefix]);
 
     const findColumnIndex = (headers: string[], includeKeywords: string[], excludeKeywords: string[] = []) => {
         // 1. Priority: Exact matches first
@@ -446,7 +573,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 toast({
                     title: "Authentication Error",
@@ -459,7 +586,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
             console.log('[CSV Uploader] Sending bulk emails to', contacts.length, 'contacts');
             console.log('[CSV Uploader] API URL:', API_BASE_URL);
-            
+
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-emails`, {
                 method: 'POST',
                 headers: {
@@ -510,7 +637,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 toast({
                     title: "Authentication Error",
@@ -522,7 +649,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             }
 
             console.log('[CSV Uploader] Starting 4-stage sequence for', contacts.length, 'contacts');
-            
+
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-sequence`, {
                 method: 'POST',
                 headers: {
@@ -573,7 +700,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 toast({
                     title: "Authentication Error",
@@ -585,7 +712,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             }
 
             console.log('[CSV Uploader] Sending Email + SMS to', contacts.length, 'contacts');
-            
+
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-email-sms`, {
                 method: 'POST',
                 headers: {
@@ -635,7 +762,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
         try {
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 toast({
                     title: "Authentication Error",
@@ -647,7 +774,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             }
 
             console.log('[CSV Uploader] Starting call sequence for', contacts.length, 'contacts');
-            
+
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-calls`, {
                 method: 'POST',
                 headers: {
@@ -720,8 +847,14 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setContacts([]);
         setFileName(null);
         setSendResults(null);
-        localStorage.removeItem('csv_uploader_contacts');
-        localStorage.removeItem('csv_uploader_filename');
+        localStorage.removeItem(`${storagePrefix}_contacts`);
+        localStorage.removeItem(`${storagePrefix}_filename`);
+        if (isMarketing) {
+            localStorage.removeItem(`${storagePrefix}_subject`);
+            localStorage.removeItem(`${storagePrefix}_body`);
+            setSubject(MARKETING_DEFAULT_SUBJECT);
+            setBody(MARKETING_DEFAULT_BODY);
+        }
     };
 
     return (
@@ -731,7 +864,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                     {isMarketing ? "CSV Marketing Uploader" : "CSV Uploader Pro"}
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                    {isMarketing 
+                    {isMarketing
                         ? "Upload marketing lead CSV or Excel files, extract contacts, and run multi-stage sequences"
                         : "Upload CSV or Excel files, extract contacts, and send bulk emails"
                     }
@@ -981,7 +1114,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                             <Label>Preview</Label>
                             <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900">
                                 <iframe
-                                    srcDoc={body.replace('{{name}}', contacts[0]?.name || 'John Doe').replace('{{domainName}}', contacts[0]?.domainName || 'example.com')}
+                                    srcDoc={body
+                                        .replace(/\{\{name\}\}/gi, contacts[0]?.name || 'John Doe')
+                                        .replace(/\{\{domainName\}\}/gi, contacts[0]?.domainName || 'example.com')}
                                     className="w-full h-[500px] border-0"
                                     title="Email Preview"
                                 />

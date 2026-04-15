@@ -256,6 +256,16 @@ export default function OfferingsPage() {
       available: true,
       route: "/json-converter",
     },
+    {
+      id: "ads",
+      title: "Ads",
+      description:
+        "Plan, launch, and optimize paid advertising campaigns with conversion-focused funnels",
+      icon: TrendingUp,
+      available: true,
+      route: "/ads",
+      beta: true,
+    },
   ];
 
   return (

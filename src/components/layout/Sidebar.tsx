@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Search,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const legacyNavItems = [
   { to: "/legacy", label: "Dashboard", icon: LayoutDashboard },
   { to: "/legacy/search", label: "New Search", icon: Search },
   { to: "/legacy/recent-searches", label: "Recent Searches", icon: Database },
@@ -20,6 +20,14 @@ const navItems = [
 
 export function Sidebar() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isLegacy = pathname.startsWith("/legacy");
+  const navItems = isLegacy
+    ? legacyNavItems
+    : [
+        { to: "/offerings", label: "Dashboard", icon: LayoutDashboard },
+        { to: "/legacy/settings", label: "Settings", icon: Settings },
+      ];
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -52,7 +60,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/legacy"}
+            end={(isLegacy && item.to === "/legacy") || (!isLegacy && item.to === "/offerings")}
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium group relative overflow-hidden",

@@ -73,6 +73,7 @@ import YoutubeAutomationPage from "./pages/YoutubeAutomationPage";
 import FacebookAutomationPage from "./pages/FacebookAutomationPage";
 import TwitterAutomationPage from "./pages/TwitterAutomationPage";
 import JsonConverterPage from "./pages/JsonConverterPage";
+import AdsPage from "./pages/AdsPage";
 
 const queryClient = new QueryClient();
 
@@ -185,6 +186,9 @@ const App = () => (
               <Route path="/twitter-automation" element={<ProtectedRoute><TwitterAutomationPage /></ProtectedRoute>} />
               <Route path="/json-converter" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route index element={<JsonConverterPage />} />
+              </Route>
+              <Route path="/ads" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                <Route index element={<AdsPage />} />
               </Route>
               <Route path="/" element={<LoginPage />} />
               <Route path="*" element={<NotFound />} />
