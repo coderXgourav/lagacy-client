@@ -536,6 +536,46 @@ export const kyptronixApi = {
   deleteLead: (id: string) => apiCall(`/kyptronix-leads/${id}`, { method: 'DELETE' })
 };
 
+// Lead Engine API
+export const leadEngineApi = {
+  triggerCampaign: (params: { niche: string; country: string; limit: number }) => 
+    apiCall('/lead-engine/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getStats: () => apiCall('/lead-engine/dashboard-stats'),
+  getLeads: (tier = 'all', niche = '', country = '', page = 1, limit = 50) => {
+    const params = new URLSearchParams({ tier, page: page.toString(), limit: limit.toString() });
+    if (niche) params.append('niche', niche);
+    if (country) params.append('country', country);
+    return apiCall(`/lead-engine/leads?${params.toString()}`);
+  },
+};
+
+export const intelligenceApi = {
+  runPipeline: (leadData: any) => apiCall('/enrich/run', {
+    method: 'POST',
+    body: JSON.stringify(leadData)
+  }),
+  rerunStage: (id: string, stage: string) => apiCall(`/enrich/rerun/${id}`, {
+    method: 'POST',
+    body: JSON.stringify({ stage })
+  }),
+  getLeadStatus: (id: string) => apiCall(`/enrich/status/${id}`),
+  getAllLeads: (filters: any) => {
+    const params = new URLSearchParams();
+    if (filters?.stage && filters.stage !== 'all') params.append('stage', filters.stage);
+    if (filters?.level && filters.level !== 'all') params.append('level', filters.level);
+    return apiCall(`/intelligence-leads?${params.toString()}`);
+  },
+  getLeadById: (id: string) => apiCall(`/intelligence-leads/${id}`),
+  getPipelineStats: () => apiCall('/intelligence-leads/stats'),
+  sendWebhookEvent: (data: any) => apiCall('/outreach/webhook', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+};
+
 export default {
   auth: authApi,
   settings: settingsApi,
@@ -549,4 +589,6 @@ export default {
   domainScraper: domainScraperApi,
   csvFilter: csvFilterApi,
   kyptronixLeads: kyptronixApi,
+  leadEngine: leadEngineApi,
+  intelligence: intelligenceApi,
 };

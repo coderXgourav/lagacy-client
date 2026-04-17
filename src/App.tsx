@@ -17,6 +17,10 @@ import HistoryPage from "./pages/HistoryPage";
 import RecentSearches from "./pages/RecentSearches";
 import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
+import LeadEngineDashboard from "./pages/leadengine/LeadEngineDashboard";
+import PipelineDashboard from "./pages/pipeline/PipelineDashboard";
+import NewPipeline from "./pages/pipeline/NewPipeline";
+import LeadDetail from "./pages/pipeline/LeadDetail";
 import OfferingsPage from "./pages/OfferingsPage";
 import NoWebsiteDashboard from "./pages/nowebsite/NoWebsiteDashboard";
 import NoWebsiteSearchPage from "./pages/nowebsite/NoWebsiteSearchPage";
@@ -73,8 +77,7 @@ import YoutubeAutomationPage from "./pages/YoutubeAutomationPage";
 import FacebookAutomationPage from "./pages/FacebookAutomationPage";
 import TwitterAutomationPage from "./pages/TwitterAutomationPage";
 import JsonConverterPage from "./pages/JsonConverterPage";
-import AdsPage from "./pages/AdsPage";
-
+import { LeadEngineLayout } from "./components/layout/LeadEngineLayout";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -187,10 +190,14 @@ const App = () => (
               <Route path="/json-converter" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route index element={<JsonConverterPage />} />
               </Route>
-              <Route path="/ads" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                <Route index element={<AdsPage />} />
+              <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
+                <Route index element={<LeadEngineDashboard />} />
               </Route>
-              <Route path="/" element={<LoginPage />} />
+              <Route path="/pipeline" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
+                <Route index element={<PipelineDashboard />} />
+                <Route path="new" element={<NewPipeline />} />
+                <Route path=":id" element={<LeadDetail />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

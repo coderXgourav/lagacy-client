@@ -257,15 +257,24 @@ export default function OfferingsPage() {
       route: "/json-converter",
     },
     {
-      id: "ads",
-      title: "Ads",
-      description:
-        "Plan, launch, and optimize paid advertising campaigns with conversion-focused funnels",
+      id: "lead-engine",
+      title: "Lead Engine - Orchestrator",
+      description: "Complete 10-step autonomous pipeline: ad signals, contact scraping, funnel audits, and AI sales packet generation.",
       icon: TrendingUp,
       available: true,
-      route: "/ads",
+      route: "/lead-engine",
       beta: true,
     },
+    {
+      id: "intelligence-pipeline",
+      title: "MERN Intelligence Pipeline",
+      description: "Complete 12-stage autonomous pipeline. Identifies identity, owner roles, EIN confidence, contact validation, and generates AI pitches.",
+      icon: TrendingUp,
+      available: true,
+      route: "/pipeline",
+      beta: true,
+    },
+
   ];
 
   return (
