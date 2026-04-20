@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
@@ -33,7 +33,6 @@ export default function CsvUploaderDashboard() {
     const isMarketing = pathname.startsWith('/csv-marketing-uploader');
     const storagePrefix = isMarketing ? 'csv_marketing_uploader' : 'csv_uploader';
 
-    const MARKETING_DEFAULT_SUBJECT = "How we help 100+ businesses scale without juggling agencies";
     const MARKETING_DEFAULT_BODY = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -141,21 +140,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 </body>
 </html>`;
 
-    const [isDragging, setIsDragging] = useState(false);
-    const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem(`${storagePrefix}_filename`));
-    const [contacts, setContacts] = useState<Contact[]>(() => {
-        const saved = localStorage.getItem(`${storagePrefix}_contacts`);
-        return saved ? JSON.parse(saved) : [];
-    });
-    const [subject, setSubject] = useState(() =>
-        isMarketing
-            ? (localStorage.getItem(`${storagePrefix}_subject`) || MARKETING_DEFAULT_SUBJECT)
-            : "Brutal truth about {{domainName}} new businesses"
-    );
-    const [body, setBody] = useState(() =>
-        isMarketing
-            ? (localStorage.getItem(`${storagePrefix}_body`) || MARKETING_DEFAULT_BODY)
-            : `<!DOCTYPE html>
+    const NON_MARKETING_DEFAULT_BODY = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -265,13 +250,33 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 </tr>
 </table>
 </body>
-</html>`
+</html>`;
+
+    const MARKETING_DEFAULT_SUBJECT = "How we help 100+ businesses scale without juggling agencies";
+    const NON_MARKETING_DEFAULT_SUBJECT = "Brutal truth about {{domainName}} new businesses";
+
+    const [isDragging, setIsDragging] = useState(false);
+    const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem(`${storagePrefix}_filename`));
+    const [contacts, setContacts] = useState<Contact[]>(() => {
+        const saved = localStorage.getItem(`${storagePrefix}_contacts`);
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [subject, setSubject] = useState(() =>
+        localStorage.getItem(`${storagePrefix}_subject`) || 
+        (isMarketing ? MARKETING_DEFAULT_SUBJECT : NON_MARKETING_DEFAULT_SUBJECT)
+    );
+    const [body, setBody] = useState(() =>
+        isMarketing
+            ? (localStorage.getItem(`${storagePrefix}_body`) || MARKETING_DEFAULT_BODY)
+            : (localStorage.getItem(`${storagePrefix}_body`) || NON_MARKETING_DEFAULT_BODY)
     );
     const [isSending, setIsSending] = useState(false);
+    const [isVisualEditing, setIsVisualEditing] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [sendResults, setSendResults] = useState<any[] | null>(null);
     const [stats, setStats] = useState<any>(null);
-    const [showTemplate, setShowTemplate] = useState(false);
+    const [initialEditBody, setInitialEditBody] = useState("");
+    const [resetCounter, setResetCounter] = useState(0);
     const { toast } = useToast();
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -332,14 +337,12 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     }, [fileName, storagePrefix]);
 
     useEffect(() => {
-        if (!isMarketing) return;
         if (subject) localStorage.setItem(`${storagePrefix}_subject`, subject);
-    }, [isMarketing, subject, storagePrefix]);
+    }, [subject, storagePrefix]);
 
     useEffect(() => {
-        if (!isMarketing) return;
         if (body) localStorage.setItem(`${storagePrefix}_body`, body);
-    }, [isMarketing, body, storagePrefix]);
+    }, [body, storagePrefix]);
 
     const findColumnIndex = (headers: string[], includeKeywords: string[], excludeKeywords: string[] = []) => {
         // 1. Priority: Exact matches first
@@ -584,8 +587,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 return;
             }
 
+            const startTime = Date.now();
             console.log('[CSV Uploader] Sending bulk emails to', contacts.length, 'contacts');
-            console.log('[CSV Uploader] API URL:', API_BASE_URL);
 
             const response = await fetch(`${API_BASE_URL}/csv-uploader/send-emails`, {
                 method: 'POST',
@@ -600,9 +603,13 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 })
             });
 
-            console.log('[CSV Uploader] Response status:', response.status);
             const data = await response.json();
-            console.log('[CSV Uploader] Response data:', data);
+            
+            // Ensure loader shows for at least 800ms to avoid flicker
+            const duration = Date.now() - startTime;
+            if (duration < 800) {
+                await new Promise(r => setTimeout(r, 800 - duration));
+            }
 
             if (data.success) {
                 setSendResults(data.results);
@@ -857,8 +864,59 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         }
     };
 
+    // Effect to handle visual editing inside the iframe
+    useEffect(() => {
+        if (!isVisualEditing) return;
+
+        const timer = setTimeout(() => {
+            const iframe = document.getElementById('template-preview-iframe') as HTMLIFrameElement;
+            if (!iframe || !iframe.contentDocument) return;
+
+            const doc = iframe.contentDocument;
+            doc.designMode = 'on';
+
+            const handleInput = () => {
+                const newBody = doc.documentElement.outerHTML;
+                setBody(newBody);
+            };
+
+            doc.addEventListener('input', handleInput);
+            return () => doc.removeEventListener('input', handleInput);
+        }, 500); // Small delay to ensure iframe is loaded
+
+        return () => clearTimeout(timer);
+    }, [isVisualEditing, initialEditBody]);
+
     return (
-        <div className="space-y-6">
+        <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto relative min-h-screen">
+            {/* Global Processing Loader Overlay */}
+            {isSending && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm transition-all duration-300">
+                    <div className="bg-card border shadow-2xl rounded-2xl p-8 flex flex-col items-center gap-6 max-w-sm w-full mx-4 animate-in fade-in zoom-in duration-300">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+                            <div className="relative bg-primary text-primary-foreground rounded-full p-4">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                            </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                            <h3 className="text-xl font-bold tracking-tight">Processing Batch</h3>
+                            <p className="text-sm text-muted-foreground">Please wait while the orchestrator handles your request. This may take a moment for larger datasets.</p>
+                        </div>
+                        <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary animate-progress w-full origin-left" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Top Progress Bar for subtle feedback */}
+            {isSending && (
+                <div className="fixed top-0 left-0 right-0 z-[110] h-1 bg-muted overflow-hidden">
+                    <div className="h-full bg-primary animate-progress w-full origin-left" />
+                </div>
+            )}
+
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">
                     {isMarketing ? "CSV Marketing Uploader" : "CSV Uploader Pro"}
@@ -1099,34 +1157,109 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 placeholder="Email subject..."
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="body">Body (HTML supported)</Label>
-                            <Textarea
-                                id="body"
-                                value={body}
-                                onChange={(e) => setBody(e.target.value)}
-                                placeholder="Email body..."
-                                rows={6}
-                                className="font-mono text-xs"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Preview</Label>
-                            <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900">
+                        {!isMarketing && (
+                            <div className="space-y-2">
+                                <Label htmlFor="body">Body (HTML supported)</Label>
+                                <Textarea
+                                    id="body"
+                                    value={body}
+                                    onChange={(e) => setBody(e.target.value)}
+                                    placeholder="Email body..."
+                                    rows={6}
+                                    className="font-mono text-xs"
+                                />
+                            </div>
+                        )}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-base font-semibold">Preview & Visual Editor</Label>
+                                <div className="flex items-center gap-2 bg-muted p-1 rounded-lg border">
+                                    <Button
+                                        variant={!isVisualEditing ? "secondary" : "ghost"}
+                                        size="sm"
+                                        onClick={() => setIsVisualEditing(false)}
+                                        className="h-8 px-3 text-xs"
+                                    >
+                                        <Eye className="w-3.5 h-3.5 mr-1.5" />
+                                        Preview
+                                    </Button>
+                                    <Button
+                                        variant={isVisualEditing ? "secondary" : "ghost"}
+                                        size="sm"
+                                        onClick={() => {
+                                            if (!isVisualEditing) {
+                                                setInitialEditBody(body);
+                                            }
+                                            setIsVisualEditing(true);
+                                        }}
+                                        className="h-8 px-3 text-xs"
+                                    >
+                                        <FileText className="w-3.5 h-3.5 mr-1.5" />
+                                        Visual Edit
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            if (confirm("Reset template to default? All custom changes will be lost.")) {
+                                                const newBody = isMarketing ? MARKETING_DEFAULT_BODY : NON_MARKETING_DEFAULT_BODY;
+                                                const newSubject = isMarketing ? MARKETING_DEFAULT_SUBJECT : NON_MARKETING_DEFAULT_SUBJECT;
+                                                
+                                                // Clear storage for a clean reset
+                                                localStorage.removeItem(`${storagePrefix}_body`);
+                                                localStorage.removeItem(`${storagePrefix}_subject`);
+                                                
+                                                setBody(newBody);
+                                                setSubject(newSubject);
+                                                setResetCounter(prev => prev + 1);
+                                                
+                                                if (isVisualEditing) {
+                                                    setInitialEditBody(newBody);
+                                                }
+                                            }
+                                        }}
+                                        className="h-8 px-3 text-xs text-destructive hover:text-destructive"
+                                    >
+                                        <X className="w-3.5 h-3.5 mr-1.5" />
+                                        Reset
+                                    </Button>
+                                </div>
+                            </div>
+                            
+                            {isVisualEditing && (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                                    <AlertCircle className="w-4 h-4 mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold">Visual Edit Mode Active</p>
+                                        <p>You can click anywhere in the preview to edit text. Make sure to keep <b>{"{{name}}"}</b> and <b>{"{{domainName}}"}</b> tags intact for personalization.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className={cn(
+                                "border rounded-lg overflow-hidden bg-white dark:bg-gray-900 transition-all duration-300",
+                                isVisualEditing ? "ring-2 ring-primary ring-offset-2" : ""
+                            )}>
                                 <iframe
-                                    srcDoc={body
-                                        .replace(/\{\{name\}\}/gi, contacts[0]?.name || 'John Doe')
-                                        .replace(/\{\{domainName\}\}/gi, contacts[0]?.domainName || 'example.com')}
-                                    className="w-full h-[500px] border-0"
+                                    id="template-preview-iframe"
+                                    key={isVisualEditing ? `editor-${resetCounter}` : `preview-${resetCounter}`}
+                                    srcDoc={isVisualEditing 
+                                        ? initialEditBody 
+                                        : body
+                                            .replace(/\{\{name\}\}/gi, contacts[0]?.name || 'John Doe')
+                                            .replace(/\{\{domainName\}\}/gi, contacts[0]?.domainName || 'example.com')}
+                                    className="w-full h-[600px] border-0"
                                     title="Email Preview"
                                 />
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className={cn(
+                            isMarketing ? "flex justify-center" : "grid grid-cols-2 gap-3"
+                        )}>
                             <Button
                                 onClick={sendEmails}
                                 disabled={isSending || contacts.length === 0}
-                                className="flex-1"
+                                className={cn(isMarketing ? "w-full max-w-md" : "flex-1")}
                                 size="lg"
                             >
                                 {isSending ? (
@@ -1141,74 +1274,82 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                     </>
                                 )}
                             </Button>
-                            <Button
-                                onClick={sendEmailAndSms}
-                                disabled={isSending || contacts.length === 0}
-                                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
-                                size="lg"
-                            >
-                                {isSending ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                        Sending...
-                                    </>
-                                ) : (
-                                    <>
-                                        <MessageSquare className="h-5 w-5 mr-2" />
-                                        Send Email & WhatsApp
-                                    </>
-                                )}
-                            </Button>
-                            <Button
-                                onClick={sendCalls}
-                                disabled={isSending || contacts.length === 0}
-                                className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-                                size="lg"
-                            >
-                                {isSending ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                        Calling...
-                                    </>
-                                ) : (
-                                    <>
-                                        <PhoneCall className="h-5 w-5 mr-2" />
-                                        Call (One by One)
-                                    </>
-                                )}
-                            </Button>
-                            <Button
-                                onClick={sendEmailSequence}
-                                disabled={isSending || contacts.length === 0}
-                                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                                size="lg"
-                            >
-                                {isSending ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                                        Starting Sequence...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Zap className="h-5 w-5 mr-2" />
-                                        Start 4-Stage Automated Sequence
-                                    </>
-                                )}
-                            </Button>
+                            {!isMarketing && (
+                                <>
+                                    <Button
+                                        onClick={sendEmailAndSms}
+                                        disabled={isSending || contacts.length === 0}
+                                        className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                                        size="lg"
+                                    >
+                                        {isSending ? (
+                                            <>
+                                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                                Sending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <MessageSquare className="h-5 w-5 mr-2" />
+                                                Send Email & WhatsApp
+                                            </>
+                                        )}
+                                    </Button>
+                                    <Button
+                                        onClick={sendCalls}
+                                        disabled={isSending || contacts.length === 0}
+                                        className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                                        size="lg"
+                                    >
+                                        {isSending ? (
+                                            <>
+                                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                                Calling...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <PhoneCall className="h-5 w-5 mr-2" />
+                                                Call (One by One)
+                                            </>
+                                        )}
+                                    </Button>
+                                    <Button
+                                        onClick={sendEmailSequence}
+                                        disabled={isSending || contacts.length === 0}
+                                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                        size="lg"
+                                    >
+                                        {isSending ? (
+                                            <>
+                                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                                Starting Sequence...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Zap className="h-5 w-5 mr-2" />
+                                                Start 4-Stage Automated Sequence
+                                            </>
+                                        )}
+                                    </Button>
+                                </>
+                            )}
                         </div>
                         <div className="flex flex-col gap-1 items-center mt-2">
                             <p className="text-xs text-muted-foreground text-center">
                                 <b>Bulk Emails:</b> Sends 1 email now to every row (fast, email only).
                             </p>
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold text-center">
-                                <b>Email & WhatsApp:</b> Sends both Email + WhatsApp instantly to every row (no calls).
-                            </p>
-                            <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold text-center">
-                                <b>Call:</b> Calls contacts one by one via VAPI. Transcripts saved automatically.
-                            </p>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
-                                <b>Automated Sequence:</b> Sends Email & WhatsApp instantly → 0.2s Wait → VAPI Call → Then next row.
-                            </p>
+                            {!isMarketing && (
+                                <>
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold text-center">
+                                        <b>Email & WhatsApp:</b> Sends both Email + WhatsApp instantly to every row (no calls).
+                                    </p>
+                                    <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold text-center">
+                                        <b>Call:</b> Calls contacts one by one via VAPI. Transcripts saved automatically.
+                                    </p>
+                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold text-center">
+                                        <b>Automated Sequence:</b> Sends Email & WhatsApp instantly → 0.2s Wait → VAPI Call → Then next row.
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
