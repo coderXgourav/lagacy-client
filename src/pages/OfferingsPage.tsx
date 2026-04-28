@@ -274,7 +274,15 @@ export default function OfferingsPage() {
       route: "/pipeline",
       beta: true,
     },
-
+    {
+      id: "lead-domination",
+      title: "LEAD DOMINATION SYSTEM",
+      description: "Autonomous 4-step lead dominance: CSV Upload, Data Cleaning, Telephone Filtering, and Owner/LinkedIn/Email extraction.",
+      icon: Zap,
+      available: true,
+      route: "/lead-domination",
+      beta: true,
+    },
   ];
 
   return (

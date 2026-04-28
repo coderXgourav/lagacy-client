@@ -77,6 +77,7 @@ import YoutubeAutomationPage from "./pages/YoutubeAutomationPage";
 import FacebookAutomationPage from "./pages/FacebookAutomationPage";
 import TwitterAutomationPage from "./pages/TwitterAutomationPage";
 import JsonConverterPage from "./pages/JsonConverterPage";
+import LeadDominationPage from "./pages/LeadDominationPage";
 import { LeadEngineLayout } from "./components/layout/LeadEngineLayout";
 const queryClient = new QueryClient();
 
@@ -190,6 +191,7 @@ const App = () => (
               <Route path="/json-converter" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route index element={<JsonConverterPage />} />
               </Route>
+              <Route path="/lead-domination" element={<ProtectedRoute><LeadDominationPage /></ProtectedRoute>} />
               <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
                 <Route index element={<LeadEngineDashboard />} />
               </Route>

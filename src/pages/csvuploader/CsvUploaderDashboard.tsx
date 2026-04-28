@@ -319,10 +319,21 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         return () => clearInterval(interval);
     }, [isSending, stats?.sequences?.active, stats?.currentAction, fetchStats]);
 
-    // Persistence effects
+    // Persistence effects — skip localStorage for large datasets to avoid quota overflow
     useEffect(() => {
         if (contacts.length > 0) {
-            localStorage.setItem(`${storagePrefix}_contacts`, JSON.stringify(contacts));
+            // Only persist to localStorage if under 500 contacts to avoid ~5MB quota overflow
+            if (contacts.length <= 500) {
+                try {
+                    localStorage.setItem(`${storagePrefix}_contacts`, JSON.stringify(contacts));
+                } catch (e) {
+                    console.warn('localStorage quota exceeded, skipping contacts persistence', e);
+                    localStorage.removeItem(`${storagePrefix}_contacts`);
+                }
+            } else {
+                console.log(`Skipping localStorage persistence for ${contacts.length} contacts (too large)`);
+                localStorage.removeItem(`${storagePrefix}_contacts`);
+            }
         } else {
             localStorage.removeItem(`${storagePrefix}_contacts`);
         }
@@ -377,19 +388,19 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
     };
 
     const extractContactsFromData = (headers: string[], rows: any[][]): Contact[] => {
-        const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'name', 'contact', 'person', 'first', 'last'];
-        const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization'];
+        const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'fullname', 'name', 'contact', 'person', 'first', 'last', 'customer', 'client', 'lead', 'owner', 'recipient', 'sender', 'fname', 'lname', 'first_name', 'last_name', 'firstname', 'lastname', 'contact_name', 'customer_name', 'lead_name'];
+        const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization', 'file'];
 
-        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'address'];
-        const emailExcludes = ['postal', 'physical'];
+        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'email_address', 'emailaddress', 'e_mail', 'email_id', 'emailid', 'address'];
+        const emailExcludes = ['postal', 'physical', 'street', 'ip'];
 
-        const numberKeywords = ['number', 'phone', 'phonenumber', 'mobile', 'tel', 'contact_phone', 'contact_number', 'registrant_phone', 'cell'];
-        const numberExcludes = ['fax', 'extension', 'office'];
+        const numberKeywords = ['number', 'phone', 'phonenumber', 'phone_number', 'mobile', 'mobile_number', 'mobilenumber', 'tel', 'telephone', 'contact_phone', 'contact_number', 'registrant_phone', 'cell', 'cellphone', 'cell_phone', 'whatsapp', 'sms', 'sms_number', 'call', 'dial', 'ph', 'mob', 'contact_no', 'phone_no', 'mobile_no', 'ph_no', 'mob_no', 'msisdn', 'landline'];
+        const numberExcludes = ['fax', 'extension'];
 
-        const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation', 'location'];
-        const countryExcludes = ['code', 'domain'];
+        const countryKeywords = ['country', 'registrant_country', 'country_code', 'nation', 'location', 'region', 'state', 'territory'];
+        const countryExcludes = ['domain'];
 
-        const domainKeywords = ['domainname', 'domain', 'website', 'url'];
+        const domainKeywords = ['domainname', 'domain', 'website', 'url', 'site', 'web'];
         const domainExcludes = [];
 
         // Helper to find index with priority
@@ -407,6 +418,28 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         let countryIndex = findBestIndex(countryKeywords, countryExcludes);
         let domainIndex = findBestIndex(domainKeywords, domainExcludes);
 
+        // AUTO-DETECT FALLBACK: If key columns not found by header name, scan data values
+        if (emailIndex === -1 || numberIndex === -1) {
+            const sampleRows = rows.slice(0, Math.min(20, rows.length));
+            for (let col = 0; col < (headers.length || (sampleRows[0]?.length || 0)); col++) {
+                let emailMatches = 0;
+                let phoneMatches = 0;
+                for (const row of sampleRows) {
+                    const val = String(row[col] || '').trim();
+                    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) emailMatches++;
+                    if (/^\+?\d[\d\s\-().]{6,}$/.test(val)) phoneMatches++;
+                }
+                if (emailIndex === -1 && emailMatches >= sampleRows.length * 0.3) {
+                    emailIndex = col;
+                    console.log(`Auto-detected email column at index ${col} (${emailMatches}/${sampleRows.length} matches)`);
+                }
+                if (numberIndex === -1 && phoneMatches >= sampleRows.length * 0.3) {
+                    numberIndex = col;
+                    console.log(`Auto-detected phone column at index ${col} (${phoneMatches}/${sampleRows.length} matches)`);
+                }
+            }
+        }
+
         // Fallback: If no email header found, the headers might be the first data row...
         if (emailIndex === -1 && rows.length > 0) {
             const headerIsEmail = headers.findIndex(h => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(h));
@@ -416,9 +449,10 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             }
         }
 
-        console.log('Mapping Debug:', { headers, nameIndex, emailIndex, numberIndex, countryIndex });
+        console.log('Column Mapping:', { headers: headers.slice(0, 10), nameIndex, emailIndex, numberIndex, countryIndex, domainIndex, totalRows: rows.length });
 
         const extractedContacts: Contact[] = [];
+        let skippedCount = 0;
 
         for (const values of rows) {
             if (!values || values.length === 0) continue;
@@ -430,20 +464,29 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                 country: countryIndex >= 0 ? getValue(values[countryIndex]) : '',
                 domainName: domainIndex >= 0 ? getValue(values[domainIndex]) : ''
             };
-            console.log('Extracted contact row:', contact);
+            // Only log first few rows to avoid console flooding
+            if (extractedContacts.length < 3) {
+                console.log('Sample extracted contact row:', contact);
+            }
 
-            // Only add if has valid email
-            if (contact.email && contact.email.includes('@')) {
+            // Include contact if it has a valid email OR a valid phone number
+            const hasValidEmail = contact.email && contact.email.includes('@');
+            const hasValidPhone = contact.number && contact.number.trim().length >= 7;
+            if (hasValidEmail || hasValidPhone) {
                 extractedContacts.push(contact);
+            } else {
+                skippedCount++;
             }
         }
 
+        console.log(`Extraction complete: ${extractedContacts.length} valid contacts, ${skippedCount} skipped (no email or phone)`);
         return extractedContacts;
     };
 
     const parseCSV = (text: string): Contact[] => {
         const result = Papa.parse(text, { skipEmptyLines: true });
         const rows = result.data as any[][];
+        console.log('CSV Raw Rows:', rows.length);
         if (rows.length < 2) {
             // If there's only 1 row, maybe it's just data with no headers
             if (rows.length === 1) {
@@ -461,16 +504,46 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
     const parseExcel = (data: ArrayBuffer): Contact[] => {
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
-        if (jsonData.length < 2) return [];
-
-        const headers = jsonData[0].map(h => String(h || '').trim().toLowerCase());
-        const rows = jsonData.slice(1);
-
-        return extractContactsFromData(headers, rows);
+        
+        console.log(`Excel workbook has ${workbook.SheetNames.length} sheets:`, workbook.SheetNames);
+        
+        let allContacts: Contact[] = [];
+        
+        // Read ALL sheets, not just the first one
+        for (const sheetName of workbook.SheetNames) {
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
+            
+            console.log(`Sheet "${sheetName}": ${jsonData.length} total rows (including header)`);
+            
+            if (jsonData.length < 2) {
+                console.log(`Sheet "${sheetName}" has too few rows, skipping`);
+                continue;
+            }
+            
+            const headers = jsonData[0].map(h => String(h || '').trim().toLowerCase());
+            const rows = jsonData.slice(1);
+            
+            // Filter out completely empty rows
+            const nonEmptyRows = rows.filter(row => row.some(cell => cell !== '' && cell !== null && cell !== undefined));
+            console.log(`Sheet "${sheetName}": ${nonEmptyRows.length} non-empty data rows, headers:`, headers.slice(0, 8));
+            
+            const extracted = extractContactsFromData(headers, nonEmptyRows);
+            console.log(`Sheet "${sheetName}": extracted ${extracted.length} contacts`);
+            allContacts = allContacts.concat(extracted);
+        }
+        
+        // Deduplicate by email+number combo
+        const seen = new Set<string>();
+        const unique = allContacts.filter(c => {
+            const key = `${c.email}|${c.number}`.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        
+        console.log(`Total from all sheets: ${allContacts.length}, after dedup: ${unique.length}`);
+        return unique;
     };
 
     const processFile = (file: File) => {
@@ -493,18 +566,21 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                     const text = new TextDecoder().decode(buffer);
                     extracted = parseCSV(text);
                 }
+                console.log('Total extracted contacts:', extracted.length);
 
                 if (extracted.length === 0) {
                     toast({
                         title: "No Contacts Found",
-                        description: "Could not find any rows manually mapping to valid emails.",
+                        description: "Could not find any rows with valid emails or phone numbers.",
                         variant: "destructive"
                     });
                     // Still set state to clear errors
                 } else {
+                    const withEmails = extracted.filter(c => c.email && c.email.includes('@')).length;
+                    const withPhones = extracted.filter(c => c.number && c.number.trim().length >= 7).length;
                     toast({
                         title: `File Parsed Successfully`,
-                        description: `Found ${extracted.length} contacts with valid emails`,
+                        description: `Found ${extracted.length} contacts (${withEmails} with emails, ${withPhones} with phone numbers)`,
                     });
                 }
 
@@ -612,10 +688,9 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             }
 
             if (data.success) {
-                setSendResults(data.results);
                 toast({
-                    title: "Emails Sent!",
-                    description: `${data.summary.sent} sent, ${data.summary.failed} failed`,
+                    title: "📧 Bulk Email Started!",
+                    description: data.message || `Sending emails to ${contacts.length} contacts in background.`,
                 });
             } else {
                 toast({
@@ -825,7 +900,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         setIsCancelling(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/csv-uploader/cancel-sequences`, {
+            const response = await fetch(`${API_BASE_URL}/csv-uploader/stop-all`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -834,15 +909,16 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             const data = await response.json();
             if (data.success) {
                 toast({
-                    title: "Sequences Cancelled",
-                    description: "All active background sequences have been stopped.",
+                    title: "🛑 All Processes Stopped",
+                    description: data.message || "All email, SMS, call, and sequence processes have been stopped.",
                 });
+                setIsSending(false);
                 fetchStats();
             }
         } catch (error) {
             toast({
                 title: "Error",
-                description: "Failed to cancel sequences",
+                description: "Failed to stop processes",
                 variant: "destructive"
             });
         } finally {
@@ -1101,7 +1177,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {contacts.map((contact, i) => {
+                                        {contacts.slice(0, 100).map((contact, i) => {
                                             const result = sendResults?.find(r => r.email === contact.email);
                                             return (
                                                 <tr key={i} className="border-t">
@@ -1130,6 +1206,11 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                     </tbody>
                                 </table>
                             </div>
+                            {contacts.length > 100 && (
+                                <p className="text-sm text-muted-foreground text-center py-2">
+                                    Showing first 100 of {contacts.length} contacts. All {contacts.length} will be processed when you send.
+                                </p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
