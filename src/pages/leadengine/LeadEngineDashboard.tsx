@@ -30,6 +30,13 @@ export default function LeadEngineDashboard() {
   const [niche, setNiche] = useState("marketing");
   const [country, setCountry] = useState("US");
   const [limit, setLimit] = useState("10");
+  const [platforms, setPlatforms] = useState<string[]>(["meta", "google", "tiktok"]);
+
+  const togglePlatform = (p: string) => {
+    setPlatforms(prev => 
+      prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+    );
+  };
 
   const { data: statsData, isLoading: loadingStats } = useQuery({
     queryKey: ["leadEngineStats"],
@@ -46,10 +53,10 @@ export default function LeadEngineDashboard() {
   const triggerMutation = useMutation({
     mutationFn: (params: { niche: string; country: string; limit: number }) =>
       api.leadEngine.triggerCampaign(params),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Campaign Initiated",
-        description: `Successfully processed ${data.count || 0} leads.`,
+        description: data.message || "The engine is now running in the background. Leads will appear in the table shortly.",
       });
       queryClient.invalidateQueries({ queryKey: ["leadEngineStats"] });
       queryClient.invalidateQueries({ queryKey: ["leadEngineLeads"] });
@@ -64,7 +71,15 @@ export default function LeadEngineDashboard() {
   });
 
   const handleTrigger = () => {
-    triggerMutation.mutate({ niche, country, limit: parseInt(limit) || 10 });
+    if (platforms.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No platforms selected",
+        description: "Please select at least one platform (Meta, Google, or TikTok).",
+      });
+      return;
+    }
+    triggerMutation.mutate({ niche, country, limit: parseInt(limit) || 10, platforms });
   };
 
   const stats = statsData?.stats || { hot: 0, nurture: 0, cold: 0, total: 0 };
@@ -160,6 +175,23 @@ export default function LeadEngineDashboard() {
                 value={limit} 
                 onChange={(e) => setLimit(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <label className="text-sm font-medium">Select Platforms</label>
+              <div className="grid grid-cols-1 gap-2">
+                {['meta', 'google', 'tiktok'].map(p => (
+                  <label key={p} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer border border-transparent hover:border-border transition-all">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      checked={platforms.includes(p)}
+                      onChange={() => togglePlatform(p)}
+                    />
+                    <span className="text-sm capitalize">{p} Ads</span>
+                  </label>
+                ))}
+              </div>
             </div>
             <Button 
               className="w-full gap-2" 

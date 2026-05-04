@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+console.log('[API] Resolved Base URL:', API_BASE_URL);
 
 // Helper function for API calls
 async function apiCall(endpoint: string, options: RequestInit = {}) {
@@ -22,6 +23,7 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
   };
 
   try {
+    console.log(`[API] Fetching: ${url}`);
     const response = await fetch(url, config);
     const data = await response.json();
 
@@ -538,7 +540,7 @@ export const kyptronixApi = {
 
 // Lead Engine API
 export const leadEngineApi = {
-  triggerCampaign: (params: { niche: string; country: string; limit: number }) => 
+  triggerCampaign: (params: { niche: string; country: string; limit: number; platforms: string[] }) => 
     apiCall('/lead-engine/trigger', {
       method: 'POST',
       body: JSON.stringify(params),
