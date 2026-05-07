@@ -262,7 +262,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         return saved ? JSON.parse(saved) : [];
     });
     const [subject, setSubject] = useState(() =>
-        localStorage.getItem(`${storagePrefix}_subject`) || 
+        localStorage.getItem(`${storagePrefix}_subject`) ||
         (isMarketing ? MARKETING_DEFAULT_SUBJECT : NON_MARKETING_DEFAULT_SUBJECT)
     );
     const [body, setBody] = useState(() =>
@@ -504,35 +504,35 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
     const parseExcel = (data: ArrayBuffer): Contact[] => {
         const workbook = XLSX.read(data, { type: 'array' });
-        
+
         console.log(`Excel workbook has ${workbook.SheetNames.length} sheets:`, workbook.SheetNames);
-        
+
         let allContacts: Contact[] = [];
-        
+
         // Read ALL sheets, not just the first one
         for (const sheetName of workbook.SheetNames) {
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
-            
+
             console.log(`Sheet "${sheetName}": ${jsonData.length} total rows (including header)`);
-            
+
             if (jsonData.length < 2) {
                 console.log(`Sheet "${sheetName}" has too few rows, skipping`);
                 continue;
             }
-            
+
             const headers = jsonData[0].map(h => String(h || '').trim().toLowerCase());
             const rows = jsonData.slice(1);
-            
+
             // Filter out completely empty rows
             const nonEmptyRows = rows.filter(row => row.some(cell => cell !== '' && cell !== null && cell !== undefined));
             console.log(`Sheet "${sheetName}": ${nonEmptyRows.length} non-empty data rows, headers:`, headers.slice(0, 8));
-            
+
             const extracted = extractContactsFromData(headers, nonEmptyRows);
             console.log(`Sheet "${sheetName}": extracted ${extracted.length} contacts`);
             allContacts = allContacts.concat(extracted);
         }
-        
+
         // Deduplicate by email+number combo
         const seen = new Set<string>();
         const unique = allContacts.filter(c => {
@@ -541,7 +541,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             seen.add(key);
             return true;
         });
-        
+
         console.log(`Total from all sheets: ${allContacts.length}, after dedup: ${unique.length}`);
         return unique;
     };
@@ -680,7 +680,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
             });
 
             const data = await response.json();
-            
+
             // Ensure loader shows for at least 800ms to avoid flicker
             const duration = Date.now() - startTime;
             if (duration < 800) {
@@ -995,12 +995,12 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">
-                    {isMarketing ? "CSV Marketing Uploader" : "CSV Uploader Pro"}
+                    {isMarketing ? "CSV Marketing Uploader" : "email+ call flow"}
                 </h1>
                 <p className="text-muted-foreground mt-1">
                     {isMarketing
                         ? "Upload marketing lead CSV or Excel files, extract contacts, and run multi-stage sequences"
-                        : "Upload CSV or Excel files, extract contacts, and send bulk emails"
+                        : "Upload CSV files for automated email and call using vapi ai"
                     }
                 </p>
             </div>
@@ -1285,15 +1285,15 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                             if (confirm("Reset template to default? All custom changes will be lost.")) {
                                                 const newBody = isMarketing ? MARKETING_DEFAULT_BODY : NON_MARKETING_DEFAULT_BODY;
                                                 const newSubject = isMarketing ? MARKETING_DEFAULT_SUBJECT : NON_MARKETING_DEFAULT_SUBJECT;
-                                                
+
                                                 // Clear storage for a clean reset
                                                 localStorage.removeItem(`${storagePrefix}_body`);
                                                 localStorage.removeItem(`${storagePrefix}_subject`);
-                                                
+
                                                 setBody(newBody);
                                                 setSubject(newSubject);
                                                 setResetCounter(prev => prev + 1);
-                                                
+
                                                 if (isVisualEditing) {
                                                     setInitialEditBody(newBody);
                                                 }
@@ -1306,7 +1306,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                     </Button>
                                 </div>
                             </div>
-                            
+
                             {isVisualEditing && (
                                 <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
                                     <AlertCircle className="w-4 h-4 mt-0.5" />
@@ -1324,8 +1324,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
                                 <iframe
                                     id="template-preview-iframe"
                                     key={isVisualEditing ? `editor-${resetCounter}` : `preview-${resetCounter}`}
-                                    srcDoc={isVisualEditing 
-                                        ? initialEditBody 
+                                    srcDoc={isVisualEditing
+                                        ? initialEditBody
                                         : body
                                             .replace(/\{\{name\}\}/gi, contacts[0]?.name || 'John Doe')
                                             .replace(/\{\{domainName\}\}/gi, contacts[0]?.domainName || 'example.com')}

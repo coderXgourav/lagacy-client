@@ -35,13 +35,10 @@ import {
   Laptop,
   Upload,
   Users,
-  Share2,
   TrendingUp,
   Activity,
   Zap,
   Youtube,
-  Facebook,
-  Twitter,
   FileSpreadsheet
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
@@ -126,18 +123,18 @@ export default function OfferingsPage() {
     },
     {
       id: "csv-uploader",
-      title: "CSV Uploader Pro",
+      title: "email+ call flow",
       description:
-        "Bulk upload and process CSV files with advanced validation and data transformation",
+        "Upload CSV files for automated email and call using vapi ai",
       icon: Upload,
       available: true,
       route: "/csv-uploader",
     },
     {
       id: "csv-marketing-uploader",
-      title: "CSV marketing Uploader",
+      title: "Email Buster",
       description:
-        "Specialized marketing campaign uploader with full bulk processing and lead management features",
+        "CSV Marketing Uploader-Upload the CSV or Excel files with full bulk processing",
       icon: Upload,
       available: true,
       route: "/csv-marketing-uploader",
@@ -152,25 +149,6 @@ export default function OfferingsPage() {
       route: "/hr-portal",
     },
     {
-      id: "social-media",
-      title: "Social Media Automation",
-      description:
-        "Automate your social media presence with intelligent scheduling and multi-platform posting",
-      icon: Share2,
-      available: true,
-      route: "/social-media",
-      beta: true,
-    },
-    {
-      id: "source-site-owners",
-      title: "Source Existing Site Owners",
-      description:
-        "Find and connect with owners of existing websites to expand your business reach",
-      icon: Search,
-      available: true,
-      route: "/source-site-owners",
-    },
-    {
       id: "lead-capture",
       title: "Lead Capture (Meta + Google)",
       description:
@@ -180,29 +158,12 @@ export default function OfferingsPage() {
       route: "/lead-capture",
     },
     {
-      id: "pain-signal",
-      title: "Pain Signal",
-      description:
-        "Identify and track customer pain points to tailor your outreach and solutions effectively",
-      icon: Activity,
-      available: true,
-      route: "/pain-signal",
-    },
-    {
       id: "kyptronix-form",
       title: "Kyptronix Form",
       description: "All four form data",
       icon: FileText,
       available: true,
       route: "/kyptronix-form",
-    },
-    {
-      id: "system-role",
-      title: "SYSTEM ROLE",
-      description: "You are the Kyptronix Growth Intelligence Agent.",
-      icon: User,
-      available: true,
-      route: "/system-role",
     },
     {
       id: "lead-pipeline",
@@ -231,24 +192,6 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
-      id: "facebook-automation",
-      title: "FACEBOOK LEAD AUTOMATION",
-      description: "n8n style autonomous 11-step lead engine for high-intent Facebook discovery.",
-      icon: Facebook,
-      available: true,
-      route: "/facebook-automation",
-      beta: true,
-    },
-    {
-      id: "twitter-automation",
-      title: "TWITTER LEAD AUTOMATION",
-      description: "n8n style autonomous 11-step lead engine for high-intent Twitter discovery.",
-      icon: Twitter,
-      available: true,
-      route: "/twitter-automation",
-      beta: true,
-    },
-    {
       id: "json-converter",
       title: "JSON to Excel/CSV Pro",
       description: "Instantly convert raw JSON data or API responses into professional spreadsheets.",
@@ -272,15 +215,6 @@ export default function OfferingsPage() {
       icon: TrendingUp,
       available: true,
       route: "/pipeline",
-      beta: true,
-    },
-    {
-      id: "lead-domination",
-      title: "LEAD DOMINATION SYSTEM",
-      description: "Autonomous 4-step lead dominance: CSV Upload, Data Cleaning, Telephone Filtering, and Owner/LinkedIn/Email extraction.",
-      icon: Zap,
-      available: true,
-      route: "/lead-domination",
       beta: true,
     },
   ];
@@ -354,8 +288,8 @@ export default function OfferingsPage() {
               <Card
                 key={offering.id}
                 className={`h-[280px] flex flex-col shadow-xl border overflow-hidden transition-all duration-300 relative ${offering.available
-                    ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
-                    : "opacity-60 cursor-not-allowed"
+                  ? "hover:shadow-2xl hover:scale-105 cursor-pointer"
+                  : "opacity-60 cursor-not-allowed"
                   } ${offering.beta
                     ? "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-800"
                     : "bg-gradient-to-br from-card via-card to-card/50 border-transparent"
@@ -380,18 +314,18 @@ export default function OfferingsPage() {
                   <div className="flex items-center gap-3 mb-2">
                     <div
                       className={`p-3 rounded-xl ${offering.available
-                          ? offering.beta
-                            ? "bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
-                            : "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
-                          : "bg-muted"
+                        ? offering.beta
+                          ? "bg-amber-100 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+                          : "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                        : "bg-muted"
                         }`}
                     >
                       <Icon
                         className={`h-6 w-6 ${offering.available
-                            ? offering.beta
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-primary"
-                            : "text-muted-foreground"
+                          ? offering.beta
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-primary"
+                          : "text-muted-foreground"
                           }`}
                       />
                     </div>

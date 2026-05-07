@@ -46,7 +46,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -136,7 +136,9 @@ export default function PainSignalPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("reddit");
 
   // Apify Configuration - Reddit
-  const [apifySearchQueries, setApifySearchQueries] = useState<string[]>(["website is not working"]);
+  const [apifySearchQueries, setApifySearchQueries] = useState<string[]>([
+    "website is not working",
+  ]);
   const [newSearchQuery, setNewSearchQuery] = useState("");
   const [apifySortBy, setApifySortBy] = useState("relevance");
   const [apifyTimeFrame, setApifyTimeFrame] = useState("all");
@@ -144,13 +146,18 @@ export default function PainSignalPage() {
   const [apifyMaxPosts, setApifyMaxPosts] = useState(50);
 
   // Apify Configuration - Twitter
-  const [twitterSearchQueries, setTwitterSearchQueries] = useState<string[]>(["need a developer", "website down"]);
+  const [twitterSearchQueries, setTwitterSearchQueries] = useState<string[]>([
+    "need a developer",
+    "website down",
+  ]);
   const [newTwitterQuery, setNewTwitterQuery] = useState("");
   const [twitterSortBy, setTwitterSortBy] = useState("Latest");
   const [twitterMaxTweets, setTwitterMaxTweets] = useState(50);
 
   // Apify Configuration - Facebook
-  const [facebookSearchQueries, setFacebookSearchQueries] = useState<string[]>(["website is not working"]);
+  const [facebookSearchQueries, setFacebookSearchQueries] = useState<string[]>([
+    "website is not working",
+  ]);
   const [newFacebookQuery, setNewFacebookQuery] = useState("");
   const [facebookMaxPosts, setFacebookMaxPosts] = useState(10);
   const [facebookRecentPosts, setFacebookRecentPosts] = useState(false);
@@ -161,25 +168,46 @@ export default function PainSignalPage() {
   const [phOrder, setPhOrder] = useState("RANKING");
 
   // Quora Configuration
-  const [quoraSearchQueries, setQuoraSearchQueries] = useState<string[]>(["need a website", "lead generation help"]);
+  const [quoraSearchQueries, setQuoraSearchQueries] = useState<string[]>([
+    "need a website",
+    "lead generation help",
+  ]);
   const [newQuoraQuery, setNewQuoraQuery] = useState("");
 
   // G2 Configuration
-  const [g2SearchQueries, setG2SearchQueries] = useState<string[]>(["outdated UI", "slow", "buggy", "bad onboarding", "support terrible"]);
+  const [g2SearchQueries, setG2SearchQueries] = useState<string[]>([
+    "outdated UI",
+    "slow",
+    "buggy",
+    "bad onboarding",
+    "support terrible",
+  ]);
   const [newG2Query, setNewG2Query] = useState("");
   const [g2Location, setG2Location] = useState("United States");
 
   // Capterra Configuration
-  const [capterraSearchQueries, setCapterraSearchQueries] = useState<string[]>(["outdated UI", "slow", "buggy", "bad onboarding", "support terrible"]);
+  const [capterraSearchQueries, setCapterraSearchQueries] = useState<string[]>([
+    "outdated UI",
+    "slow",
+    "buggy",
+    "bad onboarding",
+    "support terrible",
+  ]);
   const [newCapterraQuery, setNewCapterraQuery] = useState("");
   const [capterraLocation, setCapterraLocation] = useState("United States");
 
   // IndieHackers Configuration
-  const [ihSearchQueries, setIHSearchQueries] = useState<string[]>(["website is not working", "looking for a developer"]);
+  const [ihSearchQueries, setIHSearchQueries] = useState<string[]>([
+    "website is not working",
+    "looking for a developer",
+  ]);
   const [newIHQuery, setNewIHQuery] = useState("");
 
   // Blog Configuration
-  const [blogSearchQueries, setBlogSearchQueries] = useState<string[]>(["customer pain points", "website review"]);
+  const [blogSearchQueries, setBlogSearchQueries] = useState<string[]>([
+    "customer pain points",
+    "website review",
+  ]);
   const [newBlogQuery, setNewBlogQuery] = useState("");
 
   const getAuthHeaders = () => {
@@ -236,7 +264,10 @@ export default function PainSignalPage() {
   };
 
   const addSearchQuery = () => {
-    if (newSearchQuery.trim() && !apifySearchQueries.includes(newSearchQuery.trim())) {
+    if (
+      newSearchQuery.trim() &&
+      !apifySearchQueries.includes(newSearchQuery.trim())
+    ) {
       setApifySearchQueries([...apifySearchQueries, newSearchQuery.trim()]);
       setNewSearchQuery("");
     }
@@ -247,8 +278,14 @@ export default function PainSignalPage() {
   };
 
   const addTwitterQuery = () => {
-    if (newTwitterQuery.trim() && !twitterSearchQueries.includes(newTwitterQuery.trim())) {
-      setTwitterSearchQueries([...twitterSearchQueries, newTwitterQuery.trim()]);
+    if (
+      newTwitterQuery.trim() &&
+      !twitterSearchQueries.includes(newTwitterQuery.trim())
+    ) {
+      setTwitterSearchQueries([
+        ...twitterSearchQueries,
+        newTwitterQuery.trim(),
+      ]);
       setNewTwitterQuery("");
     }
   };
@@ -258,18 +295,29 @@ export default function PainSignalPage() {
   };
 
   const addFacebookQuery = () => {
-    if (newFacebookQuery.trim() && !facebookSearchQueries.includes(newFacebookQuery.trim())) {
-      setFacebookSearchQueries([...facebookSearchQueries, newFacebookQuery.trim()]);
+    if (
+      newFacebookQuery.trim() &&
+      !facebookSearchQueries.includes(newFacebookQuery.trim())
+    ) {
+      setFacebookSearchQueries([
+        ...facebookSearchQueries,
+        newFacebookQuery.trim(),
+      ]);
       setNewFacebookQuery("");
     }
   };
 
   const removeFacebookQuery = (index: number) => {
-    setFacebookSearchQueries(facebookSearchQueries.filter((_, i) => i !== index));
+    setFacebookSearchQueries(
+      facebookSearchQueries.filter((_, i) => i !== index),
+    );
   };
 
   const addQuoraQuery = () => {
-    if (newQuoraQuery.trim() && !quoraSearchQueries.includes(newQuoraQuery.trim())) {
+    if (
+      newQuoraQuery.trim() &&
+      !quoraSearchQueries.includes(newQuoraQuery.trim())
+    ) {
       setQuoraSearchQueries([...quoraSearchQueries, newQuoraQuery.trim()]);
       setNewQuoraQuery("");
     }
@@ -291,14 +339,22 @@ export default function PainSignalPage() {
   };
 
   const addCapterraQuery = () => {
-    if (newCapterraQuery.trim() && !capterraSearchQueries.includes(newCapterraQuery.trim())) {
-      setCapterraSearchQueries([...capterraSearchQueries, newCapterraQuery.trim()]);
+    if (
+      newCapterraQuery.trim() &&
+      !capterraSearchQueries.includes(newCapterraQuery.trim())
+    ) {
+      setCapterraSearchQueries([
+        ...capterraSearchQueries,
+        newCapterraQuery.trim(),
+      ]);
       setNewCapterraQuery("");
     }
   };
 
   const removeCapterraQuery = (index: number) => {
-    setCapterraSearchQueries(capterraSearchQueries.filter((_, i) => i !== index));
+    setCapterraSearchQueries(
+      capterraSearchQueries.filter((_, i) => i !== index),
+    );
   };
 
   const addIHQuery = () => {
@@ -313,7 +369,10 @@ export default function PainSignalPage() {
   };
 
   const addBlogQuery = () => {
-    if (newBlogQuery.trim() && !blogSearchQueries.includes(newBlogQuery.trim())) {
+    if (
+      newBlogQuery.trim() &&
+      !blogSearchQueries.includes(newBlogQuery.trim())
+    ) {
       setBlogSearchQueries([...blogSearchQueries, newBlogQuery.trim()]);
       setNewBlogQuery("");
     }
@@ -329,37 +388,37 @@ export default function PainSignalPage() {
 
       const payload: Record<string, unknown> = {};
 
-      if (selectedPlatform === 'reddit') {
+      if (selectedPlatform === "reddit") {
         payload.searchQueries = apifySearchQueries;
         payload.sort = apifySortBy;
         payload.timeRange = apifyTimeFrame;
         payload.subreddit = apifySubreddit;
         payload.maxPosts = apifyMaxPosts;
-      } else if (selectedPlatform === 'twitter') {
+      } else if (selectedPlatform === "twitter") {
         payload.twitterConfig = {
           searchQueries: twitterSearchQueries,
           sort: twitterSortBy,
-          maxItems: twitterMaxTweets
+          maxItems: twitterMaxTweets,
         };
-      } else if (selectedPlatform === 'facebook') {
+      } else if (selectedPlatform === "facebook") {
         payload.facebookConfig = {
           searchQueries: facebookSearchQueries,
           maxPosts: facebookMaxPosts,
-          recent_posts: facebookRecentPosts
+          recent_posts: facebookRecentPosts,
         };
         payload.producthuntConfig = {
           maxPosts: phMaxPosts,
           topic: phTopic || undefined,
-          order: phOrder
+          order: phOrder,
         };
-      } else if (selectedPlatform === 'quora') {
+      } else if (selectedPlatform === "quora") {
         // For Quora, we might want to run sequentially for each keyword
         // usage of the /scrape endpoint or a new structure in backend
         // For now, let's assume valid scraping of the first keyword or pass all
-        // The backend runPipeline adaptation for Quora needs to be handled. 
+        // The backend runPipeline adaptation for Quora needs to be handled.
         // IF the backend only supports runPipeline with specific configs, we might need to adjust.
         // But the user asked for "check by putting this keyword".
-        // Let's invoke the /scrape endpoint directly for immediate results OR 
+        // Let's invoke the /scrape endpoint directly for immediate results OR
         // integrate into the pipeline if the backend supports it.
         // THE CURRENT BACKEND PIPELINE (painSignalScheduler) does NOT seem to support Quora yet.
         // It only supports apify/twitter/facebook/ph.
@@ -371,11 +430,11 @@ export default function PainSignalPage() {
         // Let's stick to the pattern but maybe trigger immediate search for Quora commands?
         // Or better yet, just pass the config and let backend handle (needs backend scheduler update).
 
-        // Since I only updated /scrape endpoint (synchronous), I should probably 
-        // add a specific "Search Quora" button or handle it here by calling 
+        // Since I only updated /scrape endpoint (synchronous), I should probably
+        // add a specific "Search Quora" button or handle it here by calling
         // the scrape endpoint for each keyword.
 
-        // Let's call the synchronous endpoint for now as a "Quick Check" 
+        // Let's call the synchronous endpoint for now as a "Quick Check"
         // inside the UI specific to Quora, or modify this runPipeline to handle it.
 
         // Let's add a specialized handler for Quora in the UI tab instead of generic pipeline.
@@ -389,21 +448,23 @@ export default function PainSignalPage() {
       });
       const data = await response.json();
       if (data.success) {
-        toast.success(`Pipeline started for ${selectedPlatform === 'reddit' ? 'Reddit' : selectedPlatform === 'twitter' ? 'Twitter' : selectedPlatform === 'facebook' ? 'Facebook' : 'Product Hunt'}`);
+        toast.success(
+          `Pipeline started for ${selectedPlatform === "reddit" ? "Reddit" : selectedPlatform === "twitter" ? "Twitter" : selectedPlatform === "facebook" ? "Facebook" : "Product Hunt"}`,
+        );
         setShowConfigPanel(false);
 
         // Poll for completion
         const pollInterval = setInterval(async () => {
-          await fetchStats();
-          await fetchSignals();
+          // await fetchStats();
+          // await fetchSignals();
         }, 10000);
 
         // Stop polling after 3 minutes
         setTimeout(() => {
           clearInterval(pollInterval);
           setPipelineRunning(false);
-          fetchStats();
-          fetchSignals();
+          // fetchStats();
+          // fetchSignals();
         }, 180000);
       } else {
         toast.error(data.error || "Failed to start pipeline");
@@ -478,13 +539,13 @@ export default function PainSignalPage() {
     if (selectedIds.length === signals.length && signals.length > 0) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(signals.map(s => s._id));
+      setSelectedIds(signals.map((s) => s._id));
     }
   };
 
   const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter(i => i !== id));
+      setSelectedIds(selectedIds.filter((i) => i !== id));
     } else {
       setSelectedIds([...selectedIds, id]);
     }
@@ -513,7 +574,10 @@ export default function PainSignalPage() {
 
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedIds.length} signals?`)) return;
+    if (
+      !confirm(`Are you sure you want to delete ${selectedIds.length} signals?`)
+    )
+      return;
 
     try {
       toast.info(`Deleting ${selectedIds.length} signals...`);
@@ -535,14 +599,14 @@ export default function PainSignalPage() {
   };
 
   useEffect(() => {
-    fetchStats();
-    fetchSignals();
+    // fetchStats();
+    // fetchSignals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchSignals();
+      // fetchSignals();
     }, 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -603,22 +667,41 @@ export default function PainSignalPage() {
                 <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
                   <Target className="h-7 w-7 text-white" />
                 </div>
-                <Badge className="bg-primary/20 text-primary border-primary/30">Intent Detection</Badge>
+                <Badge className="bg-primary/20 text-primary border-primary/30">
+                  Intent Detection
+                </Badge>
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
                 Pain Signal Detection
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl">
-                AI-powered buying intent signals from social media. Auto-detect and qualify high-value leads based on their problems.
+                AI-powered buying intent signals from social media. Auto-detect
+                and qualify high-value leads based on their problems.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <Button size="lg" className="gap-2 shadow-lg" onClick={runPipeline} disabled={pipelineRunning}>
-                  {pipelineRunning ? <Activity className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                <Button
+                  size="lg"
+                  className="gap-2 shadow-lg"
+                  onClick={runPipeline}
+                  disabled={pipelineRunning}
+                >
+                  {pipelineRunning ? (
+                    <Activity className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
                   {pipelineRunning ? "Running Pipeline..." : "Run Pipeline Now"}
                 </Button>
-                <Button size="lg" variant="outline" className="gap-2 bg-background/50 backdrop-blur-sm shadow-sm" onClick={() => setShowConfigPanel(!showConfigPanel)}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 bg-background/50 backdrop-blur-sm shadow-sm"
+                  onClick={() => setShowConfigPanel(!showConfigPanel)}
+                >
                   <Filter className="h-4 w-4" />
-                  {showConfigPanel ? "Hide Sources Config" : "Configure Sources"}
+                  {showConfigPanel
+                    ? "Hide Sources Config"
+                    : "Configure Sources"}
                 </Button>
               </div>
             </div>
@@ -637,7 +720,12 @@ export default function PainSignalPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="reddit" value={selectedPlatform} onValueChange={setSelectedPlatform} className="w-full">
+              <Tabs
+                defaultValue="reddit"
+                value={selectedPlatform}
+                onValueChange={setSelectedPlatform}
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-7 mb-6">
                   <TabsTrigger value="reddit">Reddit</TabsTrigger>
                   <TabsTrigger value="twitter">Twitter</TabsTrigger>
@@ -653,11 +741,15 @@ export default function PainSignalPage() {
                 {/* Reddit Tab */}
                 <TabsContent value="reddit" className="space-y-6">
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">Search Queries</label>
+                    <label className="text-sm font-medium">
+                      Search Queries
+                    </label>
                     <div className="space-y-2">
                       {apifySearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -686,7 +778,11 @@ export default function PainSignalPage() {
                         onKeyDown={(e) => e.key === "Enter" && addSearchQuery()}
                         className="flex-1"
                       />
-                      <Button onClick={addSearchQuery} variant="secondary" className="gap-1">
+                      <Button
+                        onClick={addSearchQuery}
+                        variant="secondary"
+                        className="gap-1"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -695,21 +791,33 @@ export default function PainSignalPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Sort by</label>
-                      <Select value={apifySortBy} onValueChange={setApifySortBy}>
+                      <Select
+                        value={apifySortBy}
+                        onValueChange={setApifySortBy}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="relevance">Relevance</SelectItem>
-                          <SelectItem value="hot">Hot | trending posts</SelectItem>
-                          <SelectItem value="new">New | latest posts</SelectItem>
-                          <SelectItem value="top">Top | highest rated</SelectItem>
+                          <SelectItem value="hot">
+                            Hot | trending posts
+                          </SelectItem>
+                          <SelectItem value="new">
+                            New | latest posts
+                          </SelectItem>
+                          <SelectItem value="top">
+                            Top | highest rated
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Time range</label>
-                      <Select value={apifyTimeFrame} onValueChange={setApifyTimeFrame}>
+                      <Select
+                        value={apifyTimeFrame}
+                        onValueChange={setApifyTimeFrame}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -730,13 +838,17 @@ export default function PainSignalPage() {
                         min="10"
                         max="500"
                         value={apifyMaxPosts}
-                        onChange={(e) => setApifyMaxPosts(parseInt(e.target.value) || 50)}
+                        onChange={(e) =>
+                          setApifyMaxPosts(parseInt(e.target.value) || 50)
+                        }
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Subreddit (optional)</label>
+                    <label className="text-sm font-medium">
+                      Subreddit (optional)
+                    </label>
                     <Input
                       placeholder="e.g., entrepreneur, smallbusiness"
                       value={apifySubreddit}
@@ -748,7 +860,10 @@ export default function PainSignalPage() {
                 {/* Twitter Tab */}
                 <TabsContent value="twitter" className="space-y-6">
                   <div className="p-4 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-200 flex items-center gap-2">
-                    <span>ℹ️ Using Apify Actor: <strong>Twitter Scraper (nfp1fpt5gUlBwPcor)</strong></span>
+                    <span>
+                      ℹ️ Using Apify Actor:{" "}
+                      <strong>Twitter Scraper (nfp1fpt5gUlBwPcor)</strong>
+                    </span>
                   </div>
 
                   <div className="space-y-3">
@@ -756,7 +871,9 @@ export default function PainSignalPage() {
                     <div className="space-y-2">
                       {twitterSearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -782,10 +899,16 @@ export default function PainSignalPage() {
                         placeholder="e.g. need a developer, website down"
                         value={newTwitterQuery}
                         onChange={(e) => setNewTwitterQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addTwitterQuery()}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && addTwitterQuery()
+                        }
                         className="flex-1"
                       />
-                      <Button onClick={addTwitterQuery} variant="secondary" className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                      <Button
+                        onClick={addTwitterQuery}
+                        variant="secondary"
+                        className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -794,7 +917,10 @@ export default function PainSignalPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Sort by</label>
-                      <Select value={twitterSortBy} onValueChange={setTwitterSortBy}>
+                      <Select
+                        value={twitterSortBy}
+                        onValueChange={setTwitterSortBy}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -811,7 +937,9 @@ export default function PainSignalPage() {
                         min="10"
                         max="1000"
                         value={twitterMaxTweets}
-                        onChange={(e) => setTwitterMaxTweets(parseInt(e.target.value) || 50)}
+                        onChange={(e) =>
+                          setTwitterMaxTweets(parseInt(e.target.value) || 50)
+                        }
                       />
                     </div>
                   </div>
@@ -820,15 +948,22 @@ export default function PainSignalPage() {
                 {/* Facebook Tab */}
                 <TabsContent value="facebook" className="space-y-6">
                   <div className="p-4 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-200 flex items-center gap-2">
-                    <span>ℹ️ Using Apify Actor: <strong>Facebook Search PPR (l6CUZt8H0214D3I0N)</strong></span>
+                    <span>
+                      ℹ️ Using Apify Actor:{" "}
+                      <strong>Facebook Search PPR (l6CUZt8H0214D3I0N)</strong>
+                    </span>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">Search Queries</label>
+                    <label className="text-sm font-medium">
+                      Search Queries
+                    </label>
                     <div className="space-y-2">
                       {facebookSearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -854,10 +989,16 @@ export default function PainSignalPage() {
                         placeholder="e.g. website is not working"
                         value={newFacebookQuery}
                         onChange={(e) => setNewFacebookQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addFacebookQuery()}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && addFacebookQuery()
+                        }
                         className="flex-1"
                       />
-                      <Button onClick={addFacebookQuery} variant="secondary" className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                      <Button
+                        onClick={addFacebookQuery}
+                        variant="secondary"
+                        className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -871,14 +1012,18 @@ export default function PainSignalPage() {
                         min="1"
                         max="100"
                         value={facebookMaxPosts}
-                        onChange={(e) => setFacebookMaxPosts(parseInt(e.target.value) || 10)}
+                        onChange={(e) =>
+                          setFacebookMaxPosts(parseInt(e.target.value) || 10)
+                        }
                       />
                     </div>
                     <div className="flex items-center space-x-2 pt-8">
                       <Checkbox
                         id="recent-posts"
                         checked={facebookRecentPosts}
-                        onCheckedChange={(checked) => setFacebookRecentPosts(checked as boolean)}
+                        onCheckedChange={(checked) =>
+                          setFacebookRecentPosts(checked as boolean)
+                        }
                       />
                       <label
                         htmlFor="recent-posts"
@@ -893,19 +1038,25 @@ export default function PainSignalPage() {
                 {/* Product Hunt Tab */}
                 <TabsContent value="producthunt" className="space-y-6">
                   <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
-                    <span>🔶 Using Product Hunt GraphQL API v2 (direct API access)</span>
+                    <span>
+                      🔶 Using Product Hunt GraphQL API v2 (direct API access)
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Topic Filter (optional)</label>
+                      <label className="text-sm font-medium">
+                        Topic Filter (optional)
+                      </label>
                       <Input
                         placeholder="e.g. developer-tools, saas"
                         value={phTopic}
                         onChange={(e) => setPhTopic(e.target.value)}
                         className="border-orange-200 focus-visible:ring-orange-400"
                       />
-                      <p className="text-xs text-muted-foreground">Leave empty for all topics</p>
+                      <p className="text-xs text-muted-foreground">
+                        Leave empty for all topics
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Max Posts</label>
@@ -914,7 +1065,9 @@ export default function PainSignalPage() {
                         min="1"
                         max="50"
                         value={phMaxPosts}
-                        onChange={(e) => setPhMaxPosts(parseInt(e.target.value) || 20)}
+                        onChange={(e) =>
+                          setPhMaxPosts(parseInt(e.target.value) || 20)
+                        }
                       />
                     </div>
                   </div>
@@ -926,7 +1079,9 @@ export default function PainSignalPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="RANKING">Ranking (Popular)</SelectItem>
+                        <SelectItem value="RANKING">
+                          Ranking (Popular)
+                        </SelectItem>
                         <SelectItem value="NEWEST">Newest First</SelectItem>
                         <SelectItem value="VOTES">Most Votes</SelectItem>
                       </SelectContent>
@@ -937,15 +1092,22 @@ export default function PainSignalPage() {
                 {/* Quora Tab */}
                 <TabsContent value="quora" className="space-y-6">
                   <div className="p-4 bg-red-50 text-red-800 rounded-md text-sm border border-red-200 flex items-center gap-2">
-                    <span>🔴 <strong>Quora Search</strong>: Searches Quora directly using ScrapingBee. Results appear immediately below.</span>
+                    <span>
+                      🔴 <strong>Quora Search</strong>: Searches Quora directly
+                      using ScrapingBee. Results appear immediately below.
+                    </span>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">Search Keywords</label>
+                    <label className="text-sm font-medium">
+                      Search Keywords
+                    </label>
                     <div className="space-y-2">
                       {quoraSearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -969,11 +1131,14 @@ export default function PainSignalPage() {
                             onClick={async () => {
                               try {
                                 toast.info(`Searching Quora for: ${query}...`);
-                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
-                                  method: 'POST',
-                                  headers: getAuthHeaders(),
-                                  body: JSON.stringify({ keywords: query })
-                                });
+                                const res = await fetch(
+                                  `${API_URL}/pain-signals/scrape`,
+                                  {
+                                    method: "POST",
+                                    headers: getAuthHeaders(),
+                                    body: JSON.stringify({ keywords: query }),
+                                  },
+                                );
                                 const data = await res.json();
                                 if (data.success && data.data.parsedPosts) {
                                   // Refresh the main list to show new signals
@@ -982,16 +1147,20 @@ export default function PainSignalPage() {
 
                                   const savedCount = data.data.savedCount || 0;
                                   if (savedCount > 0) {
-                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                    toast.success(
+                                      `Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`,
+                                    );
                                   } else {
-                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts. No new signals found.`);
+                                    toast.success(
+                                      `Scanned ${data.data.parsedPosts.length} posts. No new signals found.`,
+                                    );
                                   }
                                   console.log(data.data.parsedPosts);
                                 } else {
-                                  toast.error('No results found.');
+                                  toast.error("No results found.");
                                 }
                               } catch (e) {
-                                toast.error('Search failed');
+                                toast.error("Search failed");
                                 console.error(e);
                               }
                             }}
@@ -1009,7 +1178,11 @@ export default function PainSignalPage() {
                         onKeyDown={(e) => e.key === "Enter" && addQuoraQuery()}
                         className="flex-1"
                       />
-                      <Button onClick={addQuoraQuery} variant="secondary" className="gap-1 bg-red-100 text-red-800 hover:bg-red-200">
+                      <Button
+                        onClick={addQuoraQuery}
+                        variant="secondary"
+                        className="gap-1 bg-red-100 text-red-800 hover:bg-red-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -1019,20 +1192,29 @@ export default function PainSignalPage() {
                 {/* G2 Tab */}
                 <TabsContent value="g2" className="space-y-6">
                   <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
-                    <span>🔶 <strong>G2 Search</strong>: Uses search engine scraping to find negative reviews on G2.</span>
+                    <span>
+                      🔶 <strong>G2 Search</strong>: Uses search engine scraping
+                      to find negative reviews on G2.
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Target Location</label>
+                      <label className="text-sm font-medium">
+                        Target Location
+                      </label>
                       <Select value={g2Location} onValueChange={setG2Location}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="United States">United States</SelectItem>
+                          <SelectItem value="United States">
+                            United States
+                          </SelectItem>
                           <SelectItem value="Canada">Canada</SelectItem>
-                          <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                          <SelectItem value="United Kingdom">
+                            United Kingdom
+                          </SelectItem>
                           <SelectItem value="Dubai">Dubai (UAE)</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1044,7 +1226,9 @@ export default function PainSignalPage() {
                     <div className="space-y-2">
                       {g2SearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -1067,16 +1251,21 @@ export default function PainSignalPage() {
                             variant="outline"
                             onClick={async () => {
                               try {
-                                toast.info(`Searching G2 for: ${query} in ${g2Location}...`);
-                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
-                                  method: 'POST',
-                                  headers: getAuthHeaders(),
-                                  body: JSON.stringify({
-                                    keywords: query,
-                                    source: 'g2',
-                                    location: g2Location
-                                  })
-                                });
+                                toast.info(
+                                  `Searching G2 for: ${query} in ${g2Location}...`,
+                                );
+                                const res = await fetch(
+                                  `${API_URL}/pain-signals/scrape`,
+                                  {
+                                    method: "POST",
+                                    headers: getAuthHeaders(),
+                                    body: JSON.stringify({
+                                      keywords: query,
+                                      source: "g2",
+                                      location: g2Location,
+                                    }),
+                                  },
+                                );
                                 const data = await res.json();
                                 if (data.success && data.data.parsedPosts) {
                                   // Refresh the main list to show new signals
@@ -1085,15 +1274,19 @@ export default function PainSignalPage() {
 
                                   const savedCount = data.data.savedCount || 0;
                                   if (savedCount > 0) {
-                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                    toast.success(
+                                      `Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`,
+                                    );
                                   } else {
-                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts. No new signals found.`);
+                                    toast.success(
+                                      `Scanned ${data.data.parsedPosts.length} posts. No new signals found.`,
+                                    );
                                   }
                                 } else {
-                                  toast.error('No results found.');
+                                  toast.error("No results found.");
                                 }
                               } catch (e) {
-                                toast.error('Search failed');
+                                toast.error("Search failed");
                                 console.error(e);
                               }
                             }}
@@ -1111,7 +1304,11 @@ export default function PainSignalPage() {
                         onKeyDown={(e) => e.key === "Enter" && addG2Query()}
                         className="flex-1"
                       />
-                      <Button onClick={addG2Query} variant="secondary" className="gap-1 bg-orange-100 text-orange-800 hover:bg-orange-200">
+                      <Button
+                        onClick={addG2Query}
+                        variant="secondary"
+                        className="gap-1 bg-orange-100 text-orange-800 hover:bg-orange-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -1121,20 +1318,32 @@ export default function PainSignalPage() {
                 {/* Capterra Tab */}
                 <TabsContent value="capterra" className="space-y-6">
                   <div className="p-4 bg-purple-50 text-purple-800 rounded-md text-sm border border-purple-200 flex items-center gap-2">
-                    <span>💜 <strong>Capterra Search</strong>: Uses search engine scraping to find negative reviews on Capterra.</span>
+                    <span>
+                      💜 <strong>Capterra Search</strong>: Uses search engine
+                      scraping to find negative reviews on Capterra.
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Target Location</label>
-                      <Select value={capterraLocation} onValueChange={setCapterraLocation}>
+                      <label className="text-sm font-medium">
+                        Target Location
+                      </label>
+                      <Select
+                        value={capterraLocation}
+                        onValueChange={setCapterraLocation}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="United States">United States</SelectItem>
+                          <SelectItem value="United States">
+                            United States
+                          </SelectItem>
                           <SelectItem value="Canada">Canada</SelectItem>
-                          <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                          <SelectItem value="United Kingdom">
+                            United Kingdom
+                          </SelectItem>
                           <SelectItem value="Dubai">Dubai (UAE)</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1146,7 +1355,9 @@ export default function PainSignalPage() {
                     <div className="space-y-2">
                       {capterraSearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -1169,16 +1380,21 @@ export default function PainSignalPage() {
                             variant="outline"
                             onClick={async () => {
                               try {
-                                toast.info(`Searching Capterra for: ${query} in ${capterraLocation}...`);
-                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
-                                  method: 'POST',
-                                  headers: getAuthHeaders(),
-                                  body: JSON.stringify({
-                                    keywords: query,
-                                    source: 'capterra',
-                                    location: capterraLocation
-                                  })
-                                });
+                                toast.info(
+                                  `Searching Capterra for: ${query} in ${capterraLocation}...`,
+                                );
+                                const res = await fetch(
+                                  `${API_URL}/pain-signals/scrape`,
+                                  {
+                                    method: "POST",
+                                    headers: getAuthHeaders(),
+                                    body: JSON.stringify({
+                                      keywords: query,
+                                      source: "capterra",
+                                      location: capterraLocation,
+                                    }),
+                                  },
+                                );
                                 const data = await res.json();
                                 if (data.success && data.data.parsedPosts) {
                                   // Refresh the main list to show new signals
@@ -1187,15 +1403,19 @@ export default function PainSignalPage() {
 
                                   const savedCount = data.data.savedCount || 0;
                                   if (savedCount > 0) {
-                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                    toast.success(
+                                      `Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`,
+                                    );
                                   } else {
-                                    toast.success(`Scanned ${data.data.parsedPosts.length} posts. No new signals found.`);
+                                    toast.success(
+                                      `Scanned ${data.data.parsedPosts.length} posts. No new signals found.`,
+                                    );
                                   }
                                 } else {
-                                  toast.error('No results found.');
+                                  toast.error("No results found.");
                                 }
                               } catch (e) {
-                                toast.error('Search failed');
+                                toast.error("Search failed");
                                 console.error(e);
                               }
                             }}
@@ -1210,10 +1430,16 @@ export default function PainSignalPage() {
                         placeholder="e.g. outdated UI, costly"
                         value={newCapterraQuery}
                         onChange={(e) => setNewCapterraQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addCapterraQuery()}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && addCapterraQuery()
+                        }
                         className="flex-1"
                       />
-                      <Button onClick={addCapterraQuery} variant="secondary" className="gap-1 bg-purple-100 text-purple-800 hover:bg-purple-200">
+                      <Button
+                        onClick={addCapterraQuery}
+                        variant="secondary"
+                        className="gap-1 bg-purple-100 text-purple-800 hover:bg-purple-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -1223,15 +1449,22 @@ export default function PainSignalPage() {
                 {/* IndieHackers Tab */}
                 <TabsContent value="indiehackers" className="space-y-6">
                   <div className="p-4 bg-orange-50 text-orange-800 rounded-md text-sm border border-orange-200 flex items-center gap-2">
-                    <span>👨‍💻 <strong>IndieHackers Search</strong>: Searches IndieHackers directly using ScrapingBee.</span>
+                    <span>
+                      👨‍💻 <strong>IndieHackers Search</strong>: Searches
+                      IndieHackers directly using ScrapingBee.
+                    </span>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">Search Keywords</label>
+                    <label className="text-sm font-medium">
+                      Search Keywords
+                    </label>
                     <div className="space-y-2">
                       {ihSearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -1254,26 +1487,33 @@ export default function PainSignalPage() {
                             variant="outline"
                             onClick={async () => {
                               try {
-                                toast.info(`Searching IndieHackers for: ${query}...`);
-                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
-                                  method: 'POST',
-                                  headers: getAuthHeaders(),
-                                  body: JSON.stringify({
-                                    keywords: query,
-                                    source: 'indiehackers'
-                                  })
-                                });
+                                toast.info(
+                                  `Searching IndieHackers for: ${query}...`,
+                                );
+                                const res = await fetch(
+                                  `${API_URL}/pain-signals/scrape`,
+                                  {
+                                    method: "POST",
+                                    headers: getAuthHeaders(),
+                                    body: JSON.stringify({
+                                      keywords: query,
+                                      source: "indiehackers",
+                                    }),
+                                  },
+                                );
                                 const data = await res.json();
                                 if (data.success && data.data.parsedPosts) {
                                   await fetchSignals();
                                   await fetchStats();
                                   const savedCount = data.data.savedCount || 0;
-                                  toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                  toast.success(
+                                    `Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`,
+                                  );
                                 } else {
-                                  toast.error('No results found.');
+                                  toast.error("No results found.");
                                 }
                               } catch (e) {
-                                toast.error('Search failed');
+                                toast.error("Search failed");
                               }
                             }}
                           >
@@ -1290,7 +1530,11 @@ export default function PainSignalPage() {
                         onKeyDown={(e) => e.key === "Enter" && addIHQuery()}
                         className="flex-1"
                       />
-                      <Button onClick={addIHQuery} variant="secondary" className="gap-1 bg-orange-100 text-orange-800 hover:bg-orange-200">
+                      <Button
+                        onClick={addIHQuery}
+                        variant="secondary"
+                        className="gap-1 bg-orange-100 text-orange-800 hover:bg-orange-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -1300,15 +1544,22 @@ export default function PainSignalPage() {
                 {/* Blog Tab */}
                 <TabsContent value="blog" className="space-y-6">
                   <div className="p-4 bg-green-50 text-green-800 rounded-md text-sm border border-green-200 flex items-center gap-2">
-                    <span>📰 <strong>Blog Search</strong>: Searches for relevant blog posts using ScrapingBee.</span>
+                    <span>
+                      📰 <strong>Blog Search</strong>: Searches for relevant
+                      blog posts using ScrapingBee.
+                    </span>
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-sm font-medium">Search Keywords</label>
+                    <label className="text-sm font-medium">
+                      Search Keywords
+                    </label>
                     <div className="space-y-2">
                       {blogSearchQueries.map((query, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+                          <span className="text-sm text-muted-foreground w-6">
+                            {index + 1}
+                          </span>
                           <Input
                             value={query}
                             onChange={(e) => {
@@ -1332,25 +1583,30 @@ export default function PainSignalPage() {
                             onClick={async () => {
                               try {
                                 toast.info(`Searching Blogs for: ${query}...`);
-                                const res = await fetch(`${API_URL}/pain-signals/scrape`, {
-                                  method: 'POST',
-                                  headers: getAuthHeaders(),
-                                  body: JSON.stringify({
-                                    keywords: query,
-                                    source: 'blog'
-                                  })
-                                });
+                                const res = await fetch(
+                                  `${API_URL}/pain-signals/scrape`,
+                                  {
+                                    method: "POST",
+                                    headers: getAuthHeaders(),
+                                    body: JSON.stringify({
+                                      keywords: query,
+                                      source: "blog",
+                                    }),
+                                  },
+                                );
                                 const data = await res.json();
                                 if (data.success && data.data.parsedPosts) {
                                   await fetchSignals();
                                   await fetchStats();
                                   const savedCount = data.data.savedCount || 0;
-                                  toast.success(`Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`);
+                                  toast.success(
+                                    `Scanned ${data.data.parsedPosts.length} posts and saved ${savedCount} new signals!`,
+                                  );
                                 } else {
-                                  toast.error('No results found.');
+                                  toast.error("No results found.");
                                 }
                               } catch (e) {
-                                toast.error('Search failed');
+                                toast.error("Search failed");
                               }
                             }}
                           >
@@ -1367,7 +1623,11 @@ export default function PainSignalPage() {
                         onKeyDown={(e) => e.key === "Enter" && addBlogQuery()}
                         className="flex-1"
                       />
-                      <Button onClick={addBlogQuery} variant="secondary" className="gap-1 bg-green-100 text-green-800 hover:bg-green-200">
+                      <Button
+                        onClick={addBlogQuery}
+                        variant="secondary"
+                        className="gap-1 bg-green-100 text-green-800 hover:bg-green-200"
+                      >
                         + Add
                       </Button>
                     </div>
@@ -1381,12 +1641,54 @@ export default function PainSignalPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
-            { title: "Total Signals", value: stats?.overview.total || 0, icon: Activity, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500" },
-            { title: "Qualified", value: stats?.overview.qualified || 0, icon: Target, color: "text-green-500", bg: "bg-green-500/10", border: "border-green-500" },
-            { title: "Enriched", value: stats?.overview.enriched || 0, icon: Building, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500" },
-            { title: "Contacted", value: stats?.overview.contacted || 0, icon: Mail, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500" },
-            { title: "Today New", value: stats?.overview.todayNew || 0, icon: TrendingUp, color: "text-indigo-500", bg: "bg-indigo-500/10", border: "border-indigo-500" },
-            { title: "Avg Score", value: stats?.overview.avgScore || 0, icon: Target, color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500" }
+            {
+              title: "Total Signals",
+              value: stats?.overview.total || 0,
+              icon: Activity,
+              color: "text-blue-500",
+              bg: "bg-blue-500/10",
+              border: "border-blue-500",
+            },
+            {
+              title: "Qualified",
+              value: stats?.overview.qualified || 0,
+              icon: Target,
+              color: "text-green-500",
+              bg: "bg-green-500/10",
+              border: "border-green-500",
+            },
+            {
+              title: "Enriched",
+              value: stats?.overview.enriched || 0,
+              icon: Building,
+              color: "text-purple-500",
+              bg: "bg-purple-500/10",
+              border: "border-purple-500",
+            },
+            {
+              title: "Contacted",
+              value: stats?.overview.contacted || 0,
+              icon: Mail,
+              color: "text-amber-500",
+              bg: "bg-amber-500/10",
+              border: "border-amber-500",
+            },
+            {
+              title: "Today New",
+              value: stats?.overview.todayNew || 0,
+              icon: TrendingUp,
+              color: "text-indigo-500",
+              bg: "bg-indigo-500/10",
+              border: "border-indigo-500",
+            },
+            {
+              title: "Avg Score",
+              value: stats?.overview.avgScore || 0,
+              icon: Target,
+              color: "text-rose-500",
+              bg: "bg-rose-500/10",
+              border: "border-rose-500",
+            },
           ].map((stat) => (
             <Card
               key={stat.title}
@@ -1396,12 +1698,16 @@ export default function PainSignalPage() {
                 <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {stat.title}
                 </CardTitle>
-                <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center shadow-inner`}>
+                <div
+                  className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center shadow-inner`}
+                >
                   <stat.icon className={`w-4 h-4 ${stat.color}`} />
                 </div>
               </CardHeader>
               <CardContent className="space-y-1">
-                <div className="text-3xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-3xl font-bold text-foreground">
+                  {stat.value}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -1492,7 +1798,10 @@ export default function PainSignalPage() {
                   <TableRow>
                     <TableHead className="w-[40px]">
                       <Checkbox
-                        checked={selectedIds.length === signals.length && signals.length > 0}
+                        checked={
+                          selectedIds.length === signals.length &&
+                          signals.length > 0
+                        }
                         onCheckedChange={toggleSelectAll}
                       />
                     </TableHead>
@@ -1509,7 +1818,7 @@ export default function PainSignalPage() {
                   {signals.map((signal) => (
                     <TableRow
                       key={signal._id}
-                      className={`cursor-pointer hover:bg-muted/50 ${selectedIds.includes(signal._id) ? 'bg-muted/50' : ''}`}
+                      className={`cursor-pointer hover:bg-muted/50 ${selectedIds.includes(signal._id) ? "bg-muted/50" : ""}`}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox
@@ -1570,28 +1879,38 @@ export default function PainSignalPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSelectedSignal(signal)}>
+                            <DropdownMenuItem
+                              onClick={() => setSelectedSignal(signal)}
+                            >
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => window.open(signal.sourceUrl, "_blank")}
+                              onClick={() =>
+                                window.open(signal.sourceUrl, "_blank")
+                              }
                             >
                               <ExternalLink className="h-4 w-4 mr-2" />
                               View Source
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => enrichSignal(signal._id)}>
+                            <DropdownMenuItem
+                              onClick={() => enrichSignal(signal._id)}
+                            >
                               <Building className="h-4 w-4 mr-2" />
                               Enrich
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => updateSignalStatus(signal._id, "contacted")}
+                              onClick={() =>
+                                updateSignalStatus(signal._id, "contacted")
+                              }
                             >
                               <Mail className="h-4 w-4 mr-2" />
                               Mark Contacted
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => updateSignalStatus(signal._id, "archived")}
+                              onClick={() =>
+                                updateSignalStatus(signal._id, "archived")
+                              }
                             >
                               <Archive className="h-4 w-4 mr-2" />
                               Archive
@@ -1611,7 +1930,12 @@ export default function PainSignalPage() {
         {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between p-6 bg-card border-2 border-primary/10 rounded-2xl shadow-sm">
             <p className="text-sm text-muted-foreground">
-              Showing page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span> &middot; <span className="font-bold text-foreground">{totalSignals}</span> total signals
+              Showing page{" "}
+              <span className="font-bold text-foreground">{currentPage}</span>{" "}
+              of <span className="font-bold text-foreground">{totalPages}</span>{" "}
+              &middot;{" "}
+              <span className="font-bold text-foreground">{totalSignals}</span>{" "}
+              total signals
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -1626,7 +1950,7 @@ export default function PainSignalPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage <= 1 || loading}
                 className="gap-1 px-3 h-9 font-medium"
               >
@@ -1648,7 +1972,7 @@ export default function PainSignalPage() {
                         variant={currentPage === page ? "default" : "outline"}
                         size="sm"
                         onClick={() => setCurrentPage(page)}
-                        className={`h-9 w-9 p-0 font-bold ${currentPage === page ? 'bg-primary shadow-md text-primary-foreground' : ''}`}
+                        className={`h-9 w-9 p-0 font-bold ${currentPage === page ? "bg-primary shadow-md text-primary-foreground" : ""}`}
                       >
                         {page}
                       </Button>
@@ -1657,7 +1981,14 @@ export default function PainSignalPage() {
                     (page === 2 && currentPage > 4) ||
                     (page === totalPages - 1 && currentPage < totalPages - 3)
                   ) {
-                    return <span key={page} className="px-1 text-muted-foreground font-bold">...</span>;
+                    return (
+                      <span
+                        key={page}
+                        className="px-1 text-muted-foreground font-bold"
+                      >
+                        ...
+                      </span>
+                    );
                   }
                   return null;
                 })}
@@ -1666,7 +1997,9 @@ export default function PainSignalPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
                 disabled={currentPage >= totalPages || loading}
                 className="gap-1 px-3 h-9 font-medium"
               >
@@ -1704,7 +2037,11 @@ export default function PainSignalPage() {
                 onClick={bulkEnrich}
                 disabled={enrichingBulk}
               >
-                {enrichingBulk ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Building className="h-4 w-4" />}
+                {enrichingBulk ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Building className="h-4 w-4" />
+                )}
                 Enrich Leads
               </Button>
               <Button
@@ -1726,25 +2063,34 @@ export default function PainSignalPage() {
                 Delete
               </Button>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+            >
               Cancel
             </Button>
           </div>
         )}
 
-
         {/* Signal Detail Dialog */}
-        <Dialog open={!!selectedSignal} onOpenChange={() => setSelectedSignal(null)}>
+        <Dialog
+          open={!!selectedSignal}
+          onOpenChange={() => setSelectedSignal(null)}
+        >
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             {selectedSignal && (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
-                    <span className="text-lg">{getSourceIcon(selectedSignal.source)}</span>
+                    <span className="text-lg">
+                      {getSourceIcon(selectedSignal.source)}
+                    </span>
                     {selectedSignal.title || "Signal Details"}
                   </DialogTitle>
                   <DialogDescription>
-                    Score: {selectedSignal.finalScore} | Status: {selectedSignal.status}
+                    Score: {selectedSignal.finalScore} | Status:{" "}
+                    {selectedSignal.status}
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs defaultValue="content">
@@ -1762,19 +2108,27 @@ export default function PainSignalPage() {
                     </div>
                     <div className="flex gap-4">
                       <div>
-                        <span className="text-sm text-muted-foreground">Author:</span>
+                        <span className="text-sm text-muted-foreground">
+                          Author:
+                        </span>
                         <p className="font-medium">{selectedSignal.author}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Posted:</span>
+                        <span className="text-sm text-muted-foreground">
+                          Posted:
+                        </span>
                         <p className="font-medium">
-                          {new Date(selectedSignal.createdAt).toLocaleDateString()}
+                          {new Date(
+                            selectedSignal.createdAt,
+                          ).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <Button
                       variant="outline"
-                      onClick={() => window.open(selectedSignal.sourceUrl, "_blank")}
+                      onClick={() =>
+                        window.open(selectedSignal.sourceUrl, "_blank")
+                      }
                       className="w-full"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
@@ -1785,7 +2139,9 @@ export default function PainSignalPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <Card>
                         <CardContent className="p-4">
-                          <div className="text-sm text-muted-foreground">Intent Strength</div>
+                          <div className="text-sm text-muted-foreground">
+                            Intent Strength
+                          </div>
                           <div className="text-2xl font-bold">
                             {selectedSignal.intentStrength}%
                           </div>
@@ -1824,12 +2180,20 @@ export default function PainSignalPage() {
                   <TabsContent value="enrichment" className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <h4 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-tight">Company Detection</h4>
-                        <p className="font-medium">{selectedSignal.companyGuess || "Not detected"}</p>
+                        <h4 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-tight">
+                          Company Detection
+                        </h4>
+                        <p className="font-medium">
+                          {selectedSignal.companyGuess || "Not detected"}
+                        </p>
                       </div>
                       <div>
-                        <h4 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-tight">Website Detection</h4>
-                        <p className="font-medium">{selectedSignal.websiteGuess || "Not detected"}</p>
+                        <h4 className="font-semibold mb-2 text-sm text-muted-foreground uppercase tracking-tight">
+                          Website Detection
+                        </h4>
+                        <p className="font-medium">
+                          {selectedSignal.websiteGuess || "Not detected"}
+                        </p>
                       </div>
                     </div>
 
@@ -1842,33 +2206,53 @@ export default function PainSignalPage() {
                         <div className="grid grid-cols-2 gap-y-3 text-sm">
                           {selectedSignal.enrichedCompany.name && (
                             <div>
-                              <span className="text-muted-foreground">Legal Name:</span>
-                              <p className="font-medium">{selectedSignal.enrichedCompany.name}</p>
+                              <span className="text-muted-foreground">
+                                Legal Name:
+                              </span>
+                              <p className="font-medium">
+                                {selectedSignal.enrichedCompany.name}
+                              </p>
                             </div>
                           )}
                           {selectedSignal.enrichedDomain && (
                             <div>
-                              <span className="text-muted-foreground">Domain:</span>
-                              <p className="font-medium text-blue-600">{selectedSignal.enrichedDomain}</p>
+                              <span className="text-muted-foreground">
+                                Domain:
+                              </span>
+                              <p className="font-medium text-blue-600">
+                                {selectedSignal.enrichedDomain}
+                              </p>
                             </div>
                           )}
                           {selectedSignal.enrichedCompany.industry && (
                             <div>
-                              <span className="text-muted-foreground">Industry:</span>
-                              <p className="font-medium">{selectedSignal.enrichedCompany.industry}</p>
+                              <span className="text-muted-foreground">
+                                Industry:
+                              </span>
+                              <p className="font-medium">
+                                {selectedSignal.enrichedCompany.industry}
+                              </p>
                             </div>
                           )}
                           {selectedSignal.enrichedCompany.location && (
                             <div>
-                              <span className="text-muted-foreground">Location:</span>
-                              <p className="font-medium">{selectedSignal.enrichedCompany.location}</p>
+                              <span className="text-muted-foreground">
+                                Location:
+                              </span>
+                              <p className="font-medium">
+                                {selectedSignal.enrichedCompany.location}
+                              </p>
                             </div>
                           )}
                         </div>
                         {selectedSignal.enrichedCompany.description && (
                           <div className="pt-2 border-t">
-                            <span className="text-xs text-muted-foreground">Description:</span>
-                            <p className="text-xs line-clamp-3">{selectedSignal.enrichedCompany.description}</p>
+                            <span className="text-xs text-muted-foreground">
+                              Description:
+                            </span>
+                            <p className="text-xs line-clamp-3">
+                              {selectedSignal.enrichedCompany.description}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -1878,11 +2262,16 @@ export default function PainSignalPage() {
                       <div className="space-y-2">
                         <h4 className="font-semibold flex items-center gap-2">
                           <Mail className="h-4 w-4 text-green-600" />
-                          Contact Emails ({selectedSignal.enrichedEmails.length})
+                          Contact Emails ({selectedSignal.enrichedEmails.length}
+                          )
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {selectedSignal.enrichedEmails.map((email, i) => (
-                            <Badge key={i} variant="secondary" className="font-mono py-1 px-3">
+                            <Badge
+                              key={i}
+                              variant="secondary"
+                              className="font-mono py-1 px-3"
+                            >
                               {email}
                             </Badge>
                           ))}
@@ -1898,7 +2287,11 @@ export default function PainSignalPage() {
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {selectedSignal.techStack.map((tech, i) => (
-                            <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-100">
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="bg-blue-50 text-blue-700 border-blue-100"
+                            >
                               {tech}
                             </Badge>
                           ))}

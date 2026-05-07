@@ -51,7 +51,7 @@ export function CsvUploaderSidebar() {
                     </div>
                     <div>
                         <h1 className="text-sidebar-foreground font-bold text-lg tracking-tight">
-                            {isMarketing ? "Marketing" : "CSV"} Uploader
+                            {isMarketing ? "Marketing Uploader" : "email+ call flow"}
                         </h1>
                         <p className="text-muted-foreground text-xs font-medium">Pro Tool</p>
                     </div>
