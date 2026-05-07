@@ -217,6 +217,15 @@ export default function OfferingsPage() {
       route: "/pipeline",
       beta: true,
     },
+    {
+      id: "kyptronix-workflow",
+      title: "Kyptronix N8N Workflow + Apify Actors Blueprint",
+      description: "Autonomous 11-step intelligence engine: LinkedIn Sales Navigator scraping, decision-maker extraction, ad signals, and AI lead scoring.",
+      icon: Zap,
+      available: true,
+      route: "/kyptronix-workflow",
+      beta: true,
+    },
   ];
 
   return (
