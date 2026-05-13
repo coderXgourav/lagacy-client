@@ -80,6 +80,7 @@ import JsonConverterPage from "./pages/JsonConverterPage";
 import LeadDominationPage from "./pages/LeadDominationPage";
 import { LeadEngineLayout } from "./components/layout/LeadEngineLayout";
 import KyptronixWorkflowPage from "./pages/KyptronixWorkflowPage";
+import WhisperCampaignPage from "./pages/WhisperCampaignPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -190,6 +191,7 @@ const App = () => (
               <Route path="/facebook-automation" element={<ProtectedRoute><FacebookAutomationPage /></ProtectedRoute>} />
               <Route path="/twitter-automation" element={<ProtectedRoute><TwitterAutomationPage /></ProtectedRoute>} />
               <Route path="/kyptronix-workflow" element={<ProtectedRoute><KyptronixWorkflowPage /></ProtectedRoute>} />
+              <Route path="/whisper-campaign" element={<ProtectedRoute><WhisperCampaignPage /></ProtectedRoute>} />
               <Route path="/json-converter" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route index element={<JsonConverterPage />} />
               </Route>

@@ -39,7 +39,8 @@ import {
   Activity,
   Zap,
   Youtube,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Mail
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -218,12 +219,12 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
-      id: "kyptronix-workflow",
-      title: "Kyptronix N8N Workflow + Apify Actors Blueprint",
-      description: "Autonomous 11-step intelligence engine: LinkedIn Sales Navigator scraping, decision-maker extraction, ad signals, and AI lead scoring.",
-      icon: Zap,
+      id: "email-campaign-whisper",
+      title: "Email Campaign for Whisper Paddles",
+      description: "Automated email outreach and campaign management for Whisper Paddles.",
+      icon: Mail,
       available: true,
-      route: "/kyptronix-workflow",
+      route: "/whisper-campaign",
       beta: true,
     },
   ];
