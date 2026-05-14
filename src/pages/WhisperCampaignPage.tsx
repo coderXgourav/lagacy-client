@@ -20,7 +20,7 @@ interface Contact {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-const DEFAULT_SUBJECT = "Whisper Paddles — Premium Paddle Experience Awaits You";const DEFAULT_BODY = `<!DOCTYPE html>
+const DEFAULT_SUBJECT = "Whisper Paddles — Premium Paddle Experience Awaits You"; const DEFAULT_BODY = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -50,7 +50,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 <p>And when you reduce the relentless noise, we give our brain—and our nervous system—room to perform at a higher level.</p>
 
 <div style="text-align: center; margin: 30px 0;">
-  <img src="http://localhost:8000/public/whisper_paddle.jpg" alt="Whisper Paddles Soundproofed" style="border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);" />
+  <img src="https://drive.google.com/thumbnail?id=1QrrgK-LFA3ULmRSL1WrKxOFLpr7USmRS&sz=w1000" alt="Whisper Paddles Soundproofed" style="max-width:100%; height:auto;">
 </div>
 
 <h2 style="font-size: 20px; color: #111; margin-top: 30px;">What’s really happening on a noisy court?</h2>
@@ -118,7 +118,7 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
 export default function WhisperCampaignPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [senderEmail, setSenderEmail] = useState("");
   const [senderPassword, setSenderPassword] = useState("");
   const [senderName, setSenderName] = useState("");
@@ -205,7 +205,7 @@ export default function WhisperCampaignPage() {
     const nameIdx = findCol(headers, ['name', 'full_name', 'fullname', 'contact', 'first_name', 'firstname', 'person']);
     const emailIdx = findCol(headers, ['email', 'e-mail', 'mail', 'email_address']);
     const domainIdx = findCol(headers, ['domain', 'domainname', 'website', 'url', 'site']);
-    
+
     // Auto-detect email column by scanning data if not found by header
     let detectedEmailIdx = emailIdx;
     if (detectedEmailIdx === -1 && rows.length > 0) {
@@ -234,7 +234,7 @@ export default function WhisperCampaignPage() {
         const buffer = e.target?.result as ArrayBuffer;
         const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
         let extracted: Contact[] = [];
-        
+
         if (isExcel) {
           const wb = XLSX.read(buffer, { type: 'array' });
           for (const name of wb.SheetNames) {
@@ -252,11 +252,11 @@ export default function WhisperCampaignPage() {
             extracted = extractContacts(hdrs, rows.slice(1));
           }
         }
-        
+
         // Dedup by email
         const seen = new Set<string>();
         extracted = extracted.filter(c => { const k = c.email.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
-        
+
         setContacts(extracted);
         setFileName(file.name);
         toast({ title: "File Parsed", description: `Found ${extracted.length} contacts with valid emails` });
@@ -441,7 +441,7 @@ export default function WhisperCampaignPage() {
                     </thead>
                     <tbody>
                       {contacts.slice(0, 50).map((c, i) => (
-                        <tr key={i} className="border-t"><td className="p-2 text-muted-foreground">{i+1}</td><td className="p-2">{c.name || '—'}</td><td className="p-2">{c.email}</td></tr>
+                        <tr key={i} className="border-t"><td className="p-2 text-muted-foreground">{i + 1}</td><td className="p-2">{c.name || '—'}</td><td className="p-2">{c.email}</td></tr>
                       ))}
                     </tbody>
                   </table>
