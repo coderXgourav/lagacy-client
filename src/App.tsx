@@ -81,6 +81,7 @@ import LeadDominationPage from "./pages/LeadDominationPage";
 import { LeadEngineLayout } from "./components/layout/LeadEngineLayout";
 import KyptronixWorkflowPage from "./pages/KyptronixWorkflowPage";
 import WhisperCampaignPage from "./pages/WhisperCampaignPage";
+import KyptronixN8nBlueprintPage from "./pages/KyptronixN8nBlueprintPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -192,6 +193,7 @@ const App = () => (
               <Route path="/twitter-automation" element={<ProtectedRoute><TwitterAutomationPage /></ProtectedRoute>} />
               <Route path="/kyptronix-workflow" element={<ProtectedRoute><KyptronixWorkflowPage /></ProtectedRoute>} />
               <Route path="/whisper-campaign" element={<ProtectedRoute><WhisperCampaignPage /></ProtectedRoute>} />
+              <Route path="/n8n-blueprint" element={<ProtectedRoute><KyptronixN8nBlueprintPage /></ProtectedRoute>} />
               <Route path="/json-converter" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route index element={<JsonConverterPage />} />
               </Route>

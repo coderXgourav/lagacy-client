@@ -520,13 +520,20 @@ export const csvFilterApi = {
 
 // Kyptronix Leads API
 export const kyptronixApi = {
-  getLeads: (source?: string, page: number = 1, limit: number = 10) => {
+  getLeads: (source?: string, page: number = 1, limit: number = 10, location?: string, niche?: string) => {
     const queryParams = new URLSearchParams();
     if (source) queryParams.append('source', source);
+    if (location) queryParams.append('location', location);
+    if (niche) queryParams.append('niche', niche);
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     return apiCall(`/kyptronix-leads?${queryParams.toString()}`);
   },
+  triggerWorkflow: (params: { location: string, niche: string, businessSize: string, minAdActivity: string }) => 
+    apiCall('/kyptronix-leads/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
   getQuestionnaires: (formType?: string, page: number = 1, limit: number = 10) => {
     const queryParams = new URLSearchParams();
     if (formType) queryParams.append('formType', formType);

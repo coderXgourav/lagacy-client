@@ -227,6 +227,15 @@ export default function OfferingsPage() {
       route: "/whisper-campaign",
       beta: true,
     },
+    {
+      id: "kyptronix-n8n-blueprint",
+      title: "Kyptronix N8N Workflow + Apify Actors Blueprint",
+      description: "Find businesses actively spending on ads but losing leads due to weak websites and poor funnels.",
+      icon: Zap,
+      available: true,
+      route: "/n8n-blueprint",
+      beta: true,
+    },
   ];
 
   return (
