@@ -15,7 +15,6 @@ import {
   Play,
   Download,
   FileSpreadsheet,
-  Database,
   Loader2,
   CheckCircle2,
   Search,
@@ -44,7 +43,7 @@ export default function KyptronixN8nBlueprintPage() {
     setLoading(true);
     setResultsGenerated(false);
     try {
-      // Trigger the workflow to scrape live leads from Apify (this will take 15-30 seconds)
+      
       await api.kyptronixLeads.triggerWorkflow(formData);
 
       const res = await api.kyptronixLeads.getLeads(undefined, 1, 50, formData.location, formData.niche);
@@ -118,34 +117,6 @@ export default function KyptronixN8nBlueprintPage() {
     { id: 5, title: "Lead Qualification", desc: "AI Score Engine: Classify as HOT, WARM, or COLD", icon: ShieldAlert },
     { id: 6, title: "Decision Maker Search", desc: "LinkedIn Scraping: Founder, CEO, Marketing Head, Owner", icon: Users },
     { id: 7, title: "Contact Verification", desc: "Email Finder + Verification: Verified Email, Direct Phone, LinkedIn", icon: CheckCircle2 },
-  ];
-
-  const apifyActors = [
-    { 
-      category: "Meta Ads", 
-      actors: [
-        { name: "Facebook Ads Library Scraper", url: "https://apify.com/apify/facebook-ads-scraper?utm_source=chatgpt.com" },
-        { name: "META Ads Library Scraper", url: "https://apify.com/leadsbrary/meta-ads-library-scraper?utm_source=chatgpt.com" }
-      ] 
-    },
-    { 
-      category: "Google Ads", 
-      actors: [
-        { name: "Google Ads Transparency Center Scraper", url: "https://apify.com/automation-lab/google-ads-scraper?utm_source=chatgpt.com" },
-        { name: "Google Ads Transparency Analyzer", url: "https://apify.com/amernas/google-ads-transparency-analyzer?utm_source=chatgpt.com" },
-        { name: "Google Ads Transparency Scraper", url: "https://apify.com/scrapers-hub/google-ads-transparency-scraper?utm_source=chatgpt.com" }
-      ] 
-    },
-    { 
-      category: "Business + Lead Verification", 
-      actors: [
-        { name: "Google Maps Scraper", url: "https://apify.com/compass/crawler-google-places?utm_source=chatgpt.com" },
-        { name: "Website Contact Details Scraper", url: "https://apify.com/lukaskrivka/website-content-crawler?utm_source=chatgpt.com" },
-        { name: "LinkedIn Company Scraper", url: "https://apify.com/bebity/linkedin-company-profile-scraper?utm_source=chatgpt.com" },
-        { name: "LinkedIn People / Decision Maker Scraper", url: "https://apify.com/canadesk/linkedin-profile-scraper?utm_source=chatgpt.com" },
-        { name: "Email Finder + Enrichment Actor", url: "https://apify.com/easyapi/email-finder-and-verifier?utm_source=chatgpt.com" }
-      ] 
-    }
   ];
 
   const dummyResults = [
@@ -291,29 +262,6 @@ export default function KyptronixN8nBlueprintPage() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-border">
-              <h3 className="text-sm font-bold uppercase mb-3 flex items-center gap-2">
-                <Database className="h-4 w-4 text-amber-500" /> Required Apify Actors
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {apifyActors.map((category, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="text-[10px] font-bold uppercase text-muted-foreground">{category.category}</div>
-                    <ul className="space-y-1">
-                      {category.actors.map((actor, aIdx) => (
-                        <li key={aIdx} className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-2 py-1 rounded-md flex items-center gap-1.5 hover:bg-amber-500/20 transition-colors">
-                          <CheckCircle2 className="h-3 w-3 shrink-0" />
-                          <a href={actor.url} target="_blank" rel="noopener noreferrer" className="hover:underline truncate" title={actor.name}>
-                            {actor.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
             </div>
           </CardContent>
         </Card>
