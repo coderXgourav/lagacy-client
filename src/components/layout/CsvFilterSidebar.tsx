@@ -2,12 +2,14 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
     FileText,
     LogOut,
-    ArrowLeft
+    ArrowLeft,
+    PhoneCall
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { to: "/csv-filter", label: "Dashboard", icon: FileText },
+    { to: "/csv-phone-formatter", label: "Phone Formatter", icon: PhoneCall },
 ];
 
 export function CsvFilterSidebar() {

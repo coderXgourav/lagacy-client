@@ -40,7 +40,8 @@ import {
   Zap,
   Youtube,
   FileSpreadsheet,
-  Mail
+  Mail,
+  PhoneCall
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -228,12 +229,12 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
-      id: "kyptronix-n8n-blueprint",
-      title: "Kyptronix N8N Workflow + Apify Actors Blueprint",
-      description: "Find businesses actively spending on ads but losing leads due to weak websites and poor funnels.",
-      icon: Zap,
+      id: "csv-phone-formatter",
+      title: "CSV Phone Formatter Pro",
+      description: "Cleanse, filter, and format phone numbers in bulk. Prepend country codes (e.g. +91) and remove invalid or non-10 digit numbers.",
+      icon: PhoneCall,
       available: true,
-      route: "/n8n-blueprint",
+      route: "/csv-phone-formatter",
       beta: true,
     },
   ];

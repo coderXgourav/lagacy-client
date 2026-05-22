@@ -38,6 +38,7 @@ import DomainScraperDashboard from "./pages/domainscraper/DomainScraperDashboard
 import DomainScraperSettings from "./pages/domainscraper/DomainScraperSettings";
 import { CsvFilterLayout } from "./components/layout/CsvFilterLayout";
 import CsvFilterDashboard from "./pages/csvfilter/CsvFilterDashboard";
+import CsvPhoneFormatterPage from "./pages/csvfilter/CsvPhoneFormatterPage";
 import { CsvUploaderLayout } from "./components/layout/CsvUploaderLayout";
 import CsvUploaderDashboard from "./pages/csvuploader/CsvUploaderDashboard";
 import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
@@ -132,6 +133,9 @@ const App = () => (
               </Route>
               <Route path="/csv-filter" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
                 <Route index element={<CsvFilterDashboard />} />
+              </Route>
+              <Route path="/csv-phone-formatter" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
+                <Route index element={<CsvPhoneFormatterPage />} />
               </Route>
                 <Route path="/csv-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
                   <Route index element={<CsvUploaderDashboard />} />
