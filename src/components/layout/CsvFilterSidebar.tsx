@@ -3,13 +3,15 @@ import {
     FileText,
     LogOut,
     ArrowLeft,
-    PhoneCall
+    PhoneCall,
+    Filter
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { to: "/csv-filter", label: "Dashboard", icon: FileText },
     { to: "/csv-phone-formatter", label: "Phone Formatter", icon: PhoneCall },
+    { to: "/csv-mobile-filter", label: "Mobile/Landline Filter", icon: Filter },
 ];
 
 export function CsvFilterSidebar() {

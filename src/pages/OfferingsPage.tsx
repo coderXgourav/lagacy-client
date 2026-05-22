@@ -41,7 +41,8 @@ import {
   Youtube,
   FileSpreadsheet,
   Mail,
-  PhoneCall
+  PhoneCall,
+  Filter
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -211,15 +212,6 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
-      id: "intelligence-pipeline",
-      title: "MERN Intelligence Pipeline",
-      description: "Complete 12-stage autonomous pipeline. Identifies identity, owner roles, EIN confidence, contact validation, and generates AI pitches.",
-      icon: TrendingUp,
-      available: true,
-      route: "/pipeline",
-      beta: true,
-    },
-    {
       id: "email-campaign-whisper",
       title: "Email Campaign for Whisper Paddles",
       description: "Automated email outreach and campaign management for Whisper Paddles.",
@@ -235,6 +227,15 @@ export default function OfferingsPage() {
       icon: PhoneCall,
       available: true,
       route: "/csv-phone-formatter",
+      beta: true,
+    },
+    {
+      id: "csv-mobile-filter",
+      title: "CSV Mobile/Telephone Filter Pro",
+      description: "Separate mobile numbers from landline/telephone numbers in bulk. Custom presets and filters to isolate leads easily.",
+      icon: Filter,
+      available: true,
+      route: "/csv-mobile-filter",
       beta: true,
     },
   ];
