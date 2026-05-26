@@ -221,6 +221,15 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
+      id: "email-campaign-growth",
+      title: "Email Campaign for Growth Optimizers",
+      description: "Automated email outreach and campaign management for Growth Optimizers.",
+      icon: Sparkles,
+      available: true,
+      route: "/growth-campaign",
+      beta: true,
+    },
+    {
       id: "csv-phone-formatter",
       title: "CSV Phone Formatter Pro",
       description: "Cleanse, filter, and format phone numbers in bulk. Prepend country codes (e.g. +91) and remove invalid or non-10 digit numbers.",
