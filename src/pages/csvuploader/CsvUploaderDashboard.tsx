@@ -391,8 +391,8 @@ body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6;
         const nameKeywords = ['registrant_name', 'registrant', 'full_name', 'fullname', 'name', 'contact', 'person', 'first', 'last', 'customer', 'client', 'lead', 'owner', 'recipient', 'sender', 'fname', 'lname', 'first_name', 'last_name', 'firstname', 'lastname', 'contact_name', 'customer_name', 'lead_name'];
         const nameExcludes = ['domain', 'website', 'url', 'host', 'company', 'organization', 'file'];
 
-        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'email_address', 'emailaddress', 'e_mail', 'email_id', 'emailid', 'address'];
-        const emailExcludes = ['postal', 'physical', 'street', 'ip'];
+        const emailKeywords = ['email', 'e-mail', 'mail', 'contact_email', 'email_address', 'emailaddress', 'e_mail', 'email_id', 'emailid'];
+        const emailExcludes = ['postal', 'physical', 'street', 'ip', 'address'];
 
         const numberKeywords = ['number', 'phone', 'phonenumber', 'phone_number', 'mobile', 'mobile_number', 'mobilenumber', 'tel', 'telephone', 'contact_phone', 'contact_number', 'registrant_phone', 'cell', 'cellphone', 'cell_phone', 'whatsapp', 'sms', 'sms_number', 'call', 'dial', 'ph', 'mob', 'contact_no', 'phone_no', 'mobile_no', 'ph_no', 'mob_no', 'msisdn', 'landline'];
         const numberExcludes = ['fax', 'extension'];
