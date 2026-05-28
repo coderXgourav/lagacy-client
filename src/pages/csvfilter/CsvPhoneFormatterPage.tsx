@@ -43,12 +43,79 @@ const COUNTRY_CODES = [
     { name: 'Saudi Arabia (+966)', value: '+966' },
 ];
 
+const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
+    // North America
+    'US': '1', 'USA': '1', 'UNITED STATES': '1', 'UNITED STATES OF AMERICA': '1',
+    'CA': '1', 'CAN': '1', 'CANADA': '1',
+    // Europe
+    'GB': '44', 'UK': '44', 'UNITED KINGDOM': '44', 'GREAT BRITAIN': '44',
+    'FR': '33', 'FRA': '33', 'FRANCE': '33',
+    'DE': '49', 'DEU': '49', 'GERMANY': '49',
+    'IT': '39', 'ITA': '39', 'ITALY': '39',
+    'ES': '34', 'ESP': '34', 'SPAIN': '34',
+    'NL': '31', 'NLD': '31', 'NETHERLANDS': '31',
+    'CH': '41', 'CHE': '41', 'SWITZERLAND': '41',
+    'SE': '46', 'SWE': '46', 'SWEDEN': '46',
+    'NO': '47', 'NOR': '47', 'NORWAY': '47',
+    'DK': '45', 'DNK': '45', 'DENMARK': '45',
+    'FI': '358', 'FIN': '358', 'FINLAND': '358',
+    'IE': '353', 'IRL': '353', 'IRELAND': '353',
+    'BE': '32', 'BEL': '32', 'BELGIUM': '32',
+    'AT': '43', 'AUT': '43', 'AUSTRIA': '43',
+    'PT': '351', 'PRT': '351', 'PORTUGAL': '351',
+    'GR': '30', 'GRC': '30', 'GREECE': '30',
+    'PL': '48', 'POL': '48', 'POLAND': '48',
+    // Asia
+    'IN': '91', 'IND': '91', 'INDIA': '91',
+    'CN': '86', 'CHN': '86', 'CHINA': '86',
+    'JP': '81', 'JPN': '81', 'JAPAN': '81',
+    'KR': '82', 'KOR': '82', 'SOUTH KOREA': '82',
+    'SG': '65', 'SGP': '65', 'SINGAPORE': '65',
+    'MY': '60', 'MYS': '60', 'MALAYSIA': '60',
+    'TH': '66', 'THA': '66', 'THAILAND': '66',
+    'VN': '84', 'VNM': '84', 'VIETNAM': '84',
+    'ID': '62', 'IDN': '62', 'INDONESIA': '62',
+    'PH': '63', 'PHL': '63', 'PHILIPPINES': '63',
+    'PK': '92', 'PAK': '92', 'PAKISTAN': '92',
+    'BD': '880', 'BGD': '880', 'BANGLADESH': '880',
+    'LK': '94', 'LKA': '94', 'SRI LANKA': '94',
+    'NP': '977', 'NPL': '977', 'NEPAL': '977',
+    // Middle East
+    'AE': '971', 'ARE': '971', 'UNITED ARAB EMIRATES': '971', 'UAE': '971',
+    'SA': '966', 'SAU': '966', 'SAUDI ARABIA': '966',
+    'QA': '974', 'QAT': '974', 'QATAR': '974',
+    'OM': '968', 'OMN': '968', 'OMAN': '968',
+    'KW': '965', 'KWT': '965', 'KUWAIT': '965',
+    'BH': '973', 'BHR': '973', 'BAHRAIN': '973',
+    'IL': '972', 'ISR': '972', 'ISRAEL': '972',
+    'TR': '90', 'TUR': '90', 'TURKEY': '90',
+    // Oceania
+    'AU': '61', 'AUS': '61', 'AUSTRALIA': '61',
+    'NZ': '64', 'NZL': '64', 'NEW ZEALAND': '64',
+    // Africa
+    'ZA': '27', 'ZAF': '27', 'SOUTH AFRICA': '27',
+    'NG': '234', 'NGA': '234', 'NIGERIA': '234',
+    'EG': '20', 'EGY': '20', 'EGYPT': '20',
+    'KE': '254', 'KEN': '254', 'KENYA': '254',
+    'GH': '233', 'GHA': '233', 'GHANA': '233',
+    'MA': '212', 'MAR': '212', 'MOROCCO': '212',
+    // South America
+    'BR': '55', 'BRA': '55', 'BRAZIL': '55',
+    'AR': '54', 'ARG': '54', 'ARGENTINA': '54',
+    'CO': '57', 'COL': '57', 'COLOMBIA': '57',
+    'CL': '56', 'CHL': '56', 'CHILE': '56',
+    'PE': '51', 'PER': '51', 'PERU': '51',
+    'VE': '58', 'VEN': '58', 'VENEZUELA': '58',
+    'MX': '52', 'MEX': '52', 'MEXICO': '52',
+};
+
 export default function CsvPhoneFormatterPage() {
     const navigate = useNavigate();
     const [step, setStep] = useState<Step>('upload');
     const [file, setFile] = useState<File | null>(null);
     const [headers, setHeaders] = useState<string[]>([]);
     const [phoneColumn, setPhoneColumn] = useState<string>('');
+    const [countryColumn, setCountryColumn] = useState<string>('');
     const [defaultCountryCode, setDefaultCountryCode] = useState<string>('+91');
     const [customCountryCode, setCustomCountryCode] = useState<string>('');
     const [requiredDigits, setRequiredDigits] = useState<number>(10);
@@ -71,14 +138,17 @@ export default function CsvPhoneFormatterPage() {
     };
 
     const parseHeaders = (targetFile: File) => {
+        setStep('processing');
+        setProcessedCount(0);
+
         Papa.parse(targetFile, {
-            preview: 1, // Only read first line
+            preview: 1, // Only read first line to get headers
             skipEmptyLines: true,
             complete: (results) => {
                 if (results.data && results.data.length > 0) {
                     const parsedHeaders = results.data[0] as string[];
                     
-                    // Clean and deduplicate headers to avoid Radix UI Select crashes on empty or duplicate values
+                    // Clean and deduplicate headers
                     const uniqueHeaders: string[] = [];
                     const seen = new Set<string>();
                     
@@ -102,153 +172,162 @@ export default function CsvPhoneFormatterPage() {
                     // Auto-detect phone number column
                     const detectPhoneColumn = uniqueHeaders.find(h => {
                         const low = h.toLowerCase();
-                        return low.includes('phone') || low.includes('number') || low.includes('tel') || low.includes('mobile') || low.includes('contact');
+                        return low.includes('phone') || low.includes('number') || low.includes('tel') || low.includes('mobile') || low.includes('contact') || low.includes('registrant_phone');
                     });
                     
-                    if (detectPhoneColumn) {
-                        setPhoneColumn(detectPhoneColumn);
-                        toast.success(`Auto-detected phone column: "${detectPhoneColumn}"`);
-                    } else if (uniqueHeaders.length > 0) {
-                        setPhoneColumn(uniqueHeaders[0]);
-                    }
+                    const phoneCol = detectPhoneColumn || uniqueHeaders[0] || '';
+                    setPhoneColumn(phoneCol);
+
+                    // Auto-detect country column
+                    const detectCountryColumn = uniqueHeaders.find(h => {
+                        const low = h.toLowerCase();
+                        return low.includes('country') || low.includes('registrant_country') || low.includes('nation') || low.includes('cntry');
+                    });
                     
-                    setStep('config');
+                    const countryCol = detectCountryColumn || '';
+                    setCountryColumn(countryCol);
+
+                    if (!phoneCol) {
+                        toast.error("Could not find phone number column in CSV.");
+                        setStep('upload');
+                        return;
+                    }
+
+                    // Start automatic formatting immediately!
+                    const activeKept: any[] = [];
+                    const activeRemoved: any[] = [];
+                    let count = 0;
+                    let isFirstRow = true;
+
+                    Papa.parse(targetFile, {
+                        header: false,
+                        skipEmptyLines: 'greedy',
+                        chunkSize: 1024 * 1024 * 5, // 5MB chunks
+                        step: (row) => {
+                            if (isFirstRow) {
+                                isFirstRow = false;
+                                return; // Skip headers row
+                            }
+
+                            count++;
+                            if (count % 1000 === 0) {
+                                setProcessedCount(count);
+                            }
+
+                            const rowData = row.data as string[];
+                            const data: Record<string, string> = {};
+                            uniqueHeaders.forEach((header, index) => {
+                                data[header] = rowData[index] || '';
+                            });
+
+                            const rawPhone = data[phoneCol];
+
+                            if (!rawPhone || rawPhone.trim() === '') {
+                                activeRemoved.push({
+                                    ...data,
+                                    __skipReason: 'Empty Phone Number'
+                                });
+                                return;
+                            }
+
+                            let phoneStr = rawPhone.trim();
+                            if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(phoneStr)) {
+                                const num = Number(phoneStr);
+                                if (!isNaN(num)) {
+                                    phoneStr = num.toString();
+                                }
+                            }
+
+                            // Clean phone number (keep digits and +)
+                            let cleaned = phoneStr.replace(/[^\d+]/g, '');
+
+                            // Default prefix is 1 (US) if no country is found
+                            let rowPrefixDigits = '1';
+                            if (countryCol && data[countryCol]) {
+                                const rowCountry = data[countryCol].trim().toUpperCase().replace(/\./g, '');
+                                if (rowCountry) {
+                                    if (COUNTRY_NAME_TO_PREFIX[rowCountry]) {
+                                        rowPrefixDigits = COUNTRY_NAME_TO_PREFIX[rowCountry];
+                                    } else {
+                                        // Substring check
+                                        const foundKey = Object.keys(COUNTRY_NAME_TO_PREFIX).find(key => 
+                                            rowCountry.includes(key) || key.includes(rowCountry)
+                                        );
+                                        if (foundKey) {
+                                            rowPrefixDigits = COUNTRY_NAME_TO_PREFIX[foundKey];
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Validation and formatting logic
+                            let finalPhone = '';
+                            let isValid = true;
+                            let skipReason = '';
+
+                            if (cleaned.startsWith('+')) {
+                                const digits = cleaned.replace(/\D/g, '');
+                                if (digits.length < requiredDigits) {
+                                    isValid = false;
+                                    skipReason = `Invalid Length (${digits.length} digits, expected at least ${requiredDigits})`;
+                                } else {
+                                    finalPhone = cleaned;
+                                }
+                            } else {
+                                const digits = cleaned.replace(/\D/g, '');
+                                let checkDigits = digits;
+                                if (checkDigits.startsWith('0')) {
+                                    checkDigits = checkDigits.slice(1);
+                                }
+
+                                if (checkDigits.length === requiredDigits) {
+                                    finalPhone = `+${rowPrefixDigits}${checkDigits}`;
+                                } else if (checkDigits.length === rowPrefixDigits.length + requiredDigits && checkDigits.startsWith(rowPrefixDigits)) {
+                                    finalPhone = `+${checkDigits}`;
+                                } else if (checkDigits.length > requiredDigits) {
+                                    if (checkDigits.startsWith(rowPrefixDigits)) {
+                                        finalPhone = `+${checkDigits}`;
+                                    } else {
+                                        finalPhone = `+${rowPrefixDigits}${checkDigits}`;
+                                    }
+                                } else {
+                                    isValid = false;
+                                    skipReason = `Too Short (${checkDigits.length} digits, expected ${requiredDigits})`;
+                                }
+                            }
+
+                            if (isValid && finalPhone) {
+                                activeKept.push({
+                                    ...data,
+                                    [phoneCol]: finalPhone
+                                });
+                            } else {
+                                activeRemoved.push({
+                                    ...data,
+                                    __skipReason: skipReason || 'Invalid Phone Number'
+                                });
+                            }
+                        },
+                        complete: () => {
+                            setTotalRows(count);
+                            setKeptRows(activeKept);
+                            setRemovedRows(activeRemoved);
+                            setStep('results');
+                            toast.success(`Processing complete! Processed ${count.toLocaleString()} rows.`);
+                        },
+                        error: (err) => {
+                            toast.error("Processing failed: " + err.message);
+                            setStep('upload');
+                        }
+                    });
                 } else {
                     toast.error("Could not parse file headers. Is this a valid CSV?");
+                    setStep('upload');
                 }
             },
             error: (err) => {
                 toast.error("Error reading file: " + err.message);
-            }
-        });
-    };
-
-    const handleProcess = () => {
-        if (!file || !phoneColumn) return;
-        setStep('processing');
-        setProcessedCount(0);
-
-        const phoneColIdx = headers.indexOf(phoneColumn);
-        if (phoneColIdx === -1) {
-            toast.error("Selected phone column not found in headers.");
-            setStep('config');
-            return;
-        }
-
-        const prefixToUse = isCustomPrefix ? customCountryCode.trim() : defaultCountryCode;
-        if (!prefixToUse) {
-            toast.error("Please enter or select a valid country code prefix.");
-            setStep('config');
-            return;
-        }
-
-        const activeKept: any[] = [];
-        const activeRemoved: any[] = [];
-        let count = 0;
-        let isFirstRow = true;
-
-        Papa.parse(file, {
-            header: false,
-            skipEmptyLines: 'greedy',
-            chunkSize: 1024 * 1024 * 5, // 5MB chunks
-            step: (row) => {
-                if (isFirstRow) {
-                    isFirstRow = false;
-                    return; // Skip the headers row
-                }
-
-                count++;
-                if (count % 1000 === 0) {
-                    setProcessedCount(count);
-                }
-
-                const rowData = row.data as string[];
-                const data: Record<string, string> = {};
-                headers.forEach((header, index) => {
-                    data[header] = rowData[index] || '';
-                });
-
-                const rawPhone = data[phoneColumn];
-
-                if (!rawPhone || rawPhone.trim() === '') {
-                    activeRemoved.push({
-                        ...data,
-                        __skipReason: 'Empty Phone Number'
-                    });
-                    return;
-                }
-
-                let phoneStr = rawPhone.trim();
-                // Convert scientific notation (e.g. 8.61559E+12) to standard digits
-                if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(phoneStr)) {
-                    const num = Number(phoneStr);
-                    if (!isNaN(num)) {
-                        phoneStr = num.toString();
-                    }
-                }
-
-                // Clean phone number (keep digits and +)
-                let cleaned = phoneStr.replace(/[^\d+]/g, '');
-
-                // Validation and formatting logic
-                let finalPhone = '';
-                let isValid = true;
-                let skipReason = '';
-
-                if (cleaned.startsWith('+')) {
-                    // Already has country code +something
-                    const digits = cleaned.replace(/\D/g, '');
-                    if (digits.length < requiredDigits) {
-                        isValid = false;
-                        skipReason = `Invalid Length (${digits.length} digits, expected at least ${requiredDigits})`;
-                    } else {
-                        finalPhone = cleaned;
-                    }
-                } else {
-                    const digits = cleaned.replace(/\D/g, '');
-                    if (digits.length === requiredDigits) {
-                        // Standard local number (e.g. 10 digits)
-                        const fmtPrefix = prefixToUse.startsWith('+') ? prefixToUse : `+${prefixToUse}`;
-                        finalPhone = fmtPrefix + digits;
-                    } else if (digits.length > requiredDigits) {
-                        // Might already have country code, missing '+' sign
-                        // e.g. '919876543210' -> starts with '91' and length 12
-                        const cleanPrefixDigits = prefixToUse.replace(/\D/g, '');
-                        if (cleanPrefixDigits && digits.startsWith(cleanPrefixDigits) && digits.length === cleanPrefixDigits.length + requiredDigits) {
-                            finalPhone = `+${digits}`;
-                        } else {
-                            // Assume it starts with a country code, prepend '+'
-                            finalPhone = `+${digits}`;
-                        }
-                    } else {
-                        // Too short
-                        isValid = false;
-                        skipReason = `Too Short (${digits.length} digits, expected ${requiredDigits})`;
-                    }
-                }
-
-                if (isValid && finalPhone) {
-                    activeKept.push({
-                        ...data,
-                        [phoneColumn]: finalPhone
-                    });
-                } else {
-                    activeRemoved.push({
-                        ...data,
-                        __skipReason: skipReason || 'Invalid Phone Number'
-                    });
-                }
-            },
-            complete: () => {
-                setTotalRows(count);
-                setKeptRows(activeKept);
-                setRemovedRows(activeRemoved);
-                setStep('results');
-                toast.success(`Processing complete! Processed ${count.toLocaleString()} rows.`);
-            },
-            error: (err) => {
-                toast.error("Processing failed: " + err.message);
-                setStep('config');
+                setStep('upload');
             }
         });
     };
@@ -297,6 +376,7 @@ export default function CsvPhoneFormatterPage() {
         setFile(null);
         setHeaders([]);
         setPhoneColumn('');
+        setCountryColumn('');
         setKeptRows([]);
         setRemovedRows([]);
         setTotalRows(0);
@@ -395,10 +475,26 @@ export default function CsvPhoneFormatterPage() {
                                         <SelectContent>
                                             {headers.map(h => (
                                                 <SelectItem key={h} value={h}>{h}</SelectItem>
-                                            ))}
+                                              ))}
                                         </SelectContent>
                                     </Select>
                                     <p className="text-[10px] text-muted-foreground">This column will be cleaned, formatted, and validated.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-muted-foreground">Country Column (Optional)</label>
+                                    <Select value={countryColumn} onValueChange={setCountryColumn}>
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue placeholder="No Country Column (Use Default)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none-selected">-- None (Use Default Prefix) --</SelectItem>
+                                            {headers.map(h => (
+                                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                                              ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-[10px] text-muted-foreground">Used to lookup row-specific country codes (e.g. US/India).</p>
                                 </div>
 
                                 <div className="space-y-2">
