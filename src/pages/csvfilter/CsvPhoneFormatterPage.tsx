@@ -31,7 +31,7 @@ interface ProcessedRow {
     reason?: string;
 }
 
-type Step = 'upload' | 'config' | 'processing' | 'results';
+type Step = 'upload' | 'processing' | 'results';
 
 const COUNTRY_CODES = [
     { name: 'India (+91)', value: '+91' },
@@ -109,6 +109,52 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'MX': '52', 'MEX': '52', 'MEXICO': '52',
 };
 
+export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string, requiredDigits: number): string {
+    let phoneStr = rawPhone.trim();
+    if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(phoneStr)) {
+        const num = Number(phoneStr);
+        if (!isNaN(num)) {
+            phoneStr = num.toString();
+        }
+    }
+
+    // Clean: keep only digits and +
+    let cleaned = phoneStr.replace(/[^\d+]/g, '');
+    
+    // Handle multiple plus signs or plus signs in wrong places:
+    if (cleaned.includes('+')) {
+        const hasLeadingPlus = cleaned.startsWith('+');
+        cleaned = cleaned.replace(/\+/g, '');
+        if (hasLeadingPlus) {
+            cleaned = '+' + cleaned;
+        }
+    }
+
+    // Strip leading zero or +0
+    if (cleaned.startsWith('+0')) {
+        cleaned = '+' + cleaned.slice(2);
+    } else if (cleaned.startsWith('0')) {
+        cleaned = cleaned.slice(1);
+    }
+
+    const hasPlus = cleaned.startsWith('+');
+    const digitsOnly = cleaned.replace(/\D/g, '');
+
+    if (hasPlus) {
+        if (digitsOnly.startsWith(rowPrefixDigits)) {
+            return cleaned;
+        } else {
+            return `+${rowPrefixDigits}${digitsOnly}`;
+        }
+    } else {
+        if (digitsOnly.startsWith(rowPrefixDigits) && digitsOnly.length === rowPrefixDigits.length + requiredDigits) {
+            return `+${digitsOnly}`;
+        } else {
+            return `+${rowPrefixDigits}${digitsOnly}`;
+        }
+    }
+}
+
 export default function CsvPhoneFormatterPage() {
     const navigate = useNavigate();
     const [step, setStep] = useState<Step>('upload');
@@ -116,10 +162,6 @@ export default function CsvPhoneFormatterPage() {
     const [headers, setHeaders] = useState<string[]>([]);
     const [phoneColumn, setPhoneColumn] = useState<string>('');
     const [countryColumn, setCountryColumn] = useState<string>('');
-    const [defaultCountryCode, setDefaultCountryCode] = useState<string>('+91');
-    const [customCountryCode, setCustomCountryCode] = useState<string>('');
-    const [requiredDigits, setRequiredDigits] = useState<number>(10);
-    const [isCustomPrefix, setIsCustomPrefix] = useState<boolean>(false);
 
     // Results state
     const [keptRows, setKeptRows] = useState<any[]>([]);
@@ -133,20 +175,20 @@ export default function CsvPhoneFormatterPage() {
         if (e.target.files && e.target.files[0]) {
             const selectedFile = e.target.files[0];
             setFile(selectedFile);
-            parseHeaders(selectedFile);
+            parseAndFormatCSV(selectedFile);
         }
     };
 
-    const parseHeaders = (targetFile: File) => {
+    const parseAndFormatCSV = (targetFile: File) => {
         setStep('processing');
         setProcessedCount(0);
 
         Papa.parse(targetFile, {
             preview: 1, // Only read first line to get headers
             skipEmptyLines: true,
-            complete: (results) => {
-                if (results.data && results.data.length > 0) {
-                    const parsedHeaders = results.data[0] as string[];
+            complete: (headerResults) => {
+                if (headerResults.data && headerResults.data.length > 0) {
+                    const parsedHeaders = headerResults.data[0] as string[];
                     
                     // Clean and deduplicate headers
                     const uniqueHeaders: string[] = [];
@@ -193,7 +235,6 @@ export default function CsvPhoneFormatterPage() {
                         return;
                     }
 
-                    // Start automatic formatting immediately!
                     const activeKept: any[] = [];
                     const activeRemoved: any[] = [];
                     let count = 0;
@@ -230,17 +271,6 @@ export default function CsvPhoneFormatterPage() {
                                 return;
                             }
 
-                            let phoneStr = rawPhone.trim();
-                            if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(phoneStr)) {
-                                const num = Number(phoneStr);
-                                if (!isNaN(num)) {
-                                    phoneStr = num.toString();
-                                }
-                            }
-
-                            // Clean phone number (keep digits and +)
-                            let cleaned = phoneStr.replace(/[^\d+]/g, '');
-
                             // Default prefix is 1 (US) if no country is found
                             let rowPrefixDigits = '1';
                             if (countryCol && data[countryCol]) {
@@ -260,43 +290,15 @@ export default function CsvPhoneFormatterPage() {
                                 }
                             }
 
-                            // Validation and formatting logic
-                            let finalPhone = '';
-                            let isValid = true;
-                            let skipReason = '';
+                            // Clean and format phone number using our robust function (with 10 default required digits)
+                            const finalPhone = formatPhoneNumber(rawPhone, rowPrefixDigits, 10);
 
-                            if (cleaned.startsWith('+')) {
-                                const digits = cleaned.replace(/\D/g, '');
-                                if (digits.length < requiredDigits) {
-                                    isValid = false;
-                                    skipReason = `Invalid Length (${digits.length} digits, expected at least ${requiredDigits})`;
-                                } else {
-                                    finalPhone = cleaned;
-                                }
-                            } else {
-                                const digits = cleaned.replace(/\D/g, '');
-                                let checkDigits = digits;
-                                if (checkDigits.startsWith('0')) {
-                                    checkDigits = checkDigits.slice(1);
-                                }
+                            // Validate length of digits in formatted phone
+                            const digitsOnly = finalPhone.replace(/\D/g, '');
+                            const hasCorrectCountryCode = digitsOnly.startsWith(rowPrefixDigits);
+                            const localDigitsCount = hasCorrectCountryCode ? digitsOnly.length - rowPrefixDigits.length : digitsOnly.length;
 
-                                if (checkDigits.length === requiredDigits) {
-                                    finalPhone = `+${rowPrefixDigits}${checkDigits}`;
-                                } else if (checkDigits.length === rowPrefixDigits.length + requiredDigits && checkDigits.startsWith(rowPrefixDigits)) {
-                                    finalPhone = `+${checkDigits}`;
-                                } else if (checkDigits.length > requiredDigits) {
-                                    if (checkDigits.startsWith(rowPrefixDigits)) {
-                                        finalPhone = `+${checkDigits}`;
-                                    } else {
-                                        finalPhone = `+${rowPrefixDigits}${checkDigits}`;
-                                    }
-                                } else {
-                                    isValid = false;
-                                    skipReason = `Too Short (${checkDigits.length} digits, expected ${requiredDigits})`;
-                                }
-                            }
-
-                            if (isValid && finalPhone) {
+                            if (localDigitsCount >= 10) {
                                 activeKept.push({
                                     ...data,
                                     [phoneCol]: finalPhone
@@ -304,7 +306,7 @@ export default function CsvPhoneFormatterPage() {
                             } else {
                                 activeRemoved.push({
                                     ...data,
-                                    __skipReason: skipReason || 'Invalid Phone Number'
+                                    __skipReason: `Too Short (${localDigitsCount} digits, expected at least 10)`
                                 });
                             }
                         },
@@ -400,29 +402,6 @@ export default function CsvPhoneFormatterPage() {
                 </div>
             </div>
 
-            {/* Stepper Header */}
-            <div className="flex items-center justify-center gap-4 text-xs font-bold uppercase tracking-wider text-muted-foreground w-full py-2">
-                <div className={cn("flex items-center gap-2 transition-all duration-300", step === 'upload' ? "text-primary scale-105" : "opacity-50")}>
-                    <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">1</span>
-                    UPLOAD
-                </div>
-                <div className="w-8 h-px bg-border"></div>
-                <div className={cn("flex items-center gap-2 transition-all duration-300", step === 'config' ? "text-primary scale-105" : "opacity-50")}>
-                    <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">2</span>
-                    CONFIGURE
-                </div>
-                <div className="w-8 h-px bg-border"></div>
-                <div className={cn("flex items-center gap-2 transition-all duration-300", step === 'processing' ? "text-primary scale-105" : "opacity-50")}>
-                    <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">3</span>
-                    PROCESS
-                </div>
-                <div className="w-8 h-px bg-border"></div>
-                <div className={cn("flex items-center gap-2 transition-all duration-300", step === 'results' ? "text-primary scale-105" : "opacity-50")}>
-                    <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">4</span>
-                    EXPORT
-                </div>
-            </div>
-
             <Card className="w-full border shadow-xl bg-gradient-to-br from-card to-card/95 overflow-hidden">
                 <CardContent className="pt-6">
                     {/* Step 1: Upload */}
@@ -457,110 +436,6 @@ export default function CsvPhoneFormatterPage() {
                         </div>
                     )}
 
-                    {/* Step 2: Configuration */}
-                    {step === 'config' && (
-                        <div className="space-y-6">
-                            <div className="border-b pb-4">
-                                <h3 className="font-bold text-lg">Format Configuration</h3>
-                                <p className="text-xs text-muted-foreground">File: {file?.name} ({Math.round(file!.size / 1024)} KB)</p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">Phone Number Column</label>
-                                    <Select value={phoneColumn} onValueChange={setPhoneColumn}>
-                                        <SelectTrigger className="h-11">
-                                            <SelectValue placeholder="Select column" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {headers.map(h => (
-                                                <SelectItem key={h} value={h}>{h}</SelectItem>
-                                              ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-[10px] text-muted-foreground">This column will be cleaned, formatted, and validated.</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">Country Column (Optional)</label>
-                                    <Select value={countryColumn} onValueChange={setCountryColumn}>
-                                        <SelectTrigger className="h-11">
-                                            <SelectValue placeholder="No Country Column (Use Default)" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none-selected">-- None (Use Default Prefix) --</SelectItem>
-                                            {headers.map(h => (
-                                                <SelectItem key={h} value={h}>{h}</SelectItem>
-                                              ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-[10px] text-muted-foreground">Used to lookup row-specific country codes (e.g. US/India).</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">Default Country Prefix</label>
-                                    <div className="flex gap-2">
-                                        {!isCustomPrefix ? (
-                                            <Select value={defaultCountryCode} onValueChange={(val) => {
-                                                if (val === 'custom') {
-                                                    setIsCustomPrefix(true);
-                                                } else {
-                                                    setDefaultCountryCode(val);
-                                                }
-                                            }}>
-                                                <SelectTrigger className="h-11 flex-1">
-                                                    <SelectValue placeholder="Select country code" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {COUNTRY_CODES.map(c => (
-                                                        <SelectItem key={c.value} value={c.value}>{c.name}</SelectItem>
-                                                    ))}
-                                                    <SelectItem value="custom">Custom Prefix...</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        ) : (
-                                            <div className="flex gap-2 w-full">
-                                                <Input
-                                                    placeholder="e.g. +91"
-                                                    value={customCountryCode}
-                                                    onChange={(e) => setCustomCountryCode(e.target.value)}
-                                                    className="h-11 flex-1"
-                                                />
-                                                <Button variant="outline" className="h-11" onClick={() => setIsCustomPrefix(false)}>
-                                                    Select List
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground">Prepended to phone numbers missing a country code.</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">Local Phone Digits Required</label>
-                                    <Input
-                                        type="number"
-                                        min={4}
-                                        max={15}
-                                        value={requiredDigits}
-                                        onChange={(e) => setRequiredDigits(Number(e.target.value))}
-                                        className="h-11"
-                                    />
-                                    <p className="text-[10px] text-muted-foreground">Records with fewer local digits (excluding country code) will be removed. Default: 10.</p>
-                                </div>
-
-                                <div className="space-y-2 flex flex-col justify-end">
-                                    <div className="flex gap-3">
-                                        <Button variant="outline" className="h-11 flex-1 font-semibold" onClick={resetState}>
-                                            Cancel
-                                        </Button>
-                                        <Button className="h-11 flex-1 font-bold" onClick={handleProcess}>
-                                            Cleanse & Format →
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Step 3: Processing */}
                     {step === 'processing' && (
