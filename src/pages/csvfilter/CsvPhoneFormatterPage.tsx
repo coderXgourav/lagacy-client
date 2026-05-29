@@ -109,6 +109,119 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'MX': '52', 'MEX': '52', 'MEXICO': '52',
 };
 
+export function getValidLocalLengths(prefix: string): number[] {
+    switch (prefix) {
+        case '1': // US, Canada
+            return [10];
+        case '86': // China
+            return [9, 10, 11];
+        case '91': // India
+            return [10];
+        case '44': // UK
+            return [9, 10];
+        case '61': // Australia
+            return [9];
+        case '65': // Singapore
+            return [8];
+        case '966': // Saudi Arabia
+            return [9];
+        case '971': // UAE
+            return [9];
+        case '33': // France
+            return [9];
+        case '49': // Germany
+            return [10, 11];
+        case '39': // Italy
+            return [9, 10];
+        case '34': // Spain
+            return [9];
+        case '31': // Netherlands
+            return [9];
+        case '41': // Switzerland
+            return [9];
+        case '46': // Sweden
+            return [7, 8, 9];
+        case '47': // Norway
+            return [8];
+        case '45': // Denmark
+            return [8];
+        case '32': // Belgium
+            return [9];
+        case '43': // Austria
+            return [10, 11, 12, 13];
+        case '351': // Portugal
+            return [9];
+        case '30': // Greece
+            return [10];
+        case '48': // Poland
+            return [9];
+        case '81': // Japan
+            return [9, 10];
+        case '82': // South Korea
+            return [9, 10];
+        case '60': // Malaysia
+            return [8, 9, 10];
+        case '66': // Thailand
+            return [9];
+        case '84': // Vietnam
+            return [9, 10];
+        case '62': // Indonesia
+            return [9, 10, 11];
+        case '63': // Philippines
+            return [9, 10];
+        case '92': // Pakistan
+            return [9, 10];
+        case '880': // Bangladesh
+            return [10];
+        case '94': // Sri Lanka
+            return [9];
+        case '977': // Nepal
+            return [9, 10];
+        case '974': // Qatar
+            return [8];
+        case '968': // Oman
+            return [8];
+        case '965': // Kuwait
+            return [8];
+        case '973': // Bahrain
+            return [8];
+        case '972': // Israel
+            return [9];
+        case '90': // Turkey
+            return [10];
+        case '64': // New Zealand
+            return [8, 9];
+        case '27': // South Africa
+            return [9];
+        case '234': // Nigeria
+            return [10];
+        case '20': // Egypt
+            return [9, 10];
+        case '254': // Kenya
+            return [9];
+        case '233': // Ghana
+            return [9];
+        case '212': // Morocco
+            return [9];
+        case '55': // Brazil
+            return [10, 11];
+        case '54': // Argentina
+            return [10];
+        case '57': // Colombia
+            return [10];
+        case '56': // Chile
+            return [9];
+        case '51': // Peru
+            return [9];
+        case '58': // Venezuela
+            return [10];
+        case '52': // Mexico
+            return [10];
+        default:
+            return [8, 9, 10, 11]; // default fallback
+    }
+}
+
 export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string, requiredDigits: number): string {
     let phoneStr = rawPhone.trim();
     if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(phoneStr)) {
@@ -142,16 +255,42 @@ export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string, req
 
     if (hasPlus) {
         if (digitsOnly.startsWith(rowPrefixDigits)) {
-            return cleaned;
+            // Strip duplicate leading prefix if any
+            let temp = digitsOnly;
+            while (temp.startsWith(rowPrefixDigits) && temp.length > rowPrefixDigits.length) {
+                const remainder = temp.slice(rowPrefixDigits.length);
+                const validLengths = getValidLocalLengths(rowPrefixDigits);
+                if (validLengths.includes(remainder.length)) {
+                    return `+${temp}`;
+                }
+                if (temp.startsWith(rowPrefixDigits + rowPrefixDigits)) {
+                    temp = remainder;
+                } else {
+                    break;
+                }
+            }
+            return `+${temp}`;
         } else {
             return `+${rowPrefixDigits}${digitsOnly}`;
         }
     } else {
-        if (digitsOnly.startsWith(rowPrefixDigits) && digitsOnly.length === rowPrefixDigits.length + requiredDigits) {
-            return `+${digitsOnly}`;
-        } else {
+        if (digitsOnly.startsWith(rowPrefixDigits)) {
+            let temp = digitsOnly;
+            while (temp.startsWith(rowPrefixDigits) && temp.length > rowPrefixDigits.length) {
+                const remainder = temp.slice(rowPrefixDigits.length);
+                const validLengths = getValidLocalLengths(rowPrefixDigits);
+                if (validLengths.includes(remainder.length)) {
+                    return `+${temp}`;
+                }
+                if (temp.startsWith(rowPrefixDigits + rowPrefixDigits)) {
+                    temp = remainder;
+                } else {
+                    break;
+                }
+            }
             return `+${rowPrefixDigits}${digitsOnly}`;
         }
+        return `+${rowPrefixDigits}${digitsOnly}`;
     }
 }
 
@@ -290,7 +429,7 @@ export default function CsvPhoneFormatterPage() {
                                 }
                             }
 
-                            // Clean and format phone number using our robust function (with 10 default required digits)
+                            // Clean and format phone number using our robust function
                             const finalPhone = formatPhoneNumber(rawPhone, rowPrefixDigits, 10);
 
                             // Validate length of digits in formatted phone
@@ -298,7 +437,10 @@ export default function CsvPhoneFormatterPage() {
                             const hasCorrectCountryCode = digitsOnly.startsWith(rowPrefixDigits);
                             const localDigitsCount = hasCorrectCountryCode ? digitsOnly.length - rowPrefixDigits.length : digitsOnly.length;
 
-                            if (localDigitsCount >= 10) {
+                            const validLengths = getValidLocalLengths(rowPrefixDigits);
+                            const minRequiredDigits = Math.min(...validLengths);
+
+                            if (localDigitsCount >= minRequiredDigits) {
                                 activeKept.push({
                                     ...data,
                                     [phoneCol]: finalPhone
@@ -306,7 +448,7 @@ export default function CsvPhoneFormatterPage() {
                             } else {
                                 activeRemoved.push({
                                     ...data,
-                                    __skipReason: `Too Short (${localDigitsCount} digits, expected at least 10)`
+                                    __skipReason: `Too Short (${localDigitsCount} digits, expected at least ${minRequiredDigits})`
                                 });
                             }
                         },
