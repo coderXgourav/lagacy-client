@@ -20,6 +20,7 @@ interface EmailLog {
     email: string;
     name: string;
     phoneNumber?: string;
+    domainName?: string;
     subject: string;
     status: 'Seen' | 'Unseen' | 'Replied';
     openCount: number;
@@ -156,10 +157,11 @@ export default function CsvUploaderEmailLogs() {
             }
 
             const allLogs: EmailLog[] = data.logs;
-            const headers = ["Recipient Name", "Recipient Email", "Phone Number", "Subject", "Status", "Opens", "Sent Date"];
+            const headers = ["Recipient Name", "Recipient Email", "Domain Name", "Phone Number", "Subject", "Status", "Opens", "Sent Date"];
             const rows = allLogs.map(log => [
                 log.name || 'Unknown',
                 log.email,
+                log.domainName || log.email.split('@')[1] || 'N/A',
                 log.phoneNumber || 'N/A',
                 `"${(log.subject || '').replace(/"/g, '""')}"`,
                 log.status,
@@ -207,10 +209,11 @@ export default function CsvUploaderEmailLogs() {
             doc.setFontSize(11);
             doc.text(`Total Seen: ${allLogs.length}`, 14, 23);
             
-            const tableColumn = ["Name", "Email", "Phone", "Subject", "Status", "Opens", "Sent Date"];
+            const tableColumn = ["Name", "Email", "Domain Name", "Phone", "Subject", "Status", "Opens", "Sent Date"];
             const tableRows = allLogs.map(log => [
                 log.name || 'Unknown',
                 log.email,
+                log.domainName || log.email.split('@')[1] || 'N/A',
                 log.phoneNumber || 'N/A',
                 (log.subject || '').substring(0, 30) + ((log.subject || '').length > 30 ? '...' : ''),
                 log.status,
@@ -474,6 +477,7 @@ export default function CsvUploaderEmailLogs() {
                                     <TableHeader>
                                         <TableRow className="bg-muted/50 hover:bg-muted/50">
                                             <TableHead className="font-semibold">Recipient</TableHead>
+                                            <TableHead className="font-semibold">Domain</TableHead>
                                             <TableHead className="font-semibold">Subject</TableHead>
                                             <TableHead className="font-semibold">Status</TableHead>
                                             <TableHead className="font-semibold">Engagement</TableHead>
@@ -496,6 +500,9 @@ export default function CsvUploaderEmailLogs() {
                                                             </span>
                                                         </div>
                                                     </div>
+                                                </TableCell>
+                                                <TableCell className="font-medium text-foreground whitespace-nowrap">
+                                                    {log.domainName || log.email.split('@')[1] || 'N/A'}
                                                 </TableCell>
                                                 <TableCell className="max-w-[200px] truncate font-medium">{log.subject}</TableCell>
                                                 <TableCell>{getStatusBadge(log.status)}</TableCell>
