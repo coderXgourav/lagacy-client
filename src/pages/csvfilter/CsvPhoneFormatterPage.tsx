@@ -65,6 +65,17 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'PT': '351', 'PRT': '351', 'PORTUGAL': '351',
     'GR': '30', 'GRC': '30', 'GREECE': '30',
     'PL': '48', 'POL': '48', 'POLAND': '48',
+    'CY': '357', 'CYP': '357', 'CYPRUS': '357',
+    'RO': '40', 'ROU': '40', 'ROMANIA': '40',
+    'UA': '380', 'UKR': '380', 'UKRAINE': '380',
+    'MD': '373', 'MDA': '373', 'MOLDOVA': '373',
+    'GE': '995', 'GEO': '995', 'GEORGIA': '995',
+    'AZ': '994', 'AZE': '994', 'AZERBAIJAN': '994',
+    'LU': '352', 'LUX': '352', 'LUXEMBOURG': '352',
+    'SK': '421', 'SVK': '421', 'SLOVAKIA': '421', 'SLOVAKIA SLOVAK REPUBLIC': '421',
+    'AL': '355', 'ALB': '355', 'ALBANIA': '355',
+    'AD': '376', 'AND': '376', 'ANDORRA': '376',
+    'ALAND ISLANDS': '358',
     // Asia
     'IN': '91', 'IND': '91', 'INDIA': '91',
     'CN': '86', 'CHN': '86', 'CHINA': '86',
@@ -80,6 +91,11 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'BD': '880', 'BGD': '880', 'BANGLADESH': '880',
     'LK': '94', 'LKA': '94', 'SRI LANKA': '94',
     'NP': '977', 'NPL': '977', 'NEPAL': '977',
+    'TW': '886', 'TWN': '886', 'TAIWAN': '886', 'TAIWAN PROVINCE OF CHINA': '886',
+    'IR': '98', 'IRN': '98', 'IRAN': '98', 'IRAN ISLAMIC REPUBLIC OF': '98',
+    'KG': '996', 'KGZ': '996', 'KYRGYZSTAN': '996',
+    'LA': '856', 'LAO': '856', 'LAOS': '856',
+    'HK': '852', 'HKG': '852', 'HONG KONG': '852',
     // Middle East
     'AE': '971', 'ARE': '971', 'UNITED ARAB EMIRATES': '971', 'UAE': '971',
     'SA': '966', 'SAU': '966', 'SAUDI ARABIA': '966',
@@ -89,6 +105,9 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'BH': '973', 'BHR': '973', 'BAHRAIN': '973',
     'IL': '972', 'ISR': '972', 'ISRAEL': '972',
     'TR': '90', 'TUR': '90', 'TURKEY': '90',
+    'JO': '962', 'JOR': '962', 'JORDAN': '962',
+    'IQ': '964', 'IRQ': '964', 'IRAQ': '964',
+    'PS': '970', 'PALESTINE': '970', 'STATE OF PALESTINE': '970', 'PALESTINIAN TERRITORY': '970',
     // Oceania
     'AU': '61', 'AUS': '61', 'AUSTRALIA': '61',
     'NZ': '64', 'NZL': '64', 'NEW ZEALAND': '64',
@@ -99,6 +118,28 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'KE': '254', 'KEN': '254', 'KENYA': '254',
     'GH': '233', 'GHA': '233', 'GHANA': '233',
     'MA': '212', 'MAR': '212', 'MOROCCO': '212',
+    'LY': '218', 'LBY': '218', 'LIBYA': '218', 'LIBYAN ARAB JAMAHIRIYA': '218',
+    'DZ': '213', 'DZA': '213', 'ALGERIA': '213',
+    'TN': '216', 'TUN': '216', 'TUNISIA': '216',
+    'UG': '256', 'UGA': '256', 'UGANDA': '256',
+    'BW': '267', 'BWA': '267', 'BOTSWANA': '267',
+    'RW': '250', 'RWA': '250', 'RWANDA': '250',
+    'ZW': '263', 'ZWE': '263', 'ZIMBABWE': '263',
+    'RE': '262', 'REU': '262', 'REUNION': '262',
+    'SD': '249', 'SDN': '249', 'SUDAN': '249',
+    'GM': '220', 'GMB': '220', 'GAMBIA': '220',
+    'TG': '228', 'TGO': '228', 'TOGO': '228',
+    'VC': '1784', 'VCT': '1784', 'SAINT VINCENT': '1784', 'SAINT VINCENT AND THE GRENADINES': '1784',
+    'TZ': '255', 'TZA': '255', 'TANZANIA': '255', 'TANZANIA UNITED REPUBLIC OF': '255',
+    'UZ': '998', 'UZB': '998', 'UZBEKISTAN': '998',
+    'CZ': '420', 'CZE': '420', 'CZECH': '420', 'CZECH REPUBLIC': '420',
+    'KH': '855', 'KHM': '855', 'CAMBODIA': '855',
+    'SC': '248', 'SYC': '248', 'SEYCHELLES': '248',
+    'LV': '371', 'LVA': '371', 'LATVIA': '371',
+    'KZ': '7', 'KAZ': '7', 'KAZAKHSTAN': '7',
+    'BG': '359', 'BGR': '359', 'BULGARIA': '359',
+    'BI': '257', 'BDI': '257', 'BURUNDI': '257',
+    'CD': '243', 'COD': '243', 'CONGO THE DRC': '243',
     // South America
     'BR': '55', 'BRA': '55', 'BRAZIL': '55',
     'AR': '54', 'ARG': '54', 'ARGENTINA': '54',
@@ -107,6 +148,19 @@ const COUNTRY_NAME_TO_PREFIX: Record<string, string> = {
     'PE': '51', 'PER': '51', 'PERU': '51',
     'VE': '58', 'VEN': '58', 'VENEZUELA': '58',
     'MX': '52', 'MEX': '52', 'MEXICO': '52',
+    'EC': '593', 'ECU': '593', 'ECUADOR': '593',
+    'UY': '598', 'URY': '598', 'URUGUAY': '598',
+    'BO': '591', 'BOL': '591', 'BOLIVIA': '591',
+    'HN': '504', 'HND': '504', 'HONDURAS': '504',
+    // Europe (Andorra, Bosnia)
+    'BA': '387', 'BIH': '387', 'BOSNIA': '387', 'BOSNIA AND HERZEGOWINA': '387',
+    // Virgin Islands
+    'VI': '1340', 'VIRGIN ISLANDS US': '1340',
+    'VG': '1284', 'VIRGIN ISLANDS BRITISH': '1284',
+    // Cote D'Ivoire
+    'CI': '225', 'CIV': '225', 'COTE DIVOIRE': '225',
+    // Asia (Tajikistan)
+    'TJ': '992', 'TJK': '992', 'TAJIKISTAN': '992',
 };
 
 export function getValidLocalLengths(prefix: string): number[] {
@@ -217,12 +271,110 @@ export function getValidLocalLengths(prefix: string): number[] {
             return [10];
         case '52': // Mexico
             return [10];
+        case '357': // Cyprus
+            return [8];
+        case '40': // Romania
+            return [9];
+        case '380': // Ukraine
+            return [9];
+        case '852': // Hong Kong
+            return [8];
+        case '218': // Libya
+            return [9];
+        case '994': // Azerbaijan
+            return [9];
+        case '213': // Algeria
+            return [9];
+        case '373': // Moldova
+            return [8];
+        case '995': // Georgia
+            return [9];
+        case '962': // Jordan
+            return [9];
+        case '593': // Ecuador
+            return [9];
+        case '964': // Iraq
+            return [10];
+        case '216': // Tunisia
+            return [8];
+        case '256': // Uganda
+            return [9];
+        case '352': // Luxembourg
+            return [9];
+        case '886': // Taiwan
+            return [9];
+        case '421': // Slovakia
+            return [9];
+        case '98': // Iran
+            return [10];
+        case '355': // Albania
+            return [9];
+        case '598': // Uruguay
+            return [8, 9];
+        case '996': // Kyrgyzstan
+            return [9];
+        case '267': // Botswana
+            return [7, 8];
+        case '856': // Laos
+            return [9, 10];
+        case '250': // Rwanda
+            return [9];
+        case '591': // Bolivia
+            return [8];
+        case '263': // Zimbabwe
+            return [9];
+        case '262': // Reunion
+            return [9];
+        case '504': // Honduras
+            return [8];
+        case '376': // Andorra
+            return [6];
+        case '249': // Sudan
+            return [9];
+        case '220': // Gambia
+            return [7];
+        case '992': // Tajikistan
+            return [9];
+        case '228': // Togo
+            return [8];
+        case '1784': // Saint Vincent
+            return [7];
+        case '255': // Tanzania
+            return [9];
+        case '998': // Uzbekistan
+            return [9];
+        case '420': // Czech Republic
+            return [9];
+        case '855': // Cambodia
+            return [8, 9];
+        case '248': // Seychelles
+            return [7];
+        case '371': // Latvia
+            return [8];
+        case '7': // Kazakhstan
+            return [10];
+        case '359': // Bulgaria
+            return [7, 8, 9];
+        case '387': // Bosnia
+            return [8];
+        case '1340': // Virgin Islands US
+            return [7];
+        case '1284': // Virgin Islands British
+            return [7];
+        case '225': // Cote D'Ivoire
+            return [10];
+        case '970': // Palestine
+            return [9];
+        case '257': // Burundi
+            return [8];
+        case '243': // Congo
+            return [9];
         default:
             return [8, 9, 10, 11]; // default fallback
     }
 }
 
-export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string, requiredDigits: number): string {
+export function cleanPhoneNumber(rawPhone: string): string {
     let phoneStr = rawPhone.trim();
     if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(phoneStr)) {
         const num = Number(phoneStr);
@@ -230,69 +382,61 @@ export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string, req
             phoneStr = num.toString();
         }
     }
+    // Clean: keep only digits
+    return phoneStr.replace(/\D/g, '');
+}
 
-    // Clean: keep only digits and +
-    let cleaned = phoneStr.replace(/[^\d+]/g, '');
+export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string | null): { phone: string; warning?: string } {
+    const cleanDigits = cleanPhoneNumber(rawPhone);
+    const hasOriginalPlus = rawPhone.trim().startsWith('+');
     
-    // Handle multiple plus signs or plus signs in wrong places:
-    if (cleaned.includes('+')) {
-        const hasLeadingPlus = cleaned.startsWith('+');
-        cleaned = cleaned.replace(/\+/g, '');
-        if (hasLeadingPlus) {
-            cleaned = '+' + cleaned;
+    // Compile a list of all country codes sorted by length descending (to match longest first)
+    const allCountryCodes = Array.from(new Set(Object.values(COUNTRY_NAME_TO_PREFIX)))
+        .sort((a, b) => b.length - a.length);
+
+    if (rowPrefixDigits) {
+        // Strip duplicate correct prefixes to prevent duplicates like +9191... (Rule 5)
+        let processedDigits = cleanDigits;
+        if (processedDigits.startsWith(rowPrefixDigits + rowPrefixDigits)) {
+            processedDigits = processedDigits.slice(rowPrefixDigits.length);
         }
-    }
 
-    // Strip leading zero or +0
-    if (cleaned.startsWith('+0')) {
-        cleaned = '+' + cleaned.slice(2);
-    } else if (cleaned.startsWith('0')) {
-        cleaned = cleaned.slice(1);
-    }
-
-    const hasPlus = cleaned.startsWith('+');
-    const digitsOnly = cleaned.replace(/\D/g, '');
-
-    if (hasPlus) {
-        if (digitsOnly.startsWith(rowPrefixDigits)) {
-            // Strip duplicate leading prefix if any
-            let temp = digitsOnly;
-            while (temp.startsWith(rowPrefixDigits) && temp.length > rowPrefixDigits.length) {
-                const remainder = temp.slice(rowPrefixDigits.length);
-                const validLengths = getValidLocalLengths(rowPrefixDigits);
-                if (validLengths.includes(remainder.length)) {
-                    return `+${temp}`;
-                }
-                if (temp.startsWith(rowPrefixDigits + rowPrefixDigits)) {
-                    temp = remainder;
-                } else {
+        // Rule 4: Strip wrong country code prefix before checking/adding.
+        let detectedWrongPrefix = '';
+        for (const code of allCountryCodes) {
+            if (code !== rowPrefixDigits && processedDigits.startsWith(code)) {
+                const remainder = processedDigits.slice(code.length);
+                if (hasOriginalPlus || remainder.startsWith(rowPrefixDigits)) {
+                    detectedWrongPrefix = code;
                     break;
                 }
             }
-            return `+${temp}`;
+        }
+
+        if (detectedWrongPrefix) {
+            processedDigits = processedDigits.slice(detectedWrongPrefix.length);
+        }
+        
+        // Strip duplicate correct prefixes again in case stripping wrong code exposed it
+        if (processedDigits.startsWith(rowPrefixDigits + rowPrefixDigits)) {
+            processedDigits = processedDigits.slice(rowPrefixDigits.length);
+        }
+
+        // If the phone number already starts with the expected country code, only add "+" in front.
+        if (processedDigits.startsWith(rowPrefixDigits)) {
+            return { phone: `+${processedDigits}` };
         } else {
-            return `+${rowPrefixDigits}${digitsOnly}`;
+            return { phone: `+${rowPrefixDigits}${processedDigits}` };
         }
     } else {
-        if (digitsOnly.startsWith(rowPrefixDigits)) {
-            let temp = digitsOnly;
-            while (temp.startsWith(rowPrefixDigits) && temp.length > rowPrefixDigits.length) {
-                const remainder = temp.slice(rowPrefixDigits.length);
-                const validLengths = getValidLocalLengths(rowPrefixDigits);
-                if (validLengths.includes(remainder.length)) {
-                    return `+${temp}`;
-                }
-                if (temp.startsWith(rowPrefixDigits + rowPrefixDigits)) {
-                    temp = remainder;
-                } else {
-                    break;
-                }
-            }
-            return `+${rowPrefixDigits}${digitsOnly}`;
-        }
-        return `+${rowPrefixDigits}${digitsOnly}`;
+        // For blank country rows: keep the cleaned phone number, add "+" if missing, keep the warning
+        return {
+            phone: `+${cleanDigits}`,
+            warning: 'Country code not found for this row.'
+        };
     }
 }
+
 
 export default function CsvPhoneFormatterPage() {
     const navigate = useNavigate();
@@ -359,8 +503,11 @@ export default function CsvPhoneFormatterPage() {
                     const phoneCol = detectPhoneColumn || uniqueHeaders[0] || '';
                     setPhoneColumn(phoneCol);
 
-                    // Auto-detect country column
+                    // Auto-detect country column, prioritizing registrant_country or registrantCountry
                     const detectCountryColumn = uniqueHeaders.find(h => {
+                        const low = h.toLowerCase().replace(/[\s_-]/g, '');
+                        return low === 'registrantcountry';
+                    }) || uniqueHeaders.find(h => {
                         const low = h.toLowerCase();
                         return low.includes('country') || low.includes('registrant_country') || low.includes('nation') || low.includes('cntry');
                     });
@@ -410,10 +557,13 @@ export default function CsvPhoneFormatterPage() {
                                 return;
                             }
 
-                            // Default prefix is 1 (US) if no country is found
-                            let rowPrefixDigits = '1';
+                            // Detect country code from mapping
+                            let rowPrefixDigits: string | null = null;
+                            let warning = '';
                             if (countryCol && data[countryCol]) {
-                                const rowCountry = data[countryCol].trim().toUpperCase().replace(/\./g, '');
+                                const rowCountry = data[countryCol].trim().toUpperCase()
+                                    .replace(/[^A-Z0-9\s]/g, '')
+                                    .replace(/\s+/g, ' ');
                                 if (rowCountry) {
                                     if (COUNTRY_NAME_TO_PREFIX[rowCountry]) {
                                         rowPrefixDigits = COUNTRY_NAME_TO_PREFIX[rowCountry];
@@ -430,25 +580,49 @@ export default function CsvPhoneFormatterPage() {
                             }
 
                             // Clean and format phone number using our robust function
-                            const finalPhone = formatPhoneNumber(rawPhone, rowPrefixDigits, 10);
+                            const { phone: finalPhone, warning: formatWarning } = formatPhoneNumber(rawPhone, rowPrefixDigits);
+                            if (formatWarning) {
+                                warning = formatWarning;
+                            }
 
                             // Validate length of digits in formatted phone
+                            let isKept = true;
+                            let skipReason = '';
+
                             const digitsOnly = finalPhone.replace(/\D/g, '');
-                            const hasCorrectCountryCode = digitsOnly.startsWith(rowPrefixDigits);
-                            const localDigitsCount = hasCorrectCountryCode ? digitsOnly.length - rowPrefixDigits.length : digitsOnly.length;
+                            if (digitsOnly.length === 0) {
+                                isKept = false;
+                                skipReason = 'Empty Phone Number';
+                            } else if (rowPrefixDigits) {
+                                const hasCorrectCountryCode = digitsOnly.startsWith(rowPrefixDigits);
+                                const localDigitsCount = hasCorrectCountryCode ? digitsOnly.length - rowPrefixDigits.length : digitsOnly.length;
 
-                            const validLengths = getValidLocalLengths(rowPrefixDigits);
-                            const minRequiredDigits = Math.min(...validLengths);
+                                const validLengths = getValidLocalLengths(rowPrefixDigits);
+                                const minRequiredDigits = Math.min(...validLengths);
 
-                            if (localDigitsCount >= minRequiredDigits) {
+                                if (localDigitsCount < minRequiredDigits) {
+                                    isKept = false;
+                                    skipReason = `Too Short (${localDigitsCount} digits, expected at least ${minRequiredDigits})`;
+                                }
+                            } else {
+                                // If country was not found, we kept the cleaned phone.
+                                // We check if it is too short (e.g. less than 5 digits as a generic safety check)
+                                if (digitsOnly.length < 5) {
+                                    isKept = false;
+                                    skipReason = `Too Short (${digitsOnly.length} digits)`;
+                                }
+                            }
+
+                            if (isKept) {
                                 activeKept.push({
                                     ...data,
-                                    [phoneCol]: finalPhone
+                                    [phoneCol]: finalPhone,
+                                    'Formatter Warning': warning || ''
                                 });
                             } else {
                                 activeRemoved.push({
                                     ...data,
-                                    __skipReason: `Too Short (${localDigitsCount} digits, expected at least ${minRequiredDigits})`
+                                    __skipReason: skipReason
                                 });
                             }
                         },
@@ -663,7 +837,8 @@ export default function CsvPhoneFormatterPage() {
                                                     <TableRow>
                                                         <TableHead className="w-[60px] font-bold text-center border-r">No.</TableHead>
                                                         <TableHead className="font-bold border-r">Formatted Phone</TableHead>
-                                                        {headers.filter(h => h !== phoneColumn).slice(0, 3).map(h => (
+                                                        <TableHead className="font-bold border-r">Warning / Status</TableHead>
+                                                        {headers.filter(h => h !== phoneColumn && h !== 'Formatter Warning').slice(0, 3).map(h => (
                                                             <TableHead key={h} className="font-bold border-r">{h}</TableHead>
                                                         ))}
                                                     </TableRow>
@@ -671,7 +846,7 @@ export default function CsvPhoneFormatterPage() {
                                                 <TableBody>
                                                     {keptRows.length === 0 ? (
                                                         <TableRow>
-                                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground font-medium">
+                                                            <TableCell colSpan={headers.length + 3} className="text-center py-8 text-muted-foreground font-medium">
                                                                 No clean records found.
                                                             </TableCell>
                                                         </TableRow>
@@ -681,11 +856,26 @@ export default function CsvPhoneFormatterPage() {
                                                                 <TableCell className="text-center font-bold text-muted-foreground border-r">{idx + 1}</TableCell>
                                                                 <TableCell className="font-bold text-primary font-mono border-r">
                                                                     <div className="flex items-center gap-1.5">
-                                                                        <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500 shrink-0" />
+                                                                        {row['Formatter Warning'] ? (
+                                                                            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                                                        ) : (
+                                                                            <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500 shrink-0" />
+                                                                        )}
                                                                         {row[phoneColumn]}
                                                                     </div>
                                                                 </TableCell>
-                                                                {headers.filter(h => h !== phoneColumn).slice(0, 3).map(h => (
+                                                                <TableCell className="border-r">
+                                                                    {row['Formatter Warning'] ? (
+                                                                        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200">
+                                                                            {row['Formatter Warning']}
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                                                                            Formatted
+                                                                        </Badge>
+                                                                    )}
+                                                                </TableCell>
+                                                                {headers.filter(h => h !== phoneColumn && h !== 'Formatter Warning').slice(0, 3).map(h => (
                                                                     <TableCell key={h} className="text-muted-foreground border-r truncate max-w-[200px]">{row[h] || 'N/A'}</TableCell>
                                                                 ))}
                                                             </TableRow>
