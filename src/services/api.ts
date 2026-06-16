@@ -580,6 +580,15 @@ export const facebookAdsExtractorApi = {
     apiCall(`/facebook-ads-extractor/searches/${searchId}`, {
       method: 'DELETE',
     }),
+  generateLeadSalesPacket: (leadId: string) =>
+    apiCall(`/facebook-ads-extractor/leads/${leadId}/generate-packet`, {
+      method: 'POST',
+    }),
+  sendLeadEmail: (leadId: string, emailData: { subject: string; body: string; toEmail: string }) =>
+    apiCall(`/facebook-ads-extractor/leads/${leadId}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify(emailData),
+    }),
 };
 
 export const intelligenceApi = {

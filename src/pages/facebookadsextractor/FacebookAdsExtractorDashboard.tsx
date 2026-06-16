@@ -6,6 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,8 +50,12 @@ import {
   Sparkles,
   Globe,
   Activity,
-  Users
+  Users,
+  Copy,
+  Check,
+  MessageSquare
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function FacebookAdsExtractorDashboard() {
   const { toast } = useToast();
@@ -60,6 +71,115 @@ export default function FacebookAdsExtractorDashboard() {
   const [activeSearch, setActiveSearch] = useState<any | null>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [selectedLeadForDetails, setSelectedLeadForDetails] = useState<any | null>(null);
+  const [generatingPacket, setGeneratingPacket] = useState(false);
+
+  const handleManualGeneratePacket = async (leadId: string) => {
+    setGeneratingPacket(true);
+    try {
+      const response = await api.facebookAdsExtractor.generateLeadSalesPacket(leadId);
+      if (response.success && response.data) {
+        toast({
+          title: "Success",
+          description: "AI Sales Packet generated successfully!",
+        });
+        const updatedLead = response.data;
+        setSelectedLeadForDetails(updatedLead);
+        setLeads((prevLeads) =>
+          prevLeads.map((l) => (l._id === leadId ? updatedLead : l))
+        );
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: error.message || "Failed to call AI model to generate sales packet.",
+      });
+    } finally {
+      setGeneratingPacket(false);
+    }
+  };
+
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const [smtpEmail, setSmtpEmail] = useState(() => localStorage.getItem("lead_smtp_email") || "");
+  const [smtpPassword, setSmtpPassword] = useState(() => localStorage.getItem("lead_smtp_password") || "");
+
+  useEffect(() => {
+    localStorage.setItem("lead_smtp_email", smtpEmail);
+  }, [smtpEmail]);
+
+  useEffect(() => {
+    localStorage.setItem("lead_smtp_password", smtpPassword);
+  }, [smtpPassword]);
+
+  useEffect(() => {
+    if (selectedLeadForDetails) {
+      const defaultSubject = `Quick recommendation for ${selectedLeadForDetails.pageName || 'your business'} ad campaign`;
+      const defaultBody = `Hi Team ${selectedLeadForDetails.pageName || ''},\n\nI saw your active ad campaigns and wanted to send over a quick suggestion.\n\n${selectedLeadForDetails.emailOpener || "We can help you plug the funnel leak in your campaign and capture more customer inquiries."}\n\nBest regards,\n[Your Name]`;
+      setEmailSubject(defaultSubject);
+      setEmailBody(defaultBody);
+    } else {
+      setEmailSubject("");
+      setEmailBody("");
+    }
+  }, [selectedLeadForDetails]);
+
+  const handleSendEmail = async () => {
+    if (!selectedLeadForDetails) return;
+    const toEmail = selectedLeadForDetails.email || (selectedLeadForDetails.scrapedEmails && selectedLeadForDetails.scrapedEmails[0]);
+    if (!toEmail) {
+      toast({
+        variant: "destructive",
+        title: "Missing Email",
+        description: "No recipient email address available for this lead.",
+      });
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const response = await api.facebookAdsExtractor.sendLeadEmail(selectedLeadForDetails._id, {
+        subject: emailSubject,
+        body: emailBody,
+        toEmail,
+        smtpEmail,
+        smtpPassword
+      });
+      if (response.success) {
+        toast({
+          title: "Email Sent Successfully",
+          description: `Cold email has been dispatched to ${toEmail}.`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Send Email",
+        description: error.message || "An error occurred while connecting to the SMTP server.",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleCopyText = (text: string, label: string) => {
+    if (!text) {
+      toast({
+        variant: "destructive",
+        title: "Nothing to copy",
+        description: `The script template is empty.`,
+      });
+      return;
+    }
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to Clipboard",
+      description: `${label} has been successfully copied!`,
+    });
+  };
 
   // Poll active search if it is processing or pending
   const [pollTrigger, setPollTrigger] = useState(0);
@@ -299,7 +419,49 @@ export default function FacebookAdsExtractorDashboard() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+  const getScoreBadge = (category: string) => {
+    switch (category) {
+      case "Priority Close":
+        return (
+          <Badge className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white border-none text-[10px] font-extrabold uppercase tracking-wider animate-pulse">
+            Priority Close
+          </Badge>
+        );
+      case "Hot Lead":
+        return (
+          <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none text-[10px] font-bold uppercase tracking-wider">
+            Hot Lead
+          </Badge>
+        );
+      case "Nurture":
+        return (
+          <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-none text-[10px] font-medium uppercase tracking-wider">
+            Nurture
+          </Badge>
+        );
+      case "Cold Lead":
+      default:
+        return (
+          <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-light">
+            Cold Lead
+          </Badge>
+        );
+    }
+  };
 
+  const getScoreBreakdownText = (breakdown: any) => {
+    if (!breakdown) return "No breakdown details available";
+    const details = [];
+    if (breakdown.metaAdsRunning) details.push("• Meta Ads Running (+20)");
+    if (breakdown.freshAds) details.push("• Fresh Ads (+15)");
+    if (breakdown.noCta) details.push("• No CTA (+15)");
+    if (breakdown.noBookingForm) details.push("• No Booking Form (+15)");
+    if (breakdown.noWhatsApp) details.push("• No WhatsApp (+10)");
+    if (breakdown.verifiedMobile) details.push("• Verified Mobile (+10)");
+    if (breakdown.verifiedOwner) details.push("• Verified Owner (+20)");
+    if (breakdown.poorReviews) details.push("• Poor Reviews (+10)");
+    return details.length > 0 ? details.join("\n") : "• No criteria met (0)";
+  };
   const activeScansCount = searches.filter(
     (s) => s.status === "processing" || s.status === "pending"
   ).length;
@@ -586,6 +748,7 @@ export default function FacebookAdsExtractorDashboard() {
                         <TableHead className="w-[180px]">Facebook Page</TableHead>
                         <TableHead className="w-[200px]">Website</TableHead>
                         <TableHead className="w-[200px]">Scraped Contacts</TableHead>
+                        <TableHead className="w-[120px]">AI Score</TableHead>
                         <TableHead className="w-[120px]">Progress</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -623,18 +786,7 @@ export default function FacebookAdsExtractorDashboard() {
                                   Followers: {lead.followers.toLocaleString()}
                                 </div>
                               )}
-                              {lead.facebookUrl ? (
-                                <a
-                                  href={lead.facebookUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-indigo-500 hover:underline flex items-center gap-1 mt-1 font-semibold"
-                                >
-                                  <Facebook className="w-3.5 h-3.5" /> View FB Page
-                                </a>
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">No Page Url</span>
-                              )}
+
                               {lead.adLibraryURL && (
                                 <a
                                   href={lead.adLibraryURL}
@@ -717,6 +869,19 @@ export default function FacebookAdsExtractorDashboard() {
                               )}
                             </div>
                           </TableCell>
+                          
+                          <TableCell className="align-top py-4">
+                            <div className="flex flex-col gap-1.5 items-center justify-center min-h-[70px] bg-muted/20 p-2.5 rounded-lg border border-border/50">
+                              <div className="text-2xl font-black text-foreground">{lead.score || 0}</div>
+                              {getScoreBadge(lead.scoreCategory || 'Cold Lead')}
+                              <div 
+                                className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold cursor-pointer underline decoration-dotted mt-0.5" 
+                                onClick={() => setSelectedLeadForDetails(lead)}
+                              >
+                                View Details
+                              </div>
+                            </div>
+                          </TableCell>
 
                           <TableCell className="align-top py-4">
                             <div className="flex flex-col gap-2">
@@ -763,6 +928,328 @@ export default function FacebookAdsExtractorDashboard() {
           </Card>
         </div>
       </div>
+      <Dialog open={!!selectedLeadForDetails} onOpenChange={(open) => !open && setSelectedLeadForDetails(null)}>
+        <DialogContent className="max-w-2xl bg-card border border-border text-foreground max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <span>{selectedLeadForDetails?.pageName}</span>
+              <span className="text-xs font-normal text-muted-foreground">- Lead Audit & Sales Packet</span>
+            </DialogTitle>
+            <DialogDescription>
+              AI scoring and sales intelligence recommendations.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedLeadForDetails && (
+            <div className="space-y-6 mt-4">
+              {/* Score summary */}
+              <div className="grid grid-cols-3 gap-4 bg-muted/40 p-4 rounded-lg border border-border/50">
+                <div className="text-center border-r border-border">
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">AI Score</div>
+                  <div className="text-3xl font-extrabold mt-1 text-foreground">{selectedLeadForDetails.score || 0}</div>
+                </div>
+                <div className="text-center border-r border-border">
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Tier</div>
+                  <div className="mt-2">{getScoreBadge(selectedLeadForDetails.scoreCategory || 'Cold Lead')}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Facebook Likes</div>
+                  <div className="text-xl font-bold mt-1.5 text-foreground">{(selectedLeadForDetails.likes || selectedLeadForDetails.pageLikes || 0).toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Scoring breakdown */}
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">Score Breakdown</h3>
+                <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 p-3 rounded-lg border">
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>Meta Ads Running (+20)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.metaAdsRunning ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.metaAdsRunning ? "✓ Active" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>Fresh Ads (+15)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.freshAds ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.freshAds ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>Low IG Engagement (+15)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.lowInstagramEngagement ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.lowInstagramEngagement ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>No CTA (+15)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.noCta ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.noCta ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>No Booking Form (+15)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.noBookingForm ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.noBookingForm ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>No WhatsApp (+10)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.noWhatsApp ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.noWhatsApp ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>Verified Mobile (+10)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.verifiedMobile ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.verifiedMobile ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 border-b border-border/50">
+                    <span>Verified Owner (+20)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.verifiedOwner ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.verifiedOwner ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-1 col-span-2">
+                    <span>Poor Reviews (+10)</span>
+                    <span className={selectedLeadForDetails.scoreBreakdown?.poorReviews ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
+                      {selectedLeadForDetails.scoreBreakdown?.poorReviews ? "✓ Yes" : "✗"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Sales Packet Section */}
+              <div className="space-y-4 pt-2 border-t border-border">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  AI Sales Intelligence Packet
+                </h3>
+                
+                {selectedLeadForDetails.hasSalesPacket ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs">
+                        <span className="font-bold text-red-500">Funnel Leak Diagnosis:</span>
+                        <p className="mt-1 text-foreground/90 leading-relaxed">{selectedLeadForDetails.funnelLeakDiagnosis}</p>
+                      </div>
+
+                      <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg text-xs">
+                        <span className="font-bold text-amber-500">Best Pitch Angle:</span>
+                        <p className="mt-1 text-foreground/90 leading-relaxed">{selectedLeadForDetails.pitchAngle}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Communication Templates</span>
+                      
+                      <Tabs defaultValue="email" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 bg-muted/80 p-1 rounded-lg">
+                          <TabsTrigger value="email" className="gap-2 text-xs font-bold py-2 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400">
+                            <Mail className="w-3.5 h-3.5" /> Cold Email
+                          </TabsTrigger>
+                          <TabsTrigger value="call" className="gap-2 text-xs font-bold py-2 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400">
+                            <Phone className="w-3.5 h-3.5" /> Cold Call
+                          </TabsTrigger>
+                          <TabsTrigger value="dm" className="gap-2 text-xs font-bold py-2 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400">
+                            <MessageSquare className="w-3.5 h-3.5" /> WhatsApp / DM
+                          </TabsTrigger>
+                        </TabsList>
+
+                        {/* Cold Email Tab */}
+                        <TabsContent value="email" className="mt-2 space-y-2">
+                          <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                            <div className="bg-muted/30 border-b border-border p-3 text-xs space-y-1 font-sans">
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">
+                                  <span className="font-semibold text-foreground">To:</span>{" "}
+                                  <span className="font-mono text-xs text-indigo-500 font-semibold bg-indigo-50/50 dark:bg-indigo-950/20 px-1.5 py-0.5 rounded border border-indigo-100/30">
+                                    {selectedLeadForDetails.email || (selectedLeadForDetails.scrapedEmails && selectedLeadForDetails.scrapedEmails[0]) || "No email available"}
+                                  </span>
+                                </span>
+                                <div className="flex gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    type="button"
+                                    className="h-7 px-2.5 text-[10px] font-bold gap-1 border-indigo-200 hover:border-indigo-300 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 bg-background"
+                                    onClick={() => handleCopyText(`Subject: ${emailSubject}\n\n${emailBody}`, "Cold Email Pitch")}
+                                  >
+                                    <Copy className="w-3 h-3" /> Copy
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    disabled={sendingEmail || !(selectedLeadForDetails.email || (selectedLeadForDetails.scrapedEmails && selectedLeadForDetails.scrapedEmails.length > 0))}
+                                    className="h-7 px-2.5 text-[10px] font-extrabold gap-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow"
+                                    onClick={handleSendEmail}
+                                  >
+                                    {sendingEmail ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Mail className="w-3 h-3" />
+                                    )}
+                                    {sendingEmail ? "Sending..." : "Send Email via SMTP"}
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="font-semibold text-foreground min-w-[50px]">Subject:</span>
+                                <Input
+                                  value={emailSubject}
+                                  onChange={(e) => setEmailSubject(e.target.value)}
+                                  className="h-7 text-xs bg-background/80 border-border focus-visible:ring-indigo-500 flex-1 font-medium"
+                                />
+                              </div>
+                            </div>
+                            <div className="p-3 bg-muted/5 space-y-3">
+                              {/* SMTP Credentials Form */}
+                              <div className="grid grid-cols-2 gap-3 bg-background/50 border border-border/60 p-2.5 rounded-lg">
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground block">Sender GMail Address</label>
+                                  <Input
+                                    value={smtpEmail}
+                                    onChange={(e) => setSmtpEmail(e.target.value)}
+                                    placeholder="sender@gmail.com"
+                                    className="h-7 text-xs bg-background/70 border-border/80 focus-visible:ring-indigo-500 font-mono"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground block">App Password (16-char)</label>
+                                  <Input
+                                    type="password"
+                                    value={smtpPassword}
+                                    onChange={(e) => setSmtpPassword(e.target.value)}
+                                    placeholder="xxxx xxxx xxxx xxxx"
+                                    className="h-7 text-xs bg-background/70 border-border/80 focus-visible:ring-indigo-500 font-mono"
+                                  />
+                                </div>
+                              </div>
+
+                              <textarea
+                                value={emailBody}
+                                onChange={(e) => setEmailBody(e.target.value)}
+                                className="w-full min-h-[140px] p-3 text-xs bg-background/50 border border-border focus:border-indigo-500 rounded-lg text-foreground focus:outline-none resize-y leading-relaxed font-sans"
+                                placeholder="Enter email body..."
+                              />
+                              <p className="text-[10px] text-muted-foreground italic mt-0.5 px-1">
+                                ⚙️ Note: If left blank, SMTP will default to the server environment settings (`.env`).
+                              </p>
+                            </div>
+                          </div>
+                        </TabsContent>
+
+                        {/* Cold Call Tab */}
+                        <TabsContent value="call" className="mt-2 space-y-2">
+                          <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                            <div className="bg-muted/30 border-b border-border p-3 flex justify-between items-center text-xs">
+                              <span className="text-muted-foreground font-semibold">Cold Call Opener Script</span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2.5 text-[10px] font-bold gap-1 border-indigo-200 hover:border-indigo-300 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400 bg-background"
+                                onClick={() => handleCopyText(selectedLeadForDetails.coldCallOpener || "", "Cold Call Opener")}
+                              >
+                                <Copy className="w-3 h-3" /> Copy Opener
+                              </Button>
+                            </div>
+                            <div className="p-4 bg-muted/5 flex gap-3 items-start">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <Phone className="w-4 h-4" />
+                              </div>
+                              <div className="space-y-1.5 flex-1">
+                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Hook & Call Opener</div>
+                                <div className="text-xs font-serif italic text-foreground/95 bg-blue-50/50 dark:bg-blue-950/10 p-3 rounded-lg border border-blue-100/30 leading-relaxed">
+                                  "{selectedLeadForDetails.coldCallOpener || 'Hi, is this the owner? I noticed your active ads campaign on Facebook...'}"
+                                </div>
+                                <div className="text-[10px] text-muted-foreground italic mt-1">
+                                  💡 Tip: Call the office number, ask for the owner/marketing head, and offer to share the conversion funnel leak diagnosis.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TabsContent>
+
+                        {/* WhatsApp / DM Tab */}
+                        <TabsContent value="dm" className="mt-2 space-y-2">
+                          <div className="bg-[#e5ddd5] dark:bg-zinc-900 border border-border rounded-lg overflow-hidden shadow-sm font-sans">
+                            <div className="bg-[#075e54] dark:bg-zinc-800 text-white p-3 flex justify-between items-center text-xs">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-[10px] text-white">
+                                  {selectedLeadForDetails.pageName ? selectedLeadForDetails.pageName[0].toUpperCase() : "C"}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-xs">{selectedLeadForDetails.pageName || "Lead Contact"}</span>
+                                  <span className="text-[9px] text-emerald-200">Online</span>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="h-7 px-2.5 text-[10px] font-bold gap-1 bg-[#128c7e] hover:bg-[#075e54] text-white border-none"
+                                onClick={() => handleCopyText(selectedLeadForDetails.whatsAppOpener || "", "WhatsApp Script")}
+                              >
+                                <Copy className="w-3 h-3" /> Copy Message
+                              </Button>
+                            </div>
+                            
+                            {/* WhatsApp Chat Simulation */}
+                            <div className="p-4 space-y-3 min-h-[120px] flex flex-col justify-end bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat bg-contain bg-opacity-10 dark:bg-none">
+                              <div className="self-end bg-[#dcf8c6] dark:bg-emerald-950/60 border border-[#cbebb0] dark:border-emerald-900/40 p-3 rounded-lg text-xs max-w-[85%] text-slate-800 dark:text-emerald-100 shadow-sm">
+                                <p className="leading-relaxed">"{selectedLeadForDetails.whatsAppOpener || 'Hi, I saw your Facebook ads and noticed your booking link is missing...'}"</p>
+                                <div className="text-[9px] text-slate-400 dark:text-emerald-400 text-right mt-1 font-semibold flex items-center justify-end gap-0.5">
+                                  <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  <span className="text-blue-500 font-extrabold text-[11px] leading-none">✓✓</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 pt-2">
+                      <div className="bg-muted p-3 rounded-lg text-[11px] col-span-1 border">
+                        <span className="font-bold text-muted-foreground block mb-1">Urgency Trigger:</span>
+                        <span className="text-foreground/90">{selectedLeadForDetails.urgencyTrigger}</span>
+                      </div>
+                      <div className="bg-muted p-3 rounded-lg text-[11px] col-span-1 border">
+                        <span className="font-bold text-muted-foreground block mb-1">Best Time to Call:</span>
+                        <span className="text-foreground/90">{selectedLeadForDetails.bestTimeToCall}</span>
+                      </div>
+                      <div className="bg-muted p-3 rounded-lg text-[11px] col-span-1 border">
+                        <span className="font-bold text-indigo-500 dark:text-indigo-400 block mb-1">Recommended CTA:</span>
+                        <span className="text-foreground/90 font-semibold">{selectedLeadForDetails.recommendedCta}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 px-4 text-xs text-muted-foreground bg-muted/20 rounded-lg border border-dashed flex flex-col items-center gap-3">
+                    {selectedLeadForDetails.status === 'enriched' ? (
+                      <>
+                        <span>AI Sales Packet is ready to be generated for this enriched lead.</span>
+                        <Button 
+                          onClick={() => handleManualGeneratePacket(selectedLeadForDetails._id)}
+                          disabled={generatingPacket}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 font-bold"
+                        >
+                          {generatingPacket ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                          {generatingPacket ? "Generating Sales Packet..." : "Generate AI Sales Packet Now"}
+                        </Button>
+                      </>
+                    ) : (
+                      <span>Sales Packet will be generated once lead scraping is fully completed (Enriched).</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
