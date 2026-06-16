@@ -42,7 +42,8 @@ import {
   FileSpreadsheet,
   Mail,
   PhoneCall,
-  Filter
+  Filter,
+  Facebook
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -245,6 +246,15 @@ export default function OfferingsPage() {
       icon: Filter,
       available: true,
       route: "/csv-mobile-filter",
+      beta: true,
+    },
+    {
+      id: "facebook-ads-extractor",
+      title: "Facebook Ads Lead Extractor",
+      description: "Extract active Facebook Ads, retrieve Facebook page details, and scrape direct contact emails/phone numbers from their websites.",
+      icon: Facebook,
+      available: true,
+      route: "/facebook-ads-extractor",
       beta: true,
     },
   ];

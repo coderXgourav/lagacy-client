@@ -561,6 +561,27 @@ export const leadEngineApi = {
   },
 };
 
+// Facebook Ads Extraper API
+export const facebookAdsExtractorApi = {
+  scan: (params: { niche: string; country: string; activeStatus: string; contactType: string; limit: number }) =>
+    apiCall('/facebook-ads-extractor/scan', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getRecentSearches: (page = 1, limit = 20) =>
+    apiCall(`/facebook-ads-extractor/searches/recent?page=${page}&limit=${limit}`),
+  getSearchResults: (searchId: string) =>
+    apiCall(`/facebook-ads-extractor/searches/${searchId}/results`),
+  cancelSearch: (searchId: string) =>
+    apiCall(`/facebook-ads-extractor/searches/${searchId}/cancel`, {
+      method: 'POST',
+    }),
+  deleteSearch: (searchId: string) =>
+    apiCall(`/facebook-ads-extractor/searches/${searchId}`, {
+      method: 'DELETE',
+    }),
+};
+
 export const intelligenceApi = {
   runPipeline: (leadData: any) => apiCall('/enrich/run', {
     method: 'POST',
@@ -600,4 +621,5 @@ export default {
   kyptronixLeads: kyptronixApi,
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
+  facebookAdsExtractor: facebookAdsExtractorApi,
 };
