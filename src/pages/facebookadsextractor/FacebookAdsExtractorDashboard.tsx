@@ -57,6 +57,56 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
+const opportunitySignalDefinitions = [
+  { key: "adRun30Days", label: "Ad run continuously 30+ days", points: 8, desc: "Sustained spend, not a one-off test" },
+  { key: "multipleCreatives", label: "2+ active creatives", points: 6, desc: "Real testing budget, mid-funnel sophistication" },
+  { key: "multipleAdIds", label: "Multiple Ad IDs live", points: 5, desc: "Confirms ongoing, deliberate spend" },
+  { key: "genericCta", label: "Generic Call-to-Action", points: 7, desc: "Direct copywriting gap you can sell into" },
+  { key: "genericTemplate", label: "Generic template/stock-photo", points: 5, desc: "Creative production gap" },
+  { key: "freshAdEstablishedPage", label: "Fresh Ad on Established Page", points: 4, desc: "Fresh budget decision — good timing" },
+  { key: "rawShortener", label: "Destination link raw shortener", points: 8, desc: "No real tracking discipline" },
+  { key: "noEmailCapture", label: "No email capture on landing page", points: 9, desc: "Highest-leverage gap: paying for clicks, capturing nothing" },
+  { key: "mobileUnresponsive", label: "Landing page breaks on mobile", points: 7, desc: "Direct web-dev opportunity" },
+  { key: "slowPageLoad", label: "Page load slow (3s+)", points: 5, desc: "Web-dev/CRO opportunity" },
+  { key: "noHttps", label: "No HTTPS / mixed-content warnings", points: 6, desc: "Trust + basic dev fix" },
+  { key: "freeBuilderSubdomain", label: "Site on free builder subdomain", points: 6, desc: "No real web investment yet" },
+  { key: "noBlog", label: "No blog/content section", points: 5, desc: "Content/SEO opportunity" },
+  { key: "noCtaAboveFold", label: "No clear CTA above the fold", points: 4, desc: "CRO opportunity" },
+  { key: "noRankPage1", label: "Doesn't rank page-1 for brand", points: 6, desc: "Core SEO gap" },
+  { key: "thinMeta", label: "Thin/missing meta title/desc", points: 4, desc: "Quick-win SEO gap" },
+  { key: "noSchema", label: "No schema markup detected", points: 3, desc: "Technical SEO gap" },
+  { key: "gbpReviews", label: "Google Business Profile <10 reviews", points: 6, desc: "Local SEO/reputation gap" },
+  { key: "noMetaPixel", label: "No Meta Pixel / tracking", points: 9, desc: "Can't retarget or optimize spend" },
+  { key: "noCrmAutomation", label: "No CRM/email automation fingerprint", points: 5, desc: "AI marketing infrastructure gap" },
+  { key: "adBroadGeneric", label: "Ad messaging broad/generic", points: 4, desc: "Targeting/strategy gap" },
+  { key: "organicEngagement", label: "Organic engagement with weak creative", points: 5, desc: "Real audience exists; execution gap" },
+  { key: "organicGaps", label: "Organic posting gaps > 2 weeks", points: 4, desc: "Budget without content strategy" },
+  { key: "followerGate", label: "Follower count within 0-11k", points: 0, desc: "Pre-qualification gate passed" },
+  { key: "multiLocation", label: "Multi-location/franchise structure", points: 5, desc: "Higher budget ceiling" },
+  { key: "offerRecurring", label: "Offer is recurring/higher-ticket", points: 6, desc: "Better LTV, easier to justify retainer" },
+  { key: "domainOld", label: "Domain registered > 4 years ago", points: 4, desc: "Established enough, needs help" },
+  { key: "directEmailRecovered", label: "Direct email recovered", points: 7, desc: "Directly actionable outreach" },
+  { key: "founderIdentifiable", label: "Named founder contact identifiable", points: 5, desc: "Outreach has a real person" },
+  { key: "kyptronixMarket", label: "Active Kyptronix market", points: 6, desc: "ICP/geo fit, smoother sales" }
+];
+
+const willingnessSignalDefinitions = [
+  { key: "threePlusAdIds", label: "3+ Ad IDs created over time", points: 8, isPositive: true },
+  { key: "adGap60Days", label: "Oldest vs newest ad gap 60+ days", points: 6, isPositive: true },
+  { key: "franchiseStructure", label: "Multiple locations or franchise", points: 6, isPositive: true },
+  { key: "externalFunding", label: "External funding announced", points: 12, isPositive: true },
+  { key: "activeJobPostings", label: "Active job postings for growth/sales", points: 8, isPositive: true },
+  { key: "serialFounder", label: "Founder is serial operator", points: 6, isPositive: true },
+  { key: "paidMarketingTool", label: "Runs paid marketing tools", points: 7, isPositive: true },
+  { key: "recentRebrand", label: "Rebrand/relaunch in last 12 months", points: 5, isPositive: true },
+  { key: "directFounderContact", label: "Founder direct contact", points: 4, isPositive: true },
+  { key: "oneAdDormant", label: "Only one Ad ID, dormant since", points: -10, isPositive: false },
+  { key: "financialDistress", label: "Visible financial-distress language", points: -15, isPositive: false },
+  { key: "adCadenceDeclining", label: "Ad cadence declining", points: -8, isPositive: false },
+  { key: "supportInboxOnly", label: "Support-inbox only, faceless brand", points: -6, isPositive: false },
+  { key: "antiPaidMarketing", label: "Founder publicly anti-paid-marketing", points: -5, isPositive: false }
+];
+
 export default function FacebookAdsExtractorDashboard() {
   const { toast } = useToast();
   const [niche, setNiche] = useState("nike");
@@ -117,8 +167,16 @@ export default function FacebookAdsExtractorDashboard() {
 
   useEffect(() => {
     if (selectedLeadForDetails) {
-      const defaultSubject = `Quick recommendation for ${selectedLeadForDetails.pageName || 'your business'} ad campaign`;
-      const defaultBody = `Hi Team ${selectedLeadForDetails.pageName || ''},\n\nI saw your active ad campaigns and wanted to send over a quick suggestion.\n\n${selectedLeadForDetails.emailOpener || "We can help you plug the funnel leak in your campaign and capture more customer inquiries."}\n\nBest regards,\n[Your Name]`;
+      const defaultSubject = selectedLeadForDetails.emailSubject || `Quick recommendation for ${selectedLeadForDetails.pageName || 'your business'} ad campaign`;
+      
+      let cleanOpener = selectedLeadForDetails.emailOpener || "We can help you plug the funnel leak in your campaign and capture more customer inquiries.";
+      if (cleanOpener.trim().toLowerCase().startsWith("subject:")) {
+        const lines = cleanOpener.split("\n");
+        const filteredLines = lines.filter(line => !line.trim().toLowerCase().startsWith("subject:"));
+        cleanOpener = filteredLines.join("\n").trim();
+      }
+
+      const defaultBody = `Hi Team ${selectedLeadForDetails.pageName || ''},\n\nI saw your active ad campaigns and wanted to send over a quick suggestion.\n\n${cleanOpener}\n\nBest regards,\n[Your Name]`;
       setEmailSubject(defaultSubject);
       setEmailBody(defaultBody);
     } else {
@@ -444,6 +502,36 @@ export default function FacebookAdsExtractorDashboard() {
         return (
           <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-light">
             Cold Lead
+          </Badge>
+        );
+    }
+  };
+
+  const getCombinedActionBadge = (action: string) => {
+    switch (action) {
+      case "Call Today":
+        return (
+          <Badge className="bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-700 hover:to-rose-600 text-white border-none text-[10px] font-extrabold uppercase tracking-wider animate-pulse shadow-sm">
+            🔥 Call Today
+          </Badge>
+        );
+      case "Quick Discovery Call":
+        return (
+          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-none text-[10px] font-bold uppercase tracking-wider shadow-sm">
+            📞 Discovery Call
+          </Badge>
+        );
+      case "Displacement Pitch":
+        return (
+          <Badge className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white border-none text-[10px] font-semibold uppercase tracking-wider shadow-sm">
+            🔄 Displacement Pitch
+          </Badge>
+        );
+      case "Deprioritize":
+      default:
+        return (
+          <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-light border border-muted-foreground/20">
+            💤 Deprioritize
           </Badge>
         );
     }
@@ -871,11 +959,18 @@ export default function FacebookAdsExtractorDashboard() {
                           </TableCell>
                           
                           <TableCell className="align-top py-4">
-                            <div className="flex flex-col gap-1.5 items-center justify-center min-h-[70px] bg-muted/20 p-2.5 rounded-lg border border-border/50">
+                            <div className="flex flex-col gap-1.5 items-center justify-center min-h-[95px] bg-muted/20 p-2.5 rounded-lg border border-border/50">
                               <div className="text-2xl font-black text-foreground">{lead.score || 0}</div>
-                              {getScoreBadge(lead.scoreCategory || 'Cold Lead')}
+                              <div className="flex flex-col gap-1 items-center">
+                                {getScoreBadge(lead.scoreCategory || 'Cold Lead')}
+                                {lead.combinedAction && (
+                                  <div className="mt-1 flex justify-center">
+                                    {getCombinedActionBadge(lead.combinedAction)}
+                                  </div>
+                                )}
+                              </div>
                               <div 
-                                className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold cursor-pointer underline decoration-dotted mt-0.5" 
+                                className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold cursor-pointer underline decoration-dotted mt-1.5" 
                                 onClick={() => setSelectedLeadForDetails(lead)}
                               >
                                 View Details
@@ -942,81 +1037,100 @@ export default function FacebookAdsExtractorDashboard() {
 
           {selectedLeadForDetails && (
             <div className="space-y-6 mt-4">
-              {/* Score summary */}
-              <div className="grid grid-cols-3 gap-4 bg-muted/40 p-4 rounded-lg border border-border/50">
+              {/* Dual Axis Score Summary */}
+              <div className="grid grid-cols-4 gap-3 bg-gradient-to-br from-card to-muted/30 p-4 rounded-lg border border-border/60 shadow-sm">
                 <div className="text-center border-r border-border">
-                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">AI Score</div>
-                  <div className="text-3xl font-extrabold mt-1 text-foreground">{selectedLeadForDetails.score || 0}</div>
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Opportunity</div>
+                  <div className="text-2xl font-black mt-1 text-foreground">{selectedLeadForDetails.opportunityScore || selectedLeadForDetails.score || 0} pts</div>
+                  <div className="mt-1 flex justify-center">{getScoreBadge(selectedLeadForDetails.scoreCategory || 'Cold Lead')}</div>
                 </div>
                 <div className="text-center border-r border-border">
-                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Tier</div>
-                  <div className="mt-2">{getScoreBadge(selectedLeadForDetails.scoreCategory || 'Cold Lead')}</div>
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Willingness</div>
+                  <div className="text-2xl font-black mt-1 text-foreground">{selectedLeadForDetails.willingnessScore || 0} pts</div>
+                  <div className="mt-1 flex justify-center">
+                    <Badge variant="outline" className={`text-[10px] font-bold uppercase tracking-wider ${
+                      selectedLeadForDetails.willingnessCategory === 'High' ? 'border-emerald-500 text-emerald-500 bg-emerald-50/10' :
+                      selectedLeadForDetails.willingnessCategory === 'Medium' ? 'border-amber-500 text-amber-500 bg-amber-50/10' :
+                      'border-red-500 text-red-500 bg-red-50/10'
+                    }`}>
+                      {selectedLeadForDetails.willingnessCategory || 'Low'}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="text-center border-r border-border">
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Sales Action</div>
+                  <div className="mt-2.5 flex justify-center">{getCombinedActionBadge(selectedLeadForDetails.combinedAction || 'Deprioritize')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Facebook Likes</div>
+                  <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Likes</div>
                   <div className="text-xl font-bold mt-1.5 text-foreground">{(selectedLeadForDetails.likes || selectedLeadForDetails.pageLikes || 0).toLocaleString()}</div>
                 </div>
               </div>
 
               {/* Scoring breakdown */}
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">Score Breakdown</h3>
-                <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 p-3 rounded-lg border">
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>Meta Ads Running (+20)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.metaAdsRunning ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.metaAdsRunning ? "✓ Active" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>Fresh Ads (+15)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.freshAds ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.freshAds ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>Low IG Engagement (+15)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.lowInstagramEngagement ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.lowInstagramEngagement ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>No CTA (+15)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.noCta ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.noCta ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>No Booking Form (+15)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.noBookingForm ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.noBookingForm ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>No WhatsApp (+10)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.noWhatsApp ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.noWhatsApp ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>Verified Mobile (+10)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.verifiedMobile ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.verifiedMobile ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 border-b border-border/50">
-                    <span>Verified Owner (+20)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.verifiedOwner ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.verifiedOwner ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-1 col-span-2">
-                    <span>Poor Reviews (+10)</span>
-                    <span className={selectedLeadForDetails.scoreBreakdown?.poorReviews ? "text-emerald-500 font-bold" : "text-muted-foreground/40"}>
-                      {selectedLeadForDetails.scoreBreakdown?.poorReviews ? "✓ Yes" : "✗"}
-                    </span>
-                  </div>
-                </div>
+              <div className="space-y-3">
+                <Tabs defaultValue="opportunity" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-muted/80 p-1 rounded-lg">
+                    <TabsTrigger value="opportunity" className="text-xs font-bold py-2">
+                      🎯 Opportunity Audit ({opportunitySignalDefinitions.filter(d => selectedLeadForDetails.opportunityBreakdown?.[d.key] || selectedLeadForDetails.scoreBreakdown?.[d.key]).length} Active)
+                    </TabsTrigger>
+                    <TabsTrigger value="willingness" className="text-xs font-bold py-2">
+                      💰 Budget Willingness ({willingnessSignalDefinitions.filter(d => selectedLeadForDetails.willingnessBreakdown?.[d.key]).length} Active)
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="opportunity" className="mt-3 space-y-2">
+                    <div className="text-[11px] text-muted-foreground mb-2 uppercase tracking-wider font-bold">
+                      Axis 1: Funnel & Brand Gaps (Total points: {selectedLeadForDetails.opportunityScore || selectedLeadForDetails.score || 0})
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                      {opportunitySignalDefinitions.filter(d => selectedLeadForDetails.opportunityBreakdown?.[d.key] || selectedLeadForDetails.scoreBreakdown?.[d.key]).map(d => (
+                        <div key={d.key} className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg text-xs flex justify-between items-start gap-4 transition-all hover:bg-emerald-500/15">
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-foreground">{d.label}</div>
+                            <div className="text-[10px] text-muted-foreground/85 italic">Why it matters: {d.desc}</div>
+                          </div>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">+{d.points} pts</span>
+                        </div>
+                      ))}
+                      {opportunitySignalDefinitions.filter(d => !(selectedLeadForDetails.opportunityBreakdown?.[d.key] || selectedLeadForDetails.scoreBreakdown?.[d.key])).map(d => (
+                        <div key={d.key} className="bg-muted/10 border border-border/40 p-2 rounded-lg text-xs flex justify-between items-center opacity-40">
+                          <span className="text-muted-foreground font-medium">{d.label}</span>
+                          <span className="text-muted-foreground text-[10px]">+{d.points} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="willingness" className="mt-3 space-y-2">
+                    <div className="text-[11px] text-muted-foreground mb-2 uppercase tracking-wider font-bold">
+                      Axis 2: Spending Indicators (Total points: {selectedLeadForDetails.willingnessScore || 0})
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                      {willingnessSignalDefinitions.filter(d => selectedLeadForDetails.willingnessBreakdown?.[d.key]).map(d => (
+                        <div key={d.key} className={`p-2.5 rounded-lg text-xs flex justify-between items-start gap-4 transition-all ${
+                          d.isPositive 
+                            ? 'bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/15' 
+                            : 'bg-red-500/10 border border-red-500/20 hover:bg-red-500/15'
+                        }`}>
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-foreground">{d.label}</div>
+                            <div className="text-[10px] text-muted-foreground/85">Indicator of {d.isPositive ? 'healthy expansion budget' : 'outreach risk / restriction'}</div>
+                          </div>
+                          <span className={`font-bold whitespace-nowrap ${d.isPositive ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {d.points > 0 ? `+${d.points}` : d.points} pts
+                          </span>
+                        </div>
+                      ))}
+                      {willingnessSignalDefinitions.filter(d => !(selectedLeadForDetails.willingnessBreakdown?.[d.key])).map(d => (
+                        <div key={d.key} className="bg-muted/10 border border-border/40 p-2 rounded-lg text-xs flex justify-between items-center opacity-40">
+                          <span className="text-muted-foreground font-medium">{d.label}</span>
+                          <span className="text-muted-foreground text-[10px]">{d.points > 0 ? `+${d.points}` : d.points} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
 
               {/* AI Sales Packet Section */}
