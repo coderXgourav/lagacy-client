@@ -53,7 +53,9 @@ import {
   Users,
   Copy,
   Check,
-  MessageSquare
+  MessageSquare,
+  Eye,
+  FileText
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -107,6 +109,146 @@ const willingnessSignalDefinitions = [
   { key: "antiPaidMarketing", label: "Founder publicly anti-paid-marketing", points: -5, isPositive: false }
 ];
 
+const generateHtmlEmailBody = (subject: string, bodyText: string, pageName: string) => {
+  const lines = bodyText.split('\n').map(l => l.trim()).filter(Boolean);
+  let greeting = `Hi Team ${pageName || 'Diplomaticn'},`;
+  let paragraphLines = [];
+  if (lines.length > 0) {
+    if (/^(hi|hello|dear|hey)\b/i.test(lines[0])) {
+      greeting = lines[0];
+      paragraphLines = lines.slice(1);
+    } else {
+      paragraphLines = lines;
+    }
+  }
+
+  while (paragraphLines.length > 0) {
+    const lastLine = paragraphLines[paragraphLines.length - 1].toLowerCase();
+    if (
+      lastLine.startsWith('best regards') ||
+      lastLine.startsWith('sincerely') ||
+      lastLine.startsWith('regards') ||
+      lastLine.startsWith('thanks') ||
+      lastLine.startsWith('thank you') ||
+      lastLine.startsWith('[your name]') ||
+      lastLine.includes('souvik')
+    ) {
+      paragraphLines.pop();
+    } else {
+      break;
+    }
+  }
+
+  const formattedParagraphs = paragraphLines.map(line => {
+    let cleanLine = line.replace(/\[Your Company\]/gi, 'Kyptronix LLP');
+    if (cleanLine.trim().startsWith('-')) {
+      return `<li style="margin-bottom:8px; list-style-type: disc; margin-left: 20px;">${cleanLine.substring(1).trim()}</li>`;
+    }
+    return `<p style="margin:0 0 20px;">${cleanLine}</p>`;
+  }).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${subject}</title>
+<style>
+body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f7f6; font-family: Helvetica, Arial, sans-serif; }
+@media screen and (max-width:600px){ .mobile-width{width:100%!important} .mobile-padding{padding:20px!important} .mobile-menu a{font-size:10px!important;padding:0 4px!important;letter-spacing:0!important} .mobile-menu span{padding:0 2px!important} .mobile-social{display:inline-block!important;margin:0 5px!important} }
+</style>
+</head>
+<body>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f6;">
+<tr>
+<td align="center" style="padding:40px 10px;">
+<table width="600" class="mobile-width" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,.05);overflow:hidden;">
+<tr><td height="6" style="background:#0056b3"></td></tr>
+<tr>
+<td align="center" style="padding:40px 40px 25px;border-bottom:1px solid #eeeeee;">
+<a href="https://kyptronix.us" target="_blank"><img src="https://media.designrush.com/agencies/325222/conversions/Kyptronix-logo-profile.jpg" width="180" alt="Kyptronix Logo" style="display:block;"></a>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:25px;" class="mobile-menu">
+<tr>
+<td align="center">
+<a href="https://kyptronix.us/about-us" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">About</a>
+<span style="color:#e0e0e0;">|</span>
+<a href="https://kyptronix.us/services" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">Services</a>
+<span style="color:#e0e0e0;">|</span>
+<a href="https://kyptronix.us/package-and-pricing" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">Packages</a>
+<span style="color:#e0e0e0;">|</span>
+<a href="https://kyptronix.us/portfolio" style="color:#555555;text-decoration:none;font-size:13px;font-weight:bold;padding:0 10px;text-transform:uppercase;letter-spacing:.5px;">Portfolio</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td class="mobile-padding" style="padding:40px 50px;color:#374151;font-size:16px;line-height:1.6;">
+<h1 style="margin:0 0 20px;font-size:22px;color:#1F2937;">${greeting}</h1>
+${formattedParagraphs}
+<table cellpadding="0" cellspacing="0" style="margin-bottom:30px; margin-top:20px;">
+<tr>
+<td style="background:#0056b3;border-radius:50px;">
+<a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1kzqqp92tBVNRFyNSo_sdyCg68VzzRMbv947cCXtze9o3lML1qr7B-xhYMp8myDqwLR4vbhrr2" target="_blank" style="display:inline-block;padding:14px 32px;color:#ffffff;font-weight:bold;text-decoration:none;">Get the Checklist</a>
+</td>
+</tr>
+</table>
+<p style="margin-top:30px;">—<br><strong>Souvik Karmakar</strong><br>CEO, Kyptronix LLP</p>
+<p style="font-size:14px;color:#4B5563;">+1 (302) 219-6889 (USA)<br>+91 91238 37577 (IND)<br><a href="https://kyptronix.us" style="color:#0056b3;text-decoration:none;">kyptronix.us</a></p>
+<p style="font-size:13px;color:#6B7280;">651 N Broad St, Middletown, DE 19709, USA</p>
+</td>
+</tr>
+<tr>
+<td align="center" style="background-color:#2c3e50; background-image:linear-gradient(135deg,#2c3e50 0%,#0056b3 100%); padding:40px 30px;">
+<h2 style="margin:0 0 15px;color:#ffffff;font-size:22px;">Ready to fix your growth system?</h2>
+<p style="margin:0 0 25px;color:#e0e0e0;font-size:14px;line-height:1.5;max-width:420px;">Kyptronix LLP designs automation systems that capture, qualify, and convert leads — without manual chaos.</p>
+<table cellpadding="0" cellspacing="0">
+<tr>
+<td style="background:#ffffff;border-radius:50px;">
+<a href="https://kyptronix.us/contact-us" target="_blank" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:bold;color:#0056b3;text-decoration:none;border-radius:50px;border:2px solid #ffffff;">Get Started Today</a>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td style="background:#f8f9fa;padding:40px;border-top:1px solid #eeeeee;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td align="center" style="padding-bottom:25px;">
+<a href="https://www.facebook.com/kyptronixllp/" target="_blank" class="mobile-social" style="margin:0 10px;display:inline-block;"><img src="https://cdn-icons-png.flaticon.com/512/145/145802.png" width="32" height="32"></a>
+<a href="https://x.com/Kyptronixus" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/5969/5969020.png" width="32" height="32"></a>
+<a href="https://www.linkedin.com/company/kyptronixllp/" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="32" height="32"></a>
+<a href="https://www.instagram.com/kyptronix_llp/" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/3955/3955024.png" width="32" height="32"></a>
+<a href="https://www.youtube.com/@kyptronixllp2467" target="_blank" style="margin:0 10px;"><img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="32" height="32"></a>
+</td>
+</tr>
+<tr>
+<td align="center" style="font-size:12px;color:#999999;line-height:1.6;">
+<p style="margin:0 0 10px;"><strong>Kyptronix LLP</strong></p>
+<p style="margin:0 0 20px;">Professional digital solutions and automation systems since 2015.<br>Trusted by professionals worldwide.</p>
+<p style="margin:0;">
+<a href="https://kyptronix.us/PrivacyPolicies" style="color:#bbbbbb;text-decoration:none;">Privacy Policy</a> &nbsp;|&nbsp;
+<a href="https://kyptronix.us/terms-and-conditions" style="color:#bbbbbb;text-decoration:none;">Terms of Service</a> &nbsp;|&nbsp;
+<a href="#" style="color:#bbbbbb;text-decoration:none;">Unsubscribe</a>
+</p>
+<p style="margin-top:20px;font-size:11px;color:#cccccc;">© 2015–2026 Kyptronix LLP. All rights reserved.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>`;
+};
+
 export default function FacebookAdsExtractorDashboard() {
   const { toast } = useToast();
   const [niche, setNiche] = useState("nike");
@@ -115,6 +257,8 @@ export default function FacebookAdsExtractorDashboard() {
   const [contactType, setContactType] = useState("email");
   const [limit, setLimit] = useState("5");
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [searches, setSearches] = useState<any[]>([]);
   const [selectedSearchId, setSelectedSearchId] = useState<string | null>(null);
@@ -153,6 +297,7 @@ export default function FacebookAdsExtractorDashboard() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(true);
 
   const [smtpEmail, setSmtpEmail] = useState(() => localStorage.getItem("lead_smtp_email") || "");
   const [smtpPassword, setSmtpPassword] = useState(() => localStorage.getItem("lead_smtp_password") || "");
@@ -167,16 +312,55 @@ export default function FacebookAdsExtractorDashboard() {
 
   useEffect(() => {
     if (selectedLeadForDetails) {
-      const defaultSubject = selectedLeadForDetails.emailSubject || `Quick recommendation for ${selectedLeadForDetails.pageName || 'your business'} ad campaign`;
+      const defaultSubject = selectedLeadForDetails.emailSubject || `One mistake that silently kills B2B growth`;
       
       let cleanOpener = selectedLeadForDetails.emailOpener || "We can help you plug the funnel leak in your campaign and capture more customer inquiries.";
       if (cleanOpener.trim().toLowerCase().startsWith("subject:")) {
         const lines = cleanOpener.split("\n");
-        const filteredLines = lines.filter(line => !line.trim().toLowerCase().startsWith("subject:"));
-        cleanOpener = filteredLines.join("\n").trim();
+        if (lines.length > 1 && lines[0].trim().toLowerCase().startsWith("subject:")) {
+          lines.shift();
+          cleanOpener = lines.join("\n").trim();
+        } else {
+          cleanOpener = cleanOpener.replace(/^subject:\s*.*?[.!?]\s+/i, '').trim();
+        }
       }
 
-      const defaultBody = `Hi Team ${selectedLeadForDetails.pageName || ''},\n\nI saw your active ad campaigns and wanted to send over a quick suggestion.\n\n${cleanOpener}\n\nBest regards,\n[Your Name]`;
+      // If cleanOpener starts with greeting, strip it so we can insert only the audit points/bullets
+      cleanOpener = cleanOpener.replace(/^(hi|hello|dear|hey)\s+[^!,.\n]+[!,.\n]+/i, '').trim();
+
+      // Ensure cleanOpener is formatted as list items starting with a hyphen
+      let auditPoints = cleanOpener;
+      if (!auditPoints.includes("-")) {
+        const sentences = auditPoints.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 5);
+        if (sentences.length > 0) {
+          auditPoints = sentences.map(s => `- ${s}`).join("\n");
+        } else {
+          auditPoints = `- ${auditPoints}`;
+        }
+      }
+
+      const defaultBody = `Hi Team ${selectedLeadForDetails.pageName || 'Diplomaticn'},
+
+Most teams think they need more leads.
+They don't.
+
+They need less friction between interest and action.
+
+What we see in audits:
+${auditPoints}
+
+So the lead cools off.
+Sales blames marketing.
+Marketing blames traffic.
+
+The fix is boring.
+That's why it works.
+
+If you want, I'll send you the exact checklist we use to diagnose this.
+
+Best regards,
+[Your Name]`;
+
       setEmailSubject(defaultSubject);
       setEmailBody(defaultBody);
     } else {
@@ -199,9 +383,10 @@ export default function FacebookAdsExtractorDashboard() {
 
     setSendingEmail(true);
     try {
+      const compiledHtmlBody = generateHtmlEmailBody(emailSubject, emailBody, selectedLeadForDetails?.pageName);
       const response = await api.facebookAdsExtractor.sendLeadEmail(selectedLeadForDetails._id, {
         subject: emailSubject,
-        body: emailBody,
+        body: compiledHtmlBody,
         toEmail,
         smtpEmail,
         smtpPassword
@@ -251,6 +436,10 @@ export default function FacebookAdsExtractorDashboard() {
       fetchSearchResults(selectedSearchId);
     }
   }, [selectedSearchId, pollTrigger]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSearchId]);
 
   // Periodic polling for active processing searches
   useEffect(() => {
@@ -556,6 +745,8 @@ export default function FacebookAdsExtractorDashboard() {
 
   const totalLeadsCount = leads.length;
   const enrichedLeadsCount = leads.filter((l) => l.status === "enriched").length;
+  const totalPages = Math.ceil(leads.length / itemsPerPage);
+  const paginatedLeads = leads.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="container mx-auto space-y-6 p-6 max-w-7xl animate-fade-in">
@@ -841,7 +1032,7 @@ export default function FacebookAdsExtractorDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {leads.map((lead) => (
+                      {paginatedLeads.map((lead) => (
                         <TableRow key={lead._id} className="hover:bg-muted/30">
                           <TableCell className="align-top py-4">
                             <div className="font-bold text-foreground">{lead.pageName}</div>
@@ -1020,6 +1211,51 @@ export default function FacebookAdsExtractorDashboard() {
                 </div>
               )}
             </CardContent>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border bg-muted/10">
+                <p className="text-xs text-muted-foreground text-center sm:text-left">
+                  Showing <span className="font-semibold text-foreground">{Math.min((currentPage - 1) * itemsPerPage + 1, leads.length)}</span> to{" "}
+                  <span className="font-semibold text-foreground">{Math.min(currentPage * itemsPerPage, leads.length)}</span> of{" "}
+                  <span className="font-semibold text-foreground">{leads.length}</span> leads
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    className="h-8 px-2.5 text-xs font-semibold"
+                  >
+                    Previous
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-8 w-8 text-xs p-0 font-bold ${
+                        currentPage === page
+                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-none shadow-sm"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    className="h-8 px-2.5 text-xs font-semibold"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </div>
@@ -1240,12 +1476,46 @@ export default function FacebookAdsExtractorDashboard() {
                                 </div>
                               </div>
 
-                              <textarea
-                                value={emailBody}
-                                onChange={(e) => setEmailBody(e.target.value)}
-                                className="w-full min-h-[140px] p-3 text-xs bg-background/50 border border-border focus:border-indigo-500 rounded-lg text-foreground focus:outline-none resize-y leading-relaxed font-sans"
-                                placeholder="Enter email body..."
-                              />
+                              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Content</span>
+                                <div className="flex gap-1 bg-muted p-0.5 rounded border">
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    variant={showEmailPreview ? "secondary" : "ghost"}
+                                    className="h-6 px-2 text-[10px] font-bold"
+                                    onClick={() => setShowEmailPreview(true)}
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" /> Preview HTML
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    type="button"
+                                    variant={!showEmailPreview ? "secondary" : "ghost"}
+                                    className="h-6 px-2 text-[10px] font-bold"
+                                    onClick={() => setShowEmailPreview(false)}
+                                  >
+                                    <FileText className="w-3 h-3 mr-1" /> Edit Text
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {showEmailPreview ? (
+                                <div className="border rounded-lg overflow-hidden bg-white dark:bg-zinc-950">
+                                  <iframe
+                                    srcDoc={generateHtmlEmailBody(emailSubject, emailBody, selectedLeadForDetails?.pageName)}
+                                    className="w-full h-[320px] border-0"
+                                    title="HTML Email Preview"
+                                  />
+                                </div>
+                              ) : (
+                                <textarea
+                                  value={emailBody}
+                                  onChange={(e) => setEmailBody(e.target.value)}
+                                  className="w-full min-h-[200px] p-3 text-xs bg-background/50 border border-border focus:border-indigo-500 rounded-lg text-foreground focus:outline-none resize-y leading-relaxed font-sans"
+                                  placeholder="Enter email body..."
+                                />
+                              )}
                               <p className="text-[10px] text-muted-foreground italic mt-0.5 px-1">
                                 ⚙️ Note: If left blank, SMTP will default to the server environment settings (`.env`).
                               </p>
