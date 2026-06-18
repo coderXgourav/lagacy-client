@@ -886,7 +886,7 @@ Best regards,
                   <Input
                     type="number"
                     min="1"
-                    max="50"
+                    max="1000"
                     value={limit}
                     onChange={(e) => setLimit(e.target.value)}
                     className="h-9"
