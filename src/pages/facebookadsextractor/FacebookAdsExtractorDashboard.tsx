@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -39,6 +40,7 @@ import {
   Mail,
   Phone,
   ArrowRight,
+  ArrowLeft,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -250,6 +252,7 @@ ${formattedParagraphs}
 };
 
 export default function FacebookAdsExtractorDashboard() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [niche, setNiche] = useState("nike");
   const [country, setCountry] = useState("US");
@@ -751,14 +754,25 @@ Best regards,
   return (
     <div className="container mx-auto space-y-6 p-6 max-w-7xl animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent flex items-center gap-3">
-            <Facebook className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
-            Facebook Ads Lead Extractor
-          </h1>
-          <p className="text-muted-foreground text-md mt-1">
-            Autonomously extract leads: Meta Ads Library &rarr; Facebook Page Metadata &rarr; Website Contacts.
-          </p>
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/offerings")}
+            className="h-10 w-10 rounded-full hover:bg-muted border border-muted-foreground/20 text-muted-foreground hover:text-foreground flex items-center justify-center shrink-0"
+            title="Back to Offerings"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent flex items-center gap-3">
+              <Facebook className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+              Facebook Ads Lead Extractor
+            </h1>
+            <p className="text-muted-foreground text-md mt-1">
+              Autonomously extract leads: Meta Ads Library &rarr; Facebook Page Metadata &rarr; Website Contacts.
+            </p>
+          </div>
         </div>
         {activeSearch && (
           <Button
@@ -1055,20 +1069,28 @@ Best regards,
 
                           <TableCell className="align-top py-4">
                             <div className="space-y-1">
-                              {(lead.likes > 0 || lead.pageLikes > 0) && (
-                                <div className="text-xs text-foreground font-semibold">
-                                  Likes: {(lead.likes || lead.pageLikes).toLocaleString()}
-                                </div>
-                              )}
-                              {lead.followers > 0 && (
-                                <div className="text-xs text-muted-foreground">
-                                  Followers: {lead.followers.toLocaleString()}
-                                </div>
+                              {(lead.likes || lead.pageLikes || 0) <= 5000 && (
+                                <>
+                                  {(lead.likes > 0 || lead.pageLikes > 0) && (
+                                    <div className="text-xs text-foreground font-semibold">
+                                      Likes: {(lead.likes || lead.pageLikes).toLocaleString()}
+                                    </div>
+                                  )}
+                                  {lead.followers > 0 && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Followers: {lead.followers.toLocaleString()}
+                                    </div>
+                                  )}
+                                </>
                               )}
 
                               {lead.adLibraryURL && (
                                 <a
-                                  href={lead.adLibraryURL}
+                                  href={
+                                    (lead.isMock || lead.adArchiveID?.startsWith('800') || lead.adArchiveID?.startsWith('880'))
+                                      ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${lead.pageCountry || lead.country || 'ALL'}&q=${encodeURIComponent(lead.pageName.replace(/\s\(\d+\)$/, ''))}`
+                                      : lead.adLibraryURL
+                                  }
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[10px] text-indigo-500 hover:underline flex items-center gap-1 font-semibold mt-1"
