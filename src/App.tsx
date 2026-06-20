@@ -80,6 +80,7 @@ import FacebookAutomationPage from "./pages/FacebookAutomationPage";
 import TwitterAutomationPage from "./pages/TwitterAutomationPage";
 import JsonConverterPage from "./pages/JsonConverterPage";
 import FacebookAdsExtractorDashboard from "./pages/facebookadsextractor/FacebookAdsExtractorDashboard";
+import TiktokAdsExtractorDashboard from "./pages/tiktokadsextractor/TiktokAdsExtractorDashboard";
 import LeadDominationPage from "./pages/LeadDominationPage";
 import { LeadEngineLayout } from "./components/layout/LeadEngineLayout";
 import KyptronixWorkflowPage from "./pages/KyptronixWorkflowPage";
@@ -210,6 +211,7 @@ const App = () => (
               </Route>
               <Route path="/lead-domination" element={<ProtectedRoute><LeadDominationPage /></ProtectedRoute>} />
               <Route path="/facebook-ads-extractor" element={<ProtectedRoute><FacebookAdsExtractorDashboard /></ProtectedRoute>} />
+              <Route path="/tiktok-ads-extractor" element={<ProtectedRoute><TiktokAdsExtractorDashboard /></ProtectedRoute>} />
               <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
                 <Route index element={<LeadEngineDashboard />} />
               </Route>

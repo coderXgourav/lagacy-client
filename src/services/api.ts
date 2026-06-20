@@ -591,6 +591,37 @@ export const facebookAdsExtractorApi = {
     }),
 };
 
+// TikTok Ads Extractor API
+export const tiktokAdsExtractorApi = {
+  scan: (params: { niche: string; country: string; activeStatus: string; contactType: string; limit: number }) =>
+    apiCall('/tiktok-ads-extractor/scan', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getRecentSearches: (page = 1, limit = 20) =>
+    apiCall(`/tiktok-ads-extractor/searches/recent?page=${page}&limit=${limit}`),
+  getSearchResults: (searchId: string) =>
+    apiCall(`/tiktok-ads-extractor/searches/${searchId}/results`),
+  cancelSearch: (searchId: string) =>
+    apiCall(`/tiktok-ads-extractor/searches/${searchId}/cancel`, {
+      method: 'POST',
+    }),
+  deleteSearch: (searchId: string) =>
+    apiCall(`/tiktok-ads-extractor/searches/${searchId}`, {
+      method: 'DELETE',
+    }),
+  generateLeadSalesPacket: (leadId: string) =>
+    apiCall(`/tiktok-ads-extractor/leads/${leadId}/generate-packet`, {
+      method: 'POST',
+    }),
+  sendLeadEmail: (leadId: string, emailData: { subject: string; body: string; toEmail: string; smtpEmail?: string; smtpPassword?: string }) =>
+    apiCall(`/tiktok-ads-extractor/leads/${leadId}/send-email`, {
+      method: 'POST',
+      body: JSON.stringify(emailData),
+    }),
+};
+
+
 export const intelligenceApi = {
   runPipeline: (leadData: any) => apiCall('/enrich/run', {
     method: 'POST',
@@ -631,4 +662,5 @@ export default {
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
   facebookAdsExtractor: facebookAdsExtractorApi,
+  tiktokAdsExtractor: tiktokAdsExtractorApi,
 };

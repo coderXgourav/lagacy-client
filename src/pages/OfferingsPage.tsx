@@ -43,7 +43,8 @@ import {
   Mail,
   PhoneCall,
   Filter,
-  Facebook
+  Facebook,
+  Video
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -255,6 +256,15 @@ export default function OfferingsPage() {
       icon: Facebook,
       available: true,
       route: "/facebook-ads-extractor",
+      beta: true,
+    },
+    {
+      id: "tiktok-ads-extractor",
+      title: "TikTok Ads Lead Extractor",
+      description: "Extract active TikTok Ads, retrieve profile metrics, and scrape direct contact emails/phone numbers from their websites.",
+      icon: Video,
+      available: true,
+      route: "/tiktok-ads-extractor",
       beta: true,
     },
   ];
