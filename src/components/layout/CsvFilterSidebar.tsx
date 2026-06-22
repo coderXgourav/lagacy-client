@@ -12,6 +12,7 @@ const navItems = [
     { to: "/csv-filter", label: "Dashboard", icon: FileText },
     { to: "/csv-phone-formatter", label: "Phone Formatter", icon: PhoneCall },
     { to: "/csv-mobile-filter", label: "Mobile/Landline Filter", icon: Filter },
+    { to: "/csv-active-checker", label: "Active Phone Checker", icon: PhoneCall },
 ];
 
 export function CsvFilterSidebar() {

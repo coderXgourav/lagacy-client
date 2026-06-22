@@ -205,6 +205,15 @@ export default function OfferingsPage() {
       route: "/csv-mobile-filter",
       beta: true,
     },
+    {
+      id: "csv-active-checker",
+      title: "Active Phone Checker Pro",
+      description: "Bulk verify if phone numbers are active, valid, and trace their carrier network/line type dynamically.",
+      icon: PhoneCall,
+      available: true,
+      route: "/csv-active-checker",
+      beta: true,
+    },
   ];
 
   return (

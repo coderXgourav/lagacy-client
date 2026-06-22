@@ -40,6 +40,7 @@ import { CsvFilterLayout } from "./components/layout/CsvFilterLayout";
 import CsvFilterDashboard from "./pages/csvfilter/CsvFilterDashboard";
 import CsvPhoneFormatterPage from "./pages/csvfilter/CsvPhoneFormatterPage";
 import CsvMobileFilterPage from "./pages/csvfilter/CsvMobileFilterPage";
+import CsvActiveCheckerPage from "./pages/csvfilter/CsvActiveCheckerPage";
 import { CsvUploaderLayout } from "./components/layout/CsvUploaderLayout";
 import CsvUploaderDashboard from "./pages/csvuploader/CsvUploaderDashboard";
 import CsvUploaderStats from "./pages/csvuploader/CsvUploaderStats";
@@ -143,6 +144,9 @@ const App = () => (
               </Route>
               <Route path="/csv-mobile-filter" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
                 <Route index element={<CsvMobileFilterPage />} />
+              </Route>
+              <Route path="/csv-active-checker" element={<ProtectedRoute><CsvFilterLayout /></ProtectedRoute>}>
+                <Route index element={<CsvActiveCheckerPage />} />
               </Route>
                 <Route path="/csv-uploader" element={<ProtectedRoute><CsvUploaderLayout /></ProtectedRoute>}>
                   <Route index element={<CsvUploaderDashboard />} />
