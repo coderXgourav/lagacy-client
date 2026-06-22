@@ -209,6 +209,7 @@ export default function CsvActiveCheckerPage() {
     const [phoneColumn, setPhoneColumn] = useState<string>('');
     const [countryColumn, setCountryColumn] = useState<string>('');
     const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([]);
+    const [isDragging, setIsDragging] = useState<boolean>(false);
     
     // Progress and results state
     const [processedCount, setProcessedCount] = useState<number>(0);
@@ -222,6 +223,33 @@ export default function CsvActiveCheckerPage() {
             const selectedFile = e.target.files[0];
             setFile(selectedFile);
             parseHeaders(selectedFile);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const droppedFile = e.dataTransfer.files[0];
+            if (droppedFile.name.endsWith('.csv')) {
+                setFile(droppedFile);
+                parseHeaders(droppedFile);
+            } else {
+                toast.error("Please upload a valid CSV file (.csv)");
+            }
         }
     };
 
@@ -465,9 +493,16 @@ export default function CsvActiveCheckerPage() {
                         <div className="space-y-4">
                             <div
                                 onClick={() => fileInputRef.current?.click()}
-                                className="h-64 border-2 border-dashed rounded-2xl border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-4"
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`h-64 border-2 border-dashed rounded-2xl transition-all duration-300 cursor-pointer flex flex-col items-center justify-center gap-4 ${
+                                    isDragging 
+                                        ? 'border-primary bg-primary/10 scale-[1.01] shadow-lg shadow-primary/5' 
+                                        : 'border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5'
+                                }`}
                             >
-                                <div className="p-4 rounded-full bg-primary/10 text-primary">
+                                <div className={`p-4 rounded-full transition-colors duration-300 ${isDragging ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'}`}>
                                     <Upload className="h-8 w-8" />
                                 </div>
                                 <div className="text-center space-y-1">
