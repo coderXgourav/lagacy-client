@@ -1,3 +1,6 @@
-Name,Email,Number
-John Doe,john@example.com,1234567890
-Jane Doe,jane@example.com,0987654321
+Name,Phone,Country
+Pawan,9876543210,India
+Google Office,+16502530000,US
+Toll Free,+18002758777,USA
+Invalid Num,1234,US
+Landline Ind,01123456789,India
