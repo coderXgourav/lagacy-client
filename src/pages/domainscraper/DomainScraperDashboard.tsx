@@ -9,6 +9,7 @@ import {
   Download,
   Play,
   Zap,
+  ChevronLeft,
   ChevronRight,
   Globe,
   Search,
@@ -415,5 +416,5 @@ export default function DomainScraperDashboard() {
 }
 
 const Loader2 = ({ className }: { className?: string }) => (
-  <RefreshCw className={cn("animate-spin", className)} />
+  <RefreshCw className={`animate-spin ${className || ''}`} />
 );
