@@ -159,6 +159,217 @@ function cleanPhoneNumber(rawPhone: string): string {
     return phoneStr.replace(/\D/g, '');
 }
 
+function getValidLocalLengths(prefix: string): number[] {
+    switch (prefix) {
+        case '1': // US, Canada
+            return [10];
+        case '86': // China
+            return [9, 10, 11];
+        case '91': // India
+            return [10];
+        case '44': // UK
+            return [9, 10];
+        case '61': // Australia
+            return [9];
+        case '65': // Singapore
+            return [8];
+        case '966': // Saudi Arabia
+            return [9];
+        case '971': // UAE
+            return [9];
+        case '33': // France
+            return [9];
+        case '49': // Germany
+            return [10, 11];
+        case '39': // Italy
+            return [9, 10];
+        case '34': // Spain
+            return [9];
+        case '31': // Netherlands
+            return [9];
+        case '41': // Switzerland
+            return [9];
+        case '46': // Sweden
+            return [7, 8, 9];
+        case '47': // Norway
+            return [8];
+        case '45': // Denmark
+            return [8];
+        case '32': // Belgium
+            return [9];
+        case '43': // Austria
+            return [10, 11, 12, 13];
+        case '351': // Portugal
+            return [9];
+        case '30': // Greece
+            return [10];
+        case '48': // Poland
+            return [9];
+        case '81': // Japan
+            return [9, 10];
+        case '82': // South Korea
+            return [9, 10];
+        case '60': // Malaysia
+            return [8, 9, 10];
+        case '66': // Thailand
+            return [9];
+        case '84': // Vietnam
+            return [9, 10];
+        case '62': // Indonesia
+            return [9, 10, 11];
+        case '63': // Philippines
+            return [9, 10];
+        case '92': // Pakistan
+            return [9, 10];
+        case '880': // Bangladesh
+            return [10];
+        case '94': // Sri Lanka
+            return [9];
+        case '977': // Nepal
+            return [9, 10];
+        case '974': // Qatar
+            return [8];
+        case '968': // Oman
+            return [8];
+        case '965': // Kuwait
+            return [8];
+        case '973': // Bahrain
+            return [8];
+        case '972': // Israel
+            return [9];
+        case '90': // Turkey
+            return [10];
+        case '64': // New Zealand
+            return [8, 9];
+        case '27': // South Africa
+            return [9];
+        case '234': // Nigeria
+            return [10];
+        case '20': // Egypt
+            return [9, 10];
+        case '254': // Kenya
+            return [9];
+        case '233': // Ghana
+            return [9];
+        case '212': // Morocco
+            return [9];
+        case '55': // Brazil
+            return [10, 11];
+        case '54': // Argentina
+            return [10];
+        case '57': // Colombia
+            return [10];
+        case '56': // Chile
+            return [9];
+        case '51': // Peru
+            return [9];
+        case '58': // Venezuela
+            return [10];
+        case '52': // Mexico
+            return [10];
+        case '357': // Cyprus
+            return [8];
+        case '40': // Romania
+            return [9];
+        case '380': // Ukraine
+            return [9];
+        case '852': // Hong Kong
+            return [8];
+        case '218': // Libya
+            return [9];
+        case '994': // Azerbaijan
+            return [9];
+        case '213': // Algeria
+            return [9];
+        case '373': // Moldova
+            return [8];
+        case '995': // Georgia
+            return [9];
+        case '962': // Jordan
+            return [9];
+        case '593': // Ecuador
+            return [9];
+        case '964': // Iraq
+            return [10];
+        case '216': // Tunisia
+            return [8];
+        case '256': // Uganda
+            return [9];
+        case '352': // Luxembourg
+            return [9];
+        case '886': // Taiwan
+            return [9];
+        case '421': // Slovakia
+            return [9];
+        case '98': // Iran
+            return [10];
+        case '355': // Albania
+            return [9];
+        case '598': // Uruguay
+            return [8, 9];
+        case '996': // Kyrgyzstan
+            return [9];
+        case '267': // Botswana
+            return [7, 8];
+        case '856': // Laos
+            return [9, 10];
+        case '250': // Rwanda
+            return [9];
+        case '591': // Bolivia
+            return [8];
+        case '263': // Zimbabwe
+            return [9];
+        case '262': // Reunion
+            return [9];
+        case '504': // Honduras
+            return [8];
+        case '376': // Andorra
+            return [6];
+        case '249': // Sudan
+            return [9];
+        case '220': // Gambia
+            return [7];
+        case '992': // Tajikistan
+            return [9];
+        case '228': // Togo
+            return [8];
+        case '1784': // Saint Vincent
+            return [7];
+        case '255': // Tanzania
+            return [9];
+        case '998': // Uzbekistan
+            return [9];
+        case '420': // Czech Republic
+            return [9];
+        case '855': // Cambodia
+            return [8, 9];
+        case '248': // Seychelles
+            return [7];
+        case '371': // Latvia
+            return [8];
+        case '7': // Kazakhstan
+            return [10];
+        case '359': // Bulgaria
+            return [7, 8, 9];
+        case '387': // Bosnia
+            return [8];
+        case '1340': // Virgin Islands US
+            return [7];
+        case '1284': // Virgin Islands British
+            return [7];
+        case '225': // Cote D'Ivoire
+            return [10];
+        case '970': // Palestine
+            return [9];
+        case '257': // Burundi
+            return [8];
+        case '243': // Congo
+            return [9];
+        default:
+            return [8, 9, 10, 11]; // default fallback
+    }
+}
+
 function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string | null): string {
     const cleanDigits = cleanPhoneNumber(rawPhone);
     const hasOriginalPlus = rawPhone.trim().startsWith('+');
@@ -176,7 +387,16 @@ function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string | null): st
         for (const code of allCountryCodes) {
             if (code !== rowPrefixDigits && processedDigits.startsWith(code)) {
                 const remainder = processedDigits.slice(code.length);
-                if (hasOriginalPlus || remainder.startsWith(rowPrefixDigits)) {
+                
+                // If we strip this wrong prefix, what is the resulting local part?
+                const localPart = remainder.startsWith(rowPrefixDigits)
+                    ? remainder.slice(rowPrefixDigits.length)
+                    : remainder;
+                
+                const validLengths = getValidLocalLengths(rowPrefixDigits);
+                const isValidLength = validLengths.includes(localPart.length);
+
+                if (isValidLength && (hasOriginalPlus || remainder.startsWith(rowPrefixDigits))) {
                     detectedWrongPrefix = code;
                     break;
                 }

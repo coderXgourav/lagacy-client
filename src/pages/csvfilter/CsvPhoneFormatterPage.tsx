@@ -406,7 +406,16 @@ export function formatPhoneNumber(rawPhone: string, rowPrefixDigits: string | nu
         for (const code of allCountryCodes) {
             if (code !== rowPrefixDigits && processedDigits.startsWith(code)) {
                 const remainder = processedDigits.slice(code.length);
-                if (hasOriginalPlus || remainder.startsWith(rowPrefixDigits)) {
+                
+                // If we strip this wrong prefix, what is the resulting local part?
+                const localPart = remainder.startsWith(rowPrefixDigits)
+                    ? remainder.slice(rowPrefixDigits.length)
+                    : remainder;
+                
+                const validLengths = getValidLocalLengths(rowPrefixDigits);
+                const isValidLength = validLengths.includes(localPart.length);
+
+                if (isValidLength && (hasOriginalPlus || remainder.startsWith(rowPrefixDigits))) {
                     detectedWrongPrefix = code;
                     break;
                 }
