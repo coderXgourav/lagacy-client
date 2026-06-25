@@ -44,7 +44,8 @@ import {
   PhoneCall,
   Filter,
   Facebook,
-  Video
+  Video,
+  MapPin
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -212,6 +213,24 @@ export default function OfferingsPage() {
       icon: PhoneCall,
       available: true,
       route: "/csv-active-checker",
+      beta: true,
+    },
+    {
+      id: "google-maps-scraper",
+      title: "Google Maps Scraper",
+      description: "Scrape business leads from Google Maps in bulk. Search by keyword and location — extract name, phone, address, website, rating, and more.",
+      icon: MapPin,
+      available: true,
+      route: "/google-maps-scraper",
+      beta: true,
+    },
+    {
+      id: "revenue-intelligence",
+      title: "Revenue Intelligence & Lead Generation",
+      description: "Full-cycle lead generation: company discovery, decision maker enrichment, buying signal scoring, AI personalization, and automated outreach sequences — 20 qualified meetings/day.",
+      icon: TrendingUp,
+      available: true,
+      route: "/revenue-intelligence",
       beta: true,
     },
   ];

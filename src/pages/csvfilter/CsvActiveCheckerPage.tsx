@@ -642,6 +642,187 @@ export default function CsvActiveCheckerPage() {
         toast.success(`Active Check completed! Processed ${parsedRows.length} rows.`);
     };
 
+    const STATE_TZ_MAP: Record<string, Set<string>> = {
+        "EST": new Set([
+            "Connecticut", "Delaware", "Georgia", "Maine", "Maryland",
+            "Massachusetts", "New Hampshire", "New Jersey", "New York",
+            "North Carolina", "Ohio", "Pennsylvania", "Rhode Island",
+            "South Carolina", "Vermont", "Virginia", "West Virginia",
+            "CT", "DE", "GA", "MA", "MD", "ME", "NH", "NJ", "NY", "NC",
+            "OH", "PA", "RI", "SC", "VT", "VA", "WV", "D.C.", "DC",
+            "CONNECTICUT", "DELAWARE", "GEORGIA", "MAINE", "MARYLAND",
+            "MASSACHUSETTS", "NEW JERSEY", "NEW YORK", "OHIO", "PENNSYLVANIA",
+            "RHODE ISLAND", "SOUTH CAROLINA", "VIRGINIA", "District of Columbia",
+            "New jersey", "Va", "nc", "nj", "ny", "oh", "connecticut", "ct",
+            "delaware", "de", "georgia", "ga", "maine", "me", "maryland", "md",
+            "massachusetts", "ma", "new hampshire", "nh", "new jersey", "nj",
+            "new york", "ny", "n.y.", "north carolina", "nc", "ohio", "oh",
+            "pennsylvania", "pa", "rhode island", "ri", "south carolina", "sc",
+            "vermont", "vt", "virginia", "va", "west virginia", "wv", "d.c.", "dc",
+            "district of columbia", "indiana", "in", "kentucky", "ky", "michigan", "mi", "indiana740311"
+        ]),
+        "PST": new Set([
+            "california", "ca", "washington", "wa", "nevada", "nv", "oregon",
+            "or", "idaho", "id", "California", "Washington", "Nevada", "Oregon",
+            "Idaho", "CA", "WA", "NV", "OR", "ID", "Ca", "ca", "california",
+            "CALIFORNIA", "WASHINGTON", "OREGON", "IDAHO"
+        ]),
+        "CST": new Set([
+            "Alabama", "Arkansas", "Illinois", "Iowa", "Louisiana", "Minnesota",
+            "Mississippi", "Missouri", "Oklahoma", "Wisconsin",
+            "AL", "AR", "IL", "IA", "LA", "MN", "MS", "MO", "OK", "WI", "TX", "TN",
+            "ALABAMA", "ARKANSAS", "ILLINOIS", "LOUISIANA", "MINNESOTA",
+            "MISSOURI", "TENNESSEE", "TEXAS", "WISCONSIN", "South Dakota", "SD",
+            "Tennessee", "Texas", "Louisian", "texas", "tx", "Fl", "FL", "FLORIDA",
+            "alabama", "al", "arkansas", "ar", "illinois", "il", "iowa", "ia",
+            "louisiana", "la", "louisian", "minnesota", "mn", "mississippi", "ms",
+            "missouri", "mo", "oklahoma", "ok", "wisconsin", "wi", "texas", "tx",
+            "tennessee", "tn", "south dakota", "sd", "florida", "fl", "kansas",
+            "ks", "north dakota", "nd"
+        ]),
+        "MST": new Set([
+            "arizona", "az", "colorado", "co", "montana", "mt", "new mexico",
+            "nm", "utah", "ut", "wyoming", "wy", "nebraska", "ne", "Arizona",
+            "Colorado", "Montana", "New Mexico", "Utah", "Wyoming",
+            "AZ", "CO", "MT", "NM", "UT", "WY", "az", "co", "ARIZONA", "COLORADO",
+            "NEBRASKA", "NE", "Montana", "Utah", "Wyoming", "WYOMING", "Nebraska"
+        ]),
+        "Other": new Set([
+            "alaska", "ak", "hawaii", "hi", "puerto rico", "pr", "guam",
+            "gu", "ae", "am", "buenos aires", "capital federal",
+            "cordoba", "kh", "limanew york", "na", "vn", "Alaska",
+            "AK", "Hawaii", "HI", "Puerto Rico", "PR", "GU"
+        ])
+    };
+
+    const AREA_CODE_TZ: Record<string, string> = {
+        // EST - New York
+        '212':'EST','315':'EST','332':'EST','347':'EST','516':'EST','518':'EST','585':'EST',
+        '607':'EST','631':'EST','646':'EST','716':'EST','718':'EST','845':'EST','914':'EST',
+        '917':'EST','929':'EST',
+        // EST - New Jersey
+        '201':'EST','551':'EST','609':'EST','732':'EST','848':'EST','856':'EST','862':'EST',
+        '908':'EST','973':'EST',
+        // EST - Pennsylvania
+        '215':'EST','223':'EST','267':'EST','272':'EST','412':'EST','445':'EST','484':'EST',
+        '570':'EST','610':'EST','717':'EST','724':'EST','814':'EST','878':'EST',
+        // EST - Virginia
+        '276':'EST','434':'EST','540':'EST','571':'EST','703':'EST','757':'EST','804':'EST',
+        // EST - Maryland / DC
+        '240':'EST','301':'EST','410':'EST','443':'EST','667':'EST','202':'EST',
+        // EST - Connecticut
+        '203':'EST','475':'EST','860':'EST','959':'EST',
+        // EST - Massachusetts
+        '339':'EST','351':'EST','413':'EST','508':'EST','617':'EST','774':'EST','781':'EST',
+        '857':'EST','978':'EST',
+        // EST - Maine / Vermont / NH / RI / DE / WV
+        '207':'EST','802':'EST','603':'EST','401':'EST','302':'EST','304':'EST','681':'EST',
+        // EST - North Carolina
+        '252':'EST','336':'EST','704':'EST','743':'EST','828':'EST','910':'EST','919':'EST',
+        '980':'EST','984':'EST',
+        // EST - South Carolina
+        '803':'EST','839':'EST','843':'EST','854':'EST','864':'EST',
+        // EST - Georgia
+        '229':'EST','404':'EST','470':'EST','478':'EST','678':'EST','706':'EST','762':'EST',
+        '770':'EST','912':'EST',
+        // EST - Ohio
+        '216':'EST','220':'EST','234':'EST','283':'EST','326':'EST','330':'EST','380':'EST',
+        '419':'EST','440':'EST','513':'EST','567':'EST','614':'EST','740':'EST','937':'EST',
+        // EST - Michigan
+        '231':'EST','248':'EST','269':'EST','313':'EST','517':'EST','586':'EST','616':'EST',
+        '734':'EST','810':'EST','906':'EST','947':'EST','989':'EST',
+        // EST - Indiana
+        '219':'EST','260':'EST','317':'EST','463':'EST','574':'EST','765':'EST','812':'EST',
+        '930':'EST',
+        // EST - Kentucky
+        '270':'EST','364':'EST','502':'EST','606':'EST','859':'EST',
+        // EST - Tennessee (eastern)
+        '423':'EST','865':'EST',
+        // EST - Florida (most of state)
+        '239':'EST','305':'EST','321':'EST','352':'EST','386':'EST','407':'EST','561':'EST',
+        '689':'EST','727':'EST','754':'EST','772':'EST','786':'EST','813':'EST','863':'EST',
+        '904':'EST','941':'EST','954':'EST',
+
+        // CST - Texas
+        '210':'CST','214':'CST','254':'CST','281':'CST','325':'CST','346':'CST','361':'CST',
+        '409':'CST','430':'CST','432':'CST','469':'CST','512':'CST','682':'CST','713':'CST',
+        '726':'CST','737':'CST','806':'CST','817':'CST','830':'CST','832':'CST','903':'CST',
+        '915':'CST','936':'CST','940':'CST','945':'CST','956':'CST','972':'CST','979':'CST',
+        // CST - Illinois
+        '217':'CST','224':'CST','309':'CST','312':'CST','331':'CST','447':'CST','464':'CST',
+        '630':'CST','708':'CST','773':'CST','779':'CST','815':'CST','847':'CST','872':'CST',
+        // CST - Florida panhandle
+        '850':'CST',
+        // CST - Alabama
+        '205':'CST','251':'CST','256':'CST','334':'CST','938':'CST',
+        // CST - Arkansas
+        '479':'CST','501':'CST','870':'CST',
+        // CST - Iowa
+        '319':'CST','515':'CST','563':'CST','641':'CST','712':'CST',
+        // CST - Louisiana
+        '225':'CST','318':'CST','337':'CST','504':'CST','985':'CST',
+        // CST - Minnesota
+        '218':'CST','320':'CST','507':'CST','612':'CST','651':'CST','763':'CST','952':'CST',
+        // CST - Mississippi
+        '228':'CST','601':'CST','662':'CST','769':'CST',
+        // CST - Missouri
+        '314':'CST','417':'CST','573':'CST','636':'CST','660':'CST','816':'CST',
+        // CST - Oklahoma
+        '405':'CST','539':'CST','580':'CST','918':'CST',
+        // CST - Wisconsin
+        '262':'CST','414':'CST','608':'CST','715':'CST','920':'CST',
+        // CST - Tennessee (western/central)
+        '615':'CST','629':'CST','731':'CST','901':'CST','931':'CST',
+        // CST - Kansas
+        '316':'CST','620':'CST','785':'CST','913':'CST',
+        // CST - North / South Dakota / Nebraska
+        '701':'CST','605':'CST','308':'CST','402':'CST','531':'CST',
+
+        // MST - Arizona
+        '480':'MST','520':'MST','602':'MST','623':'MST','928':'MST',
+        // MST - Colorado
+        '303':'MST','719':'MST','720':'MST','970':'MST',
+        // MST - Montana / New Mexico / Utah / Wyoming / Idaho
+        '406':'MST','505':'MST','575':'MST','385':'MST','435':'MST','801':'MST',
+        '307':'MST','208':'MST',
+
+        // PST - California
+        '209':'PST','213':'PST','279':'PST','310':'PST','323':'PST','341':'PST','408':'PST',
+        '415':'PST','424':'PST','442':'PST','510':'PST','530':'PST','559':'PST','562':'PST',
+        '619':'PST','626':'PST','628':'PST','650':'PST','657':'PST','661':'PST','669':'PST',
+        '707':'PST','714':'PST','747':'PST','760':'PST','764':'PST','805':'PST','818':'PST',
+        '820':'PST','831':'PST','858':'PST','909':'PST','916':'PST','925':'PST','949':'PST',
+        '951':'PST',
+        // PST - Washington
+        '206':'PST','253':'PST','360':'PST','425':'PST','509':'PST','564':'PST',
+        // PST - Oregon
+        '458':'PST','503':'PST','541':'PST','971':'PST',
+        // PST - Nevada
+        '702':'PST','725':'PST','775':'PST',
+
+        // Other - Alaska / Hawaii / PR / Guam
+        '907':'Other','808':'Other','787':'Other','939':'Other','671':'Other',
+    };
+
+    const getTimezone = (row: Record<string, string>, strippedPhone: string): string => {
+        const stateVal = (row['registrant_state'] || row['state'] || row['State'] || '').trim();
+        if (stateVal) {
+            for (const [tz, states] of Object.entries(STATE_TZ_MAP)) {
+                if (states.has(stateVal)) return tz;
+            }
+        }
+        // Fall back to area code (first 3 digits of stripped phone)
+        const areaCode = strippedPhone.replace(/\D/g, '').slice(0, 3);
+        return AREA_CODE_TZ[areaCode] || '';
+    };
+
+    const stripCountryCode = (phone: string, countryCode: string): string => {
+        const prefix = COUNTRY_NAME_TO_PREFIX[countryCode?.toUpperCase()] || '1';
+        if (phone.startsWith(`+${prefix}`)) return phone.slice(prefix.length + 1);
+        if (phone.startsWith(`+`)) return phone.slice(1);
+        return phone;
+    };
+
     const handleDownload = (filterType: 'all' | 'active' | 'inactive') => {
         if (results.length === 0) return;
 
@@ -652,15 +833,22 @@ export default function CsvActiveCheckerPage() {
             filtered = results.filter(r => !r.active);
         }
 
-        const exportData = filtered.map(r => ({
-            ...r.originalRow,
-            [phoneColumn]: r.formattedNumber || r.originalNumber,
-            'Verification Status': r.active ? 'ACTIVE' : 'INACTIVE',
-            'Carrier': r.carrier,
-            'Number Type': r.type,
-            'Region / Country': r.country,
-            'Verification Details': r.reason
-        }));
+        // Exclude VOIP numbers
+        filtered = filtered.filter(r => r.type !== 'voip');
+
+        const exportData = filtered.map(r => {
+            const strippedPhone = stripCountryCode(r.formattedNumber || r.originalNumber, r.country);
+            return {
+                ...r.originalRow,
+                [phoneColumn]: strippedPhone,
+                'Verification Status': r.active ? 'ACTIVE' : 'INACTIVE',
+                'Carrier': r.carrier,
+                'Number Type': r.type,
+                'Region / Country': r.country,
+                'Verification Details': r.reason,
+                'Timezone': getTimezone(r.originalRow, strippedPhone)
+            };
+        });
 
         const csv = Papa.unparse(exportData);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
