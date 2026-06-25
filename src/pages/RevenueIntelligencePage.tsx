@@ -293,10 +293,10 @@ export default function RevenueIntelligencePage() {
         } else if (data.code === 'API_KEY_MISSING') {
           setEnrichLog(['❌ APOLLO_API_KEY not configured in .env']); break;
         } else {
-          setEnrichLog(prev => [...prev, `— ${company.title}: not found on Apollo`]);
+          setEnrichLog(prev => [...prev, `— ${company.title}: not in Apollo DB (local/small business — Apollo covers mostly B2B/tech companies)`]);
         }
-      } catch {
-        setEnrichLog(prev => [...prev, `⚠ ${company.title}: error`]);
+      } catch (e) {
+        setEnrichLog(prev => [...prev, `⚠ ${company.title}: request failed — restart server if Apollo header error`]);
       }
     }
     setCompanies(updated);
@@ -915,6 +915,73 @@ export default function RevenueIntelligencePage() {
                 )}
 
               </div>
+            )}
+
+            {/* Results preview — website audit scores */}
+            {companies.some(c => c.audit) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-orange-500" /> Website Audit Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Company</TableHead>
+                          <TableHead>Website</TableHead>
+                          <TableHead>Performance</TableHead>
+                          <TableHead>SEO</TableHead>
+                          <TableHead>Tech Need Pts</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {companies.map((c, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-sm font-medium">{c.title}</TableCell>
+                            <TableCell className="text-xs text-blue-600 max-w-[160px] truncate">
+                              {c.website ? (
+                                <a href={c.website} target="_blank" rel="noreferrer" className="hover:underline">{c.website.replace(/^https?:\/\//, '')}</a>
+                              ) : (
+                                <span className="text-red-500 font-medium">No website</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {c.audit ? (
+                                <span className={`text-sm font-bold ${c.audit.performance < 50 ? 'text-red-500' : c.audit.performance < 80 ? 'text-amber-500' : 'text-green-600'}`}>
+                                  {c.audit.performance}/100
+                                </span>
+                              ) : !c.website ? (
+                                <span className="text-xs text-muted-foreground">No site</span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Pending</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {c.audit ? (
+                                <span className={`text-sm font-bold ${c.audit.seo < 50 ? 'text-red-500' : c.audit.seo < 80 ? 'text-amber-500' : 'text-green-600'}`}>
+                                  {c.audit.seo}/100
+                                </span>
+                              ) : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {!c.website ? (
+                                <Badge className="bg-red-100 text-red-700 text-xs">+15 pts (no site)</Badge>
+                              ) : c.techNeedScore ? (
+                                <Badge className={`text-xs ${c.techNeedScore >= 12 ? 'bg-red-100 text-red-700' : c.techNeedScore >= 8 ? 'bg-amber-100 text-amber-700' : c.techNeedScore >= 4 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                  +{c.techNeedScore} pts
+                                </Badge>
+                              ) : '—'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Results preview — emails found */}
