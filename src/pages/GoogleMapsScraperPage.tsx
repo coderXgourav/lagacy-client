@@ -73,6 +73,7 @@ export default function GoogleMapsScraperPage() {
     const [phoneStatuses, setPhoneStatuses] = useState<Record<number, 'active' | 'inactive' | 'unknown' | 'checking'>>({});
     const [verifyingPhones, setVerifyingPhones] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const resultsRef = useRef<HTMLDivElement>(null);
 
     const addSearchTerm = () => setSearchTerms(prev => [...prev, '']);
     const removeSearchTerm = (i: number) => setSearchTerms(prev => prev.filter((_, idx) => idx !== i));
@@ -116,19 +117,23 @@ export default function GoogleMapsScraperPage() {
 
                     if (runStatus === 'SUCCEEDED') {
                         clearInterval(pollRef.current!);
-                        setStatus('SUCCEEDED');
                         const { data: resultsData } = await axios.get(
                             `${API_URL}/google-maps-scraper/results/${dsId || defaultDatasetId}`
                         );
                         const maxR = parseInt(maxReviews) || 0;
                         const maxS = maxStars !== 'none' ? parseFloat(maxStars) : null;
                         const filtered = (resultsData.items || []).filter((item: PlaceResult) => {
+                            if (!item.phone) return false;
                             if (maxR > 0 && (item.reviewsCount ?? 0) > maxR) return false;
                             if (maxS !== null && (item.totalScore ?? 0) > maxS) return false;
                             return true;
                         });
+                        const total = (resultsData.items || []).length;
+                        const noPhone = total - filtered.length;
                         setResults(filtered);
-                        toast.success(`Done! ${filtered.length} places from ${(resultsData.items || []).length} total.`);
+                        setStatus('SUCCEEDED');
+                        toast.success(`Done! ${filtered.length} places with phone numbers (${noPhone} without phone removed).`);
+                        setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
                     } else if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(runStatus)) {
                         clearInterval(pollRef.current!);
                         setStatus('FAILED');
@@ -395,6 +400,21 @@ export default function GoogleMapsScraperPage() {
                             </p>
                             <p className="text-xs text-muted-foreground">This may take 1–3 minutes depending on the number of results.</p>
                         </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* No results state */}
+            <div ref={resultsRef} />
+            {status === 'SUCCEEDED' && results.length === 0 && (
+                <Card className="border shadow-xl">
+                    <CardContent className="py-12 flex flex-col items-center justify-center gap-3 text-center">
+                        <MapPin className="h-10 w-10 text-muted-foreground opacity-30" />
+                        <p className="text-base font-semibold text-muted-foreground">No results found</p>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                            Your filters are too strict — no businesses matched all conditions (no website + max {maxReviews || '0'} reviews + max {maxStars === 'none' ? 'any' : maxStars} stars + must have phone number).
+                        </p>
+                        <p className="text-xs text-muted-foreground">Try removing one filter at a time — for example increase the max reviews count, or set Website Filter to "All places".</p>
                     </CardContent>
                 </Card>
             )}
