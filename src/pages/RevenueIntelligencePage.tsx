@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ interface DecisionMaker {
   city?: string;
   state?: string;
   mobileVerified?: boolean;
+  source?: string;
 }
 
 interface Company {
@@ -104,11 +105,20 @@ export default function RevenueIntelligencePage() {
   const [maxPlaces, setMaxPlaces] = useState("50");
   const [skipClosed, setSkipClosed] = useState(true);
 
+  // API key live status (fetched from backend on mount)
+  const [apiKeys, setApiKeys] = useState<Record<string, boolean>>({});
+
   // Run state
   const [tab, setTab] = useState<TabKey>("search");
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [statusMsg, setStatusMsg] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
+  const companiesRef = useRef<Company[]>([]);
+  // Sync ref when state changes (e.g. after scoreLeads / initial search)
+  useEffect(() => { companiesRef.current = companies; }, [companies]);
+  // Use this instead of setCompanies in enrichment chain — updates ref immediately
+  // so the next step in the chain always reads the latest data, not the stale closure
+  const updateCompanies = (arr: Company[]) => { companiesRef.current = arr; setCompanies(arr); };
   const [scoredLeads, setScoredLeads] = useState<Company[]>([]);
 
   // Enrichment state
@@ -119,9 +129,19 @@ export default function RevenueIntelligencePage() {
   const [enrichingFunding, setEnrichingFunding] = useState(false);
   const [findingDM, setFindingDM] = useState(false);
   const [enrichingMobile, setEnrichingMobile] = useState(false);
+  const [searchingSignalHire, setSearchingSignalHire] = useState(false);
+  const [scrapingWebsites, setScrapingWebsites] = useState(false);
   const [enrichLog, setEnrichLog] = useState<string[]>([]);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch live API key status from backend on mount
+  useEffect(() => {
+    fetch(`${API}/check-api-keys`)
+      .then(r => r.json())
+      .then(data => setApiKeys(data))
+      .catch(() => {});
+  }, []);
 
   // ── Step 7: Website audit — parallel batches of 5 ───────────────────────
   const runAudit = async (items: Company[]) => {
@@ -282,7 +302,7 @@ export default function RevenueIntelligencePage() {
         const res = await fetch(`${API}/find-decision-makers`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ companyName: company.title }),
+          body: JSON.stringify({ companyName: company.title, website: company.website }),
         });
         const data = await res.json();
         if (res.ok && data.decisionMakers?.length) {
@@ -292,8 +312,10 @@ export default function RevenueIntelligencePage() {
           setEnrichLog(prev => [...prev, `✅ ${company.title} — ${data.decisionMakers.length} person(s) found`]);
         } else if (data.code === 'API_KEY_MISSING') {
           setEnrichLog(['❌ APOLLO_API_KEY not configured in .env']); break;
+        } else if (data.code === 'PLAN_UPGRADE_REQUIRED') {
+          setEnrichLog(['❌ Apollo free plan — upgrade at app.apollo.io to unlock people search']); break;
         } else {
-          setEnrichLog(prev => [...prev, `— ${company.title}: not in Apollo DB (local/small business — Apollo covers mostly B2B/tech companies)`]);
+          setEnrichLog(prev => [...prev, `— ${company.title}: not in Apollo DB`]);
         }
       } catch (e) {
         setEnrichLog(prev => [...prev, `⚠ ${company.title}: request failed — restart server if Apollo header error`]);
@@ -304,87 +326,404 @@ export default function RevenueIntelligencePage() {
     setEnrichLog(prev => [...prev, `Done — ${found} companies with decision makers found.`]);
   };
 
-  // ── Step 4: Mobile enrichment via Prospeo ────────────────────────────────
+  // ── Step 4: Prospeo — search by company name → email + mobile + LinkedIn ──
   const enrichMobileNumbers = async () => {
-    const contacts = companies.flatMap(c =>
-      (c.decisionMakers || [])
-        .filter(dm => dm.linkedinUrl && !dm.mobileVerified)
-        .map(dm => ({ name: dm.name, linkedinUrl: dm.linkedinUrl, companyTitle: c.title }))
-    );
-    if (!contacts.length) {
-      setEnrichLog(['No LinkedIn profiles yet. Run Decision Maker Discovery first.']);
-      return;
-    }
+    if (!companiesRef.current.length) return;
     setEnrichingMobile(true);
-    setEnrichLog([`Enriching ${contacts.length} contacts via Prospeo...`]);
-    try {
-      const res = await fetch(`${API}/enrich-contacts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contacts }),
-      });
-      const data = await res.json();
-      if (res.ok && data.results) {
-        const phoneMap: Record<string, { email: string | null; phone: string | null }> = {};
-        data.results.forEach((r: { name: string; email: string | null; phone: string | null }) => {
-          phoneMap[r.name] = { email: r.email, phone: r.phone };
+    const snapshot = [...companiesRef.current];
+    setEnrichLog([`Searching ${snapshot.length} companies on Prospeo for decision maker mobile + email...`]);
+    const updated = [...snapshot];
+    let found = 0;
+
+    for (const company of snapshot) {
+      setEnrichLog(prev => [...prev, `🔍 ${company.title}...`]);
+      try {
+        const res = await fetch(`${API}/prospeo-company-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: company.title, website: company.website }),
         });
-        setCompanies(prev => prev.map(c => ({
-          ...c,
-          decisionMakers: (c.decisionMakers || []).map(dm => ({
-            ...dm,
-            phone: phoneMap[dm.name]?.phone || dm.phone,
-            email: phoneMap[dm.name]?.email || dm.email,
-            mobileVerified: !!(phoneMap[dm.name]?.phone),
-          })),
-        })));
-        const found = Object.values(phoneMap).filter(v => v.phone).length;
-        setEnrichLog(prev => [...prev, `Done — ${found} mobile numbers found.`]);
-      } else if (data.code === 'API_KEY_MISSING') {
-        setEnrichLog(['❌ PROSPEO_API_KEY not configured in .env']);
+        const data = await res.json();
+
+        if (res.ok && data.contacts?.length) {
+          const idx = updated.findIndex(c => c.title === company.title);
+          if (idx !== -1) {
+            let newDMs: DecisionMaker[] = data.contacts.map((c: {
+              name: string; title: string; email?: string;
+              phone?: string; linkedinUrl?: string; mobileVerified?: boolean;
+            }) => ({
+              name: c.name, title: c.title,
+              email: c.email || null,
+              phone: c.phone || null,
+              linkedinUrl: c.linkedinUrl || null,
+              mobileVerified: !!c.phone,
+              source: 'Prospeo',
+            }));
+
+            // For DMs without email, try Hunter.io email-finder (uses name + domain)
+            if (company.website) {
+              let domain = '';
+              try { domain = new URL(company.website).hostname.replace(/^www\./, ''); } catch {}
+              if (domain) {
+                newDMs = await Promise.all(newDMs.map(async dm => {
+                  if (dm.email) return dm; // already has email
+                  const nameParts = dm.name.trim().split(/\s+/);
+                  const firstName = nameParts[0] || '';
+                  const lastName = nameParts.slice(1).join(' ') || '';
+                  if (!firstName || !lastName) return dm;
+                  try {
+                    const hRes = await fetch(`${API}/hunter-email-finder`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ firstName, lastName, domain }),
+                    });
+                    const hData = await hRes.json();
+                    if (hRes.ok && hData.email) {
+                      return { ...dm, email: hData.email, source: 'Prospeo+Hunter' };
+                    }
+                  } catch {}
+                  return dm;
+                }));
+              }
+            }
+
+            // Merge with existing DMs — don't overwrite SignalHire data if better
+            const existing = updated[idx].decisionMakers || [];
+            const merged = newDMs.map(nd => {
+              const match = existing.find(e => e.name === nd.name);
+              return match ? { ...match, ...nd, phone: nd.phone || match.phone, email: nd.email || match.email } : nd;
+            });
+            updated[idx] = { ...updated[idx], decisionMakers: merged.length ? merged : existing, hiringSignal: true };
+            found++;
+            const hasPhone = newDMs.some(d => d.phone);
+            const hasEmail = newDMs.some(d => d.email);
+            const hasLinkedIn = newDMs.some(d => d.linkedinUrl);
+            setEnrichLog(prev => [...prev,
+              `✅ ${company.title} — ${newDMs.length} person(s) | mobile: ${hasPhone ? '✓' : '—'} | email: ${hasEmail ? '✓' : '—'} | LinkedIn: ${hasLinkedIn ? '✓' : '—'}`
+            ]);
+          }
+        } else if (data.code === 'API_KEY_MISSING' || data.code === 'INVALID_API_KEY') {
+          setEnrichLog(prev => [...prev, '❌ Prospeo API key invalid — check .env']); break;
+        } else if (data.code === 'NO_CREDITS' || data.code === 'PROSPEO_ERROR') {
+          setEnrichLog(prev => [...prev, `❌ Prospeo credits exhausted after ${found} companies`]); break;
+        } else {
+          setEnrichLog(prev => [...prev, `— ${company.title}: not found in Prospeo DB`]);
+        }
+      } catch {
+        setEnrichLog(prev => [...prev, `⚠ ${company.title}: request failed`]);
       }
-    } finally {
-      setEnrichingMobile(false);
+      await new Promise(r => setTimeout(r, 600));
     }
+
+    updateCompanies(updated);
+    setEnrichingMobile(false);
+    setEnrichLog(prev => [...prev, `Done — Prospeo found contacts at ${found} / ${snapshot.length} companies.`]);
+
+    // Auto-rescore so Score tab shows Prospeo emails + mobiles immediately
+    if (found > 0) {
+      try {
+        const res = await fetch(`${API}/score-leads`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leads: updated }),
+        });
+        const scoreData = await res.json();
+        setScoredLeads(scoreData.leads || []);
+        setEnrichLog(prev => [...prev, `✅ Score tab updated with Prospeo contacts.`]);
+      } catch {
+        setEnrichLog(prev => [...prev, `⚠ Auto-rescore failed — click "Rescore" in Score tab manually.`]);
+      }
+    }
+  };
+
+  // ── Contact Discovery: SignalHire — one company at a time ───────────────
+  const searchSignalHire = async () => {
+    if (!companiesRef.current.length) return;
+    setSearchingSignalHire(true);
+    const snapshot = [...companiesRef.current];
+    const updated = [...snapshot];
+    let found = 0;
+
+    setEnrichLog([`Searching ${snapshot.length} companies on SignalHire — sending one by one...`]);
+
+    for (const company of snapshot) {
+      setEnrichLog(prev => [...prev, `🔍 ${company.title}...`]);
+
+      try {
+        const res = await fetch(`${API}/signalhire-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ companyName: company.title }),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.contacts?.length) {
+          const idx = updated.findIndex(c => c.title === company.title);
+          if (idx !== -1) {
+            const newDMs: DecisionMaker[] = data.contacts.map((c: {
+              name: string; title: string;
+              email?: string; phone?: string; linkedinUrl?: string;
+            }) => ({
+              name: c.name,
+              title: c.title,
+              email: c.email || null,
+              phone: c.phone || null,
+              linkedinUrl: c.linkedinUrl || null,
+              mobileVerified: !!c.phone,
+              source: 'SignalHire',
+            }));
+            updated[idx] = { ...updated[idx], decisionMakers: newDMs, hiringSignal: true };
+            found++;
+            const hasEmail = newDMs.some(d => d.email);
+            const hasLinkedIn = newDMs.some(d => d.linkedinUrl);
+            setEnrichLog(prev => [...prev,
+              `✅ ${company.title} — ${newDMs.length} contact(s) | email: ${hasEmail ? '✓' : '—'} | LinkedIn: ${hasLinkedIn ? '✓' : '—'}`
+            ]);
+          }
+        } else if (data.code === 'API_KEY_MISSING') {
+          setEnrichLog(prev => [...prev, '❌ SIGNALHIRE_API_KEY not set in .env']); break;
+        } else if (data.code === 'INVALID_API_KEY') {
+          setEnrichLog(prev => [...prev, '❌ Invalid SignalHire API key — check .env']); break;
+        } else if (data.code === 'NO_CREDITS' || data.code === 'QUOTA_EXCEEDED') {
+          setEnrichLog(prev => [...prev, `⚠ SignalHire credits/quota used up after ${found} companies. Get a new key to continue.`]); break;
+        } else if (res.ok && (!data.contacts || data.contacts.length === 0)) {
+          setEnrichLog(prev => [...prev, `— ${company.title}: not found on SignalHire`]);
+        } else {
+          setEnrichLog(prev => [...prev, `— ${company.title}: ${data.error || 'no data returned'}`]);
+        }
+      } catch {
+        setEnrichLog(prev => [...prev, `⚠ ${company.title}: network error`]);
+      }
+
+      // 600ms gap between requests — respects SignalHire rate limits
+      await new Promise(r => setTimeout(r, 600));
+    }
+
+    updateCompanies(updated);
+    setSearchingSignalHire(false);
+    setEnrichLog(prev => [...prev, `Done — SignalHire found contacts at ${found} / ${snapshot.length} companies.`]);
   };
 
   // ── Step 5: Email discovery via Hunter.io ────────────────────────────────
   const enrichEmails = async () => {
-    const withSite = companies.filter((c) => c.website && !c.emails?.length);
-    if (!withSite.length) { setEnrichLog(["No companies with websites to enrich."]); return; }
+    // Only search companies that have a website but no Hunter.io emails yet
+    // (Companies may have DM emails from SignalHire/Prospeo — those are separate)
+    const withSite = companiesRef.current.filter((c) => c.website && !c.emails?.length);
+    const noSite = companiesRef.current.filter((c) => !c.website);
+    if (!withSite.length) {
+      setEnrichLog([
+        noSite.length
+          ? `⚠ ${noSite.length} companies have no website — Hunter.io skipped (needs domain). Already have emails from other sources.`
+          : "Hunter.io: all companies already have emails."
+      ]);
+      return;
+    }
     setEnrichingEmail(true);
-    setEnrichLog([`Finding emails for ${withSite.length} companies...`]);
+    setEnrichLog([
+      `Hunter.io finds EMAILS only (not LinkedIn). Searching ${withSite.length} company domains...`,
+      noSite.length ? `⚠ ${noSite.length} companies skipped — no website URL` : '',
+    ].filter(Boolean));
 
-    const updated = [...companies];
+    const updated = [...companiesRef.current];
     let done = 0;
     for (const company of withSite) {
       try {
         const domain = new URL(company.website!).hostname.replace(/^www\./, '');
-        const res = await fetch(`${API}/enrich-email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain }),
-        });
+        setEnrichLog((prev) => [...prev, `🔍 Searching domain: ${domain}...`]);
+
+        // Run domain-search + company-find in parallel
+        const [res, companyRes] = await Promise.all([
+          fetch(`${API}/enrich-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain }),
+          }),
+          fetch(`${API}/hunter-company-find`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain }),
+          }),
+        ]);
         const data = await res.json();
+        const companyData = companyRes.ok ? await companyRes.json() : null;
+
         if (res.ok && data.emails?.length) {
           const idx = updated.findIndex((c) => c.title === company.title);
-          if (idx !== -1) updated[idx] = { ...updated[idx], emails: data.emails };
+          if (idx !== -1) {
+            // Also create DM entries so emails show in Score tab Email column
+            const hunterDMs: DecisionMaker[] = data.emails.map((e: {
+              email: string; firstName?: string; lastName?: string; position?: string;
+            }) => ({
+              name: `${e.firstName || ''} ${e.lastName || ''}`.trim() || 'Contact',
+              title: e.position || '',
+              email: e.email,
+              phone: null,
+              linkedinUrl: null,
+              mobileVerified: false,
+              source: 'Hunter.io',
+            }));
+            const existing = updated[idx].decisionMakers || [];
+            const existingEmails = new Set(existing.map((d: DecisionMaker) => d.email).filter(Boolean));
+            const freshDMs = hunterDMs.filter(nd => !existingEmails.has(nd.email));
+            // Merge company enrichment data from Hunter.io companies/find
+            const companyEnrich = companyData?.name ? {
+              employeeCount: companyData.employeeCount,
+              industry: companyData.industry,
+              description: companyData.description,
+              foundedYear: companyData.foundedYear,
+              hunterLinkedin: companyData.linkedinUrl,
+            } : {};
+            updated[idx] = {
+              ...updated[idx],
+              ...companyEnrich,
+              emails: data.emails,
+              decisionMakers: [...existing, ...freshDMs],
+            };
+          }
           done++;
-          setEnrichLog((prev) => [...prev, `✅ ${company.title} — ${data.emails.length} email(s) found`]);
-        } else if (data.code === "API_KEY_MISSING") {
-          setEnrichLog(["❌ Hunter.io API key not configured in .env"]);
+          setEnrichLog((prev) => [...prev, `✅ ${company.title} — ${data.emails.length} email(s): ${data.emails.map((e: { email: string }) => e.email).join(', ')}`]);
+        } else if (data.code === "API_KEY_MISSING" || data.code === "INVALID_API_KEY") {
+          setEnrichLog(["❌ Hunter.io API key invalid — check .env HUNTER_API_KEY"]);
+          break;
+        } else if (data.code === "QUOTA_EXCEEDED" || data.code === "PLAN_LIMIT") {
+          setEnrichLog(prev => [...prev, `⚠ Hunter.io monthly limit reached after ${done} companies. Wait for reset or upgrade plan.`]);
           break;
         } else {
-          setEnrichLog((prev) => [...prev, `— ${company.title}: no emails found`]);
+          // Hunter.io found nothing — fallback: scrape email directly from the business website
+          setEnrichLog((prev) => [...prev, `— ${company.title}: not in Hunter.io DB, scraping website...`]);
+          try {
+            const scrapeRes = await fetch(`${API}/scrape-website-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ website: company.website }),
+            });
+            const scrapeData = await scrapeRes.json();
+            if (scrapeRes.ok && scrapeData.emails?.length) {
+              const idx = updated.findIndex((c) => c.title === company.title);
+              if (idx !== -1) {
+                const scrapedDMs: DecisionMaker[] = scrapeData.emails.map((email: string) => ({
+                  name: company.title,
+                  title: 'Business Contact',
+                  email,
+                  phone: null,
+                  linkedinUrl: null,
+                  mobileVerified: false,
+                  source: 'Website',
+                }));
+                const existing = updated[idx].decisionMakers || [];
+                const existingEmails = new Set(existing.map((d: DecisionMaker) => d.email).filter(Boolean));
+                const freshDMs = scrapedDMs.filter(d => !existingEmails.has(d.email));
+                updated[idx] = {
+                  ...updated[idx],
+                  emails: scrapeData.emails.map((e: string) => ({ email: e })),
+                  decisionMakers: [...existing, ...freshDMs],
+                };
+              }
+              done++;
+              setEnrichLog((prev) => [...prev, `✅ ${company.title} — scraped from website: ${scrapeData.emails.join(', ')}`]);
+            } else {
+              setEnrichLog((prev) => [...prev, `— ${company.title}: no email found on website either`]);
+            }
+          } catch {
+            setEnrichLog((prev) => [...prev, `— ${company.title}: website scrape failed`]);
+          }
         }
-      } catch {
-        setEnrichLog((prev) => [...prev, `⚠ ${company.title}: error`]);
+      } catch (err) {
+        setEnrichLog((prev) => [...prev, `⚠ ${company.title}: network error`]);
+        console.error('Hunter.io fetch error:', err);
       }
     }
 
-    setCompanies(updated);
+    updateCompanies(updated);
     setEnrichingEmail(false);
-    setEnrichLog((prev) => [...prev, `Done — ${done} companies enriched with emails.`]);
+    setEnrichLog((prev) => [...prev, `Done — ${done}/${withSite.length} companies got emails.`]);
+
+    // Always rescore when emails found so Score tab shows them immediately
+    if (done > 0) {
+      try {
+        const res = await fetch(`${API}/score-leads`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leads: updated }),
+        });
+        const scoreData = await res.json();
+        setScoredLeads(scoreData.leads || []);
+        setEnrichLog((prev) => [...prev, `✅ Score tab updated with emails.`]);
+      } catch {
+        setEnrichLog((prev) => [...prev, `⚠ Auto-rescore failed — click "Rescore" in the Score tab manually.`]);
+      }
+    }
+  };
+
+  // ── Website email scraper — works for local businesses not in any DB ─────────
+  const scrapeWebsiteEmails = async () => {
+    const withSite = companiesRef.current.filter(c => c.website && !c.decisionMakers?.some(d => d.email));
+    if (!withSite.length) {
+      setEnrichLog(['All companies with websites already have emails, or no websites found.']); return;
+    }
+    setScrapingWebsites(true);
+    setEnrichLog([`Scraping emails from ${withSite.length} company websites...`]);
+    const updated = [...companiesRef.current];
+    let done = 0;
+
+    for (const company of withSite) {
+      setEnrichLog(prev => [...prev, `🌐 Scanning ${company.website}...`]);
+      try {
+        const res = await fetch(`${API}/scrape-website-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ website: company.website }),
+        });
+        const data = await res.json();
+        if (res.ok && data.emails?.length) {
+          const idx = updated.findIndex(c => c.title === company.title);
+          if (idx !== -1) {
+            const scrapedDMs: DecisionMaker[] = data.emails.map((email: string) => ({
+              name: company.title,
+              title: 'Business Contact',
+              email,
+              phone: null,
+              linkedinUrl: null,
+              mobileVerified: false,
+              source: 'Website',
+            }));
+            const existing = updated[idx].decisionMakers || [];
+            const existingEmails = new Set(existing.map((d: DecisionMaker) => d.email).filter(Boolean));
+            const freshDMs = scrapedDMs.filter(d => !existingEmails.has(d.email));
+            updated[idx] = {
+              ...updated[idx],
+              emails: data.emails.map((e: string) => ({ email: e })),
+              decisionMakers: [...existing, ...freshDMs],
+            };
+            done++;
+            setEnrichLog(prev => [...prev, `✅ ${company.title} — ${data.emails.join(', ')}`]);
+          }
+        } else {
+          setEnrichLog(prev => [...prev, `— ${company.title}: no email on website`]);
+        }
+      } catch {
+        setEnrichLog(prev => [...prev, `⚠ ${company.title}: website unreachable`]);
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+
+    updateCompanies(updated);
+    setScrapingWebsites(false);
+    setEnrichLog(prev => [...prev, `Done — found emails at ${done}/${withSite.length} websites.`]);
+
+    if (done > 0) {
+      try {
+        const res = await fetch(`${API}/score-leads`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leads: updated }),
+        });
+        const scoreData = await res.json();
+        setScoredLeads(scoreData.leads || []);
+        setEnrichLog(prev => [...prev, '✅ Score tab updated.']);
+      } catch {
+        setEnrichLog(prev => [...prev, '⚠ Rescore failed — click Rescore manually.']);
+      }
+    }
   };
 
   // ── Step 6: Funding signals via Crunchbase ────────────────────────────────
@@ -431,7 +770,7 @@ export default function RevenueIntelligencePage() {
       const res = await fetch(`${API}/score-leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leads: companies }),
+        body: JSON.stringify({ leads: companiesRef.current }),
       });
       const data = await res.json();
       setScoredLeads(data.leads || []);
@@ -513,17 +852,30 @@ export default function RevenueIntelligencePage() {
           )}
         </div>
 
-        {/* API Status Bar */}
+        {/* API Status Bar — live from backend */}
         <div className="flex flex-wrap gap-2 mb-5">
           <span className="text-xs text-muted-foreground self-center font-medium">APIs:</span>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Twilio Lookup</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Apify Google Maps</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Vapi/Twilio Calls</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Amazon SES</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Prospeo</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Hunter.io</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Crunchbase</Badge>
-          <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">✅ Google PageSpeed</Badge>
+          {[
+            { key: 'twilio',     label: 'Twilio Lookup' },
+            { key: 'apify',      label: 'Apify Google Maps' },
+            { key: 'vapi',       label: 'Vapi/Twilio Calls' },
+            { key: 'ses',        label: 'Amazon SES' },
+            { key: 'prospeo',    label: 'Prospeo' },
+            { key: 'hunter',     label: 'Hunter.io' },
+            { key: 'crunchbase', label: 'Crunchbase' },
+            { key: 'pagespeed',  label: 'Google PageSpeed' },
+            { key: 'signalhire', label: 'SignalHire' },
+          ].map(({ key, label }) => (
+            <Badge key={key} className={`text-xs ${
+              Object.keys(apiKeys).length === 0
+                ? 'bg-gray-100 text-gray-500'
+                : apiKeys[key]
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+            }`}>
+              {Object.keys(apiKeys).length === 0 ? '…' : apiKeys[key] ? '✅' : '❌'} {label}
+            </Badge>
+          ))}
         </div>
 
         {/* Tabs */}
@@ -592,23 +944,26 @@ export default function RevenueIntelligencePage() {
               </Card>
             </div>
 
-            {/* Right — What's needed for steps 3-6 */}
+            {/* Right — Live API status panel */}
             <div className="space-y-3">
-              <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/10">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-600" /> APIs Still Needed
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {API_NEEDED.map((a) => (
-                    <div key={a.key} className="text-xs">
-                      <div className="font-semibold text-amber-700 dark:text-amber-400">{a.step}</div>
-                      <div className="text-muted-foreground">Add <code className="bg-muted px-1 rounded">{a.env}</code> to your .env</div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              {/* APIs that are missing */}
+              {API_NEEDED.filter(a => Object.keys(apiKeys).length > 0 && !apiKeys[a.key]).length > 0 && (
+                <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/10">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600" /> APIs Not Configured
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {API_NEEDED.filter(a => !apiKeys[a.key]).map((a) => (
+                      <div key={a.key} className="text-xs">
+                        <div className="font-semibold text-amber-700 dark:text-amber-400">❌ {a.step}</div>
+                        <div className="text-muted-foreground">Add <code className="bg-muted px-1 rounded">{a.env}</code> to .env and restart server</div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/10">
                 <CardHeader className="pb-2">
@@ -617,10 +972,28 @@ export default function RevenueIntelligencePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-xs space-y-1.5">
-                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-green-500" /> Step 1-2: Company discovery (Apify)</div>
-                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-green-500" /> Step 4: Phone type check (Twilio)</div>
-                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-green-500" /> Step 7: Website audit (PageSpeed)</div>
-                  <div className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-green-500" /> Step 8-9: Scoring & qualification</div>
+                  {[
+                    { key: 'apify',      label: 'Step 1-2: Company discovery (Apify)' },
+                    { key: 'twilio',     label: 'Step 3: Phone type check (Twilio)' },
+                    { key: 'prospeo',    label: 'Step 4: Mobile + email + LinkedIn (Prospeo)' },
+                    { key: 'hunter',     label: 'Step 5: Email discovery (Hunter.io)' },
+                    { key: 'crunchbase', label: 'Step 6: Funding signals (Crunchbase)' },
+                    { key: 'pagespeed',  label: 'Step 7: Website audit (PageSpeed)' },
+                    { key: 'signalhire', label: 'Step 3b: Decision maker contacts (SignalHire)' },
+                  ].filter(s => Object.keys(apiKeys).length === 0 || apiKeys[s.key]).map(s => (
+                    <div key={s.key} className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                      {s.label}
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 pt-1 border-t mt-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                    Step 5b: Scrape website emails (free, always on)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                    Step 8-9: Scoring & qualification (always on)
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -758,6 +1131,36 @@ export default function RevenueIntelligencePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+                {/* SignalHire — Decision Maker Discovery */}
+                <Card className="border-indigo-200 dark:border-indigo-900/50">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-indigo-600" /> SignalHire — Contact Discovery
+                    </CardTitle>
+                    <CardDescription>
+                      Searches SignalHire by company name and returns decision maker emails,
+                      mobile numbers, and LinkedIn profiles directly.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Companies to search</span>
+                      <Badge variant="outline">{companies.length}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Contacts found</span>
+                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700">
+                        {companies.filter(c => c.decisionMakers?.some(dm => dm.email || dm.phone)).length}
+                      </Badge>
+                    </div>
+                    <Button className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={searchSignalHire} disabled={searchingSignalHire}>
+                      {searchingSignalHire
+                        ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching SignalHire...</>
+                        : <><Zap className="h-4 w-4" /> Search SignalHire</>}
+                    </Button>
+                  </CardContent>
+                </Card>
+
                 {/* Step 3 — Decision Maker Discovery */}
                 <Card>
                   <CardHeader>
@@ -793,16 +1196,14 @@ export default function RevenueIntelligencePage() {
                       <Phone className="h-4 w-4 text-green-500" /> Step 4 — Mobile Discovery
                     </CardTitle>
                     <CardDescription>
-                      Enriches decision maker LinkedIn profiles with mobile numbers via Prospeo.
-                      Run Decision Maker Discovery first to get LinkedIn URLs.
+                      Finds decision makers, mobile numbers, and emails directly by company name — no LinkedIn URLs needed.
+                      Uses Prospeo two-step search + enrich flow.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Contacts with LinkedIn</span>
-                      <Badge variant="outline">
-                        {companies.flatMap(c => c.decisionMakers || []).filter(dm => dm.linkedinUrl).length}
-                      </Badge>
+                      <span className="text-muted-foreground">Companies to search</span>
+                      <Badge variant="outline">{companies.length}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Mobiles found</span>
@@ -810,8 +1211,8 @@ export default function RevenueIntelligencePage() {
                         {companies.flatMap(c => c.decisionMakers || []).filter(dm => dm.mobileVerified).length}
                       </Badge>
                     </div>
-                    <Button className="w-full gap-2" variant="outline" onClick={enrichMobileNumbers} disabled={enrichingMobile}>
-                      {enrichingMobile ? <><Loader2 className="h-4 w-4 animate-spin" /> Enriching...</> : <><Phone className="h-4 w-4" /> Enrich Mobiles (Prospeo)</>}
+                    <Button className="w-full gap-2" variant="outline" onClick={enrichMobileNumbers} disabled={enrichingMobile || !companies.length}>
+                      {enrichingMobile ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching Prospeo...</> : <><Phone className="h-4 w-4" /> Find Mobiles + Emails (Prospeo)</>}
                     </Button>
                   </CardContent>
                 </Card>
@@ -820,24 +1221,66 @@ export default function RevenueIntelligencePage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-blue-500" /> Step 5 — Email Discovery
+                      <Mail className="h-4 w-4 text-blue-500" /> Step 5 — Email Discovery (Hunter.io)
                     </CardTitle>
                     <CardDescription>
-                      Finds verified business emails for each company using Hunter.io domain search.
-                      Rejects free email providers (Gmail, Yahoo etc).
+                      Finds verified <strong>work emails</strong> by company website domain.
+                      <span className="text-amber-600 font-medium"> Note: emails only — LinkedIn requires SignalHire.</span>
+                      Requires a company website. Companies with no website are skipped.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Companies with website</span>
-                      <Badge variant="outline">{companies.filter(c => c.website).length}</Badge>
+                      <Badge variant="outline">{companies.filter(c => c.website).length} / {companies.length}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Already enriched</span>
-                      <Badge variant="outline" className="bg-green-50 text-green-700">{companies.filter(c => c.emails?.length).length}</Badge>
+                      <span className="text-muted-foreground">Emails found so far</span>
+                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                        {companies.filter(c => c.emails?.length).length} companies · {companies.flatMap(c => c.emails || []).length} emails
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">No website (skipped)</span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600">{companies.filter(c => !c.website).length}</Badge>
                     </div>
                     <Button className="w-full gap-2" onClick={enrichEmails} disabled={enrichingEmail}>
                       {enrichingEmail ? <><Loader2 className="h-4 w-4 animate-spin" /> Finding emails...</> : <><Mail className="h-4 w-4" /> Find Emails (Hunter.io)</>}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Step 5b — Website Email Scraper */}
+                <Card className="border-green-200">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-green-600" /> Step 5b — Scrape Website Emails
+                    </CardTitle>
+                    <CardDescription>
+                      Scans each company's own website for contact emails. Works for <strong>local businesses</strong> (salons, restaurants, clinics) that are not in Hunter.io or Prospeo databases.
+                      Checks homepage, /contact, and /about pages automatically.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Companies with website</span>
+                      <Badge variant="outline">{companies.filter(c => c.website).length} / {companies.length}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Without website (skipped)</span>
+                      <Badge variant="outline" className="bg-red-50 text-red-600">{companies.filter(c => !c.website).length}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Emails found via website</span>
+                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                        {companies.filter(c => c.decisionMakers?.some(d => d.source === 'Website' && d.email)).length} companies
+                      </Badge>
+                    </div>
+                    <Button className="w-full gap-2 border-green-300 text-green-700 hover:bg-green-50" variant="outline"
+                      onClick={scrapeWebsiteEmails} disabled={scrapingWebsites || !companies.filter(c => c.website).length}>
+                      {scrapingWebsites
+                        ? <><Loader2 className="h-4 w-4 animate-spin" /> Scraping websites...</>
+                        : <><Globe className="h-4 w-4" /> Scrape Website Emails (Free)</>}
                     </Button>
                   </CardContent>
                 </Card>
@@ -1102,6 +1545,81 @@ export default function RevenueIntelligencePage() {
                   })}
                 </div>
 
+                {/* Contact discovery panel — always visible, shows live log while running */}
+                <Card className="border-indigo-200 bg-indigo-50/50 dark:bg-indigo-950/10">
+                  <CardContent className="py-3 space-y-3">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <Zap className="h-4 w-4 text-indigo-600 shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-400">
+                          {scoredLeads.every(c => !c.decisionMakers?.length)
+                            ? 'No emails / contacts yet — click to auto-discover'
+                            : `${scoredLeads.filter(c => c.decisionMakers?.some(d => d.email)).length} companies have emails · click to find more`}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Tries SignalHire → Hunter.io (domain search + email-finder) → Prospeo → Website scraper
+                        </div>
+                      </div>
+                      <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1"
+                        onClick={async () => {
+                          setEnrichLog([]);
+                          await searchSignalHire();
+                          await enrichEmails();
+                          await enrichMobileNumbers();
+                          await scrapeWebsiteEmails();
+                          // Guaranteed final rescore — runs even if no individual step found data
+                          // Uses ref so it always has the latest merged state from all steps
+                          if (companiesRef.current.length > 0) {
+                            setEnrichLog(prev => [...prev, '🔄 Updating score table...']);
+                            try {
+                              const finalRes = await fetch(`${API}/score-leads`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ leads: companiesRef.current }),
+                              });
+                              const finalScored = await finalRes.json();
+                              setScoredLeads(finalScored.leads || []);
+                              setEnrichLog(prev => [...prev, '✅ Score table updated — check Email column below.']);
+                            } catch {
+                              setEnrichLog(prev => [...prev, '⚠ Final rescore failed.']);
+                            }
+                          }
+                        }}
+                        disabled={searchingSignalHire || enrichingEmail || enrichingMobile || scrapingWebsites || scoring}>
+                        {(searchingSignalHire || enrichingEmail || enrichingMobile || scrapingWebsites)
+                          ? <><Loader2 className="h-3 w-3 animate-spin" /> Discovering...</>
+                          : <><Zap className="h-3 w-3" /> Discover Contacts + Rescore</>}
+                      </Button>
+                    </div>
+
+                    {/* Live log — visible while running OR when there's output */}
+                    {enrichLog.length > 0 && (
+                      <div className="bg-black/80 rounded-md p-3 max-h-48 overflow-y-auto space-y-0.5">
+                        {enrichLog.filter(Boolean).map((line, i) => (
+                          <div key={i} className={`text-xs font-mono ${
+                            line.startsWith('✅') ? 'text-green-400' :
+                            line.startsWith('❌') ? 'text-red-400' :
+                            line.startsWith('⚠') ? 'text-amber-400' :
+                            line.startsWith('🔍') || line.startsWith('🌐') ? 'text-blue-300' :
+                            'text-gray-300'
+                          }`}>{line}</div>
+                        ))}
+                        {(searchingSignalHire || enrichingEmail || enrichingMobile || scrapingWebsites) && (
+                          <div className="text-xs font-mono text-indigo-400 animate-pulse">● running...</div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Summary: companies without website can't be emailed */}
+                    {!searchingSignalHire && !enrichingEmail && !enrichingMobile && !scrapingWebsites && companies.filter(c => !c.website).length > 0 && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                        ⚠ {companies.filter(c => !c.website).length} companies have <strong>no website</strong> — email cannot be found for them automatically.
+                        Use the phone number to contact them directly.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Needs connecting */}
                 <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/10">
                   <CardContent className="py-3 flex flex-wrap gap-4 items-center">
@@ -1127,6 +1645,9 @@ export default function RevenueIntelligencePage() {
                             <TableHead>Company</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Website</TableHead>
+                            <TableHead>Decision Maker</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>LinkedIn</TableHead>
                             <TableHead className="text-center">Score</TableHead>
                             <TableHead>Qualification</TableHead>
                             <TableHead>Signals</TableHead>
@@ -1134,7 +1655,11 @@ export default function RevenueIntelligencePage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {scoredLeads.map((c, i) => (
+                          {scoredLeads.map((c, i) => {
+                            const dm = (c.decisionMakers || [])[0];
+                            const email = dm?.email || (c.emails || [])[0]?.email || null;
+                            const allDMs = c.decisionMakers || [];
+                            return (
                             <TableRow key={i} className={c.qualification === "immediate" ? "bg-green-50/30 dark:bg-green-950/10" : c.qualification === "warm" ? "bg-amber-50/30 dark:bg-amber-950/10" : ""}>
                               <TableCell>
                                 <div className="font-medium text-sm">{c.title}</div>
@@ -1162,6 +1687,51 @@ export default function RevenueIntelligencePage() {
                                   </div>
                                 ) : <span className="text-xs text-red-500 font-medium">No website</span>}
                               </TableCell>
+                              <TableCell>
+                                {allDMs.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {allDMs.map((d, di) => (
+                                      <div key={di} className={di > 0 ? "pt-1 border-t border-dashed" : ""}>
+                                        <div className="text-xs font-medium">{d.name}</div>
+                                        <div className="text-xs text-muted-foreground">{d.title}</div>
+                                        {d.phone && (
+                                          <div className="text-xs text-green-600 flex items-center gap-1">
+                                            <Phone className="h-3 w-3" />{d.phone}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell>
+                                {email ? (
+                                  <a href={`mailto:${email}`} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />{email}
+                                  </a>
+                                ) : (c.emails || []).length > 1 ? (
+                                  <div className="space-y-1">
+                                    {(c.emails || []).map((e, ei) => (
+                                      <a key={ei} href={`mailto:${e.email}`} className="block text-xs text-blue-600 hover:underline">
+                                        {e.email}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : <span className="text-xs text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell>
+                                {allDMs.filter(d => d.linkedinUrl).length > 0 ? (
+                                  <div className="space-y-1">
+                                    {allDMs.filter(d => d.linkedinUrl).map((d, di) => (
+                                      <a key={di} href={d.linkedinUrl!} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 hover:underline">
+                                        {d.name || "View Profile"}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
                               <TableCell className="text-center">
                                 <div className={`text-lg font-bold ${(c.score ?? 0) >= 90 ? "text-green-600" : (c.score ?? 0) >= 80 ? "text-amber-600" : "text-muted-foreground"}`}>
                                   {c.score}
@@ -1187,7 +1757,8 @@ export default function RevenueIntelligencePage() {
                                 ) : "—"}
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
