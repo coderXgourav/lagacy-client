@@ -929,7 +929,7 @@ export default function CsvActiveCheckerPage() {
                                 <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                                 <div className="space-y-1">
                                     <p className="font-semibold text-foreground">Active Checking Intelligence</p>
-                                    <p>Uses official Twilio Lookup validation to verify existence, network routing status, and line types dynamically.</p>
+                                    <p>Uses Apify Phone Validator (pink_comic/phone-number-validation) to verify validity, carrier networks, and line types dynamically.</p>
                                 </div>
                             </div>
                         </div>
@@ -999,7 +999,7 @@ export default function CsvActiveCheckerPage() {
                                     style={{ width: `${(processedCount / totalToProcess) * 100}%` }}
                                 ></div>
                             </div>
-                            <p className="text-xs text-muted-foreground">Formatting with country prefixes and running Twilio lookups...</p>
+                            <p className="text-xs text-muted-foreground">Formatting with country prefixes and running Apify validation...</p>
                         </div>
                     )}
 
