@@ -545,6 +545,24 @@ export const kyptronixApi = {
   deleteLead: (id: string) => apiCall(`/kyptronix-leads/${id}`, { method: 'DELETE' })
 };
 
+// Kyptronix Product Hunt Leads API
+export const kyptronixPhApi = {
+  getLeads: (niche?: string, page: number = 1, limit: number = 10) => {
+    const queryParams = new URLSearchParams();
+    if (niche) queryParams.append('niche', niche);
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    return apiCall(`/kyptronix-ph-leads?${queryParams.toString()}`);
+  },
+  triggerWorkflow: (params: { tag: string, timeframe: string, minUpvotes: number }) => 
+    apiCall('/kyptronix-ph-leads/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getLatestWorkflow: () => apiCall('/kyptronix-ph-leads/latest'),
+  deleteLead: (id: string) => apiCall(`/kyptronix-ph-leads/${id}`, { method: 'DELETE' })
+};
+
 // Lead Engine API
 export const leadEngineApi = {
   triggerCampaign: (params: { niche: string; country: string; limit: number; platforms: string[] }) => 
@@ -659,6 +677,7 @@ export default {
   domainScraper: domainScraperApi,
   csvFilter: csvFilterApi,
   kyptronixLeads: kyptronixApi,
+  kyptronixPhLeads: kyptronixPhApi,
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
   facebookAdsExtractor: facebookAdsExtractorApi,

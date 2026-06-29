@@ -233,6 +233,15 @@ export default function OfferingsPage() {
       route: "/revenue-intelligence",
       beta: true,
     },
+    {
+      id: "kyptronix-product-hunt",
+      title: "Kyptronix Product Hunt Lead Generation",
+      description: "Cron Trigger → Product Hunt API/Apify → Website Enrichment → Email & Phone Discovery → LinkedIn Discovery → AI Lead Scoring → CRM → Email Outreach → LinkedIn Outreach → Follow-ups.",
+      icon: Zap,
+      available: true,
+      route: "/kyptronix-workflow-ph",
+      beta: true,
+    },
   ];
 
   return (

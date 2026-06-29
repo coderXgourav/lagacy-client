@@ -91,6 +91,7 @@ import GrowthCampaignPage from "./pages/GrowthCampaignPage";
 import KyptronixN8nBlueprintPage from "./pages/KyptronixN8nBlueprintPage";
 import GoogleMapsScraperPage from "./pages/GoogleMapsScraperPage";
 import RevenueIntelligencePage from "./pages/RevenueIntelligencePage";
+import KyptronixProductHuntWorkflowPage from "./pages/KyptronixProductHuntWorkflowPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -222,6 +223,7 @@ const App = () => (
               <Route path="/lead-domination" element={<ProtectedRoute><LeadDominationPage /></ProtectedRoute>} />
               <Route path="/google-maps-scraper" element={<ProtectedRoute><GoogleMapsScraperPage /></ProtectedRoute>} />
               <Route path="/revenue-intelligence" element={<ProtectedRoute><RevenueIntelligencePage /></ProtectedRoute>} />
+              <Route path="/kyptronix-workflow-ph" element={<ProtectedRoute><KyptronixProductHuntWorkflowPage /></ProtectedRoute>} />
               <Route path="/facebook-ads-extractor" element={<ProtectedRoute><FacebookAdsExtractorDashboard /></ProtectedRoute>} />
               <Route path="/tiktok-ads-extractor" element={<ProtectedRoute><TiktokAdsExtractorDashboard /></ProtectedRoute>} />
               <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
