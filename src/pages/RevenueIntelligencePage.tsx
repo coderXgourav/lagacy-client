@@ -39,6 +39,11 @@ import {
   Building2,
   Target,
   RefreshCw,
+  Linkedin,
+  Facebook,
+  Instagram,
+  Youtube,
+  Twitter
 } from "lucide-react";
 
 const API = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/revenue-intelligence`;
@@ -55,6 +60,14 @@ interface DecisionMaker {
   source?: string;
 }
 
+interface CompanySocials {
+  linkedin?: string | null;
+  facebook?: string | null;
+  instagram?: string | null;
+  twitter?: string | null;
+  youtube?: string | null;
+}
+
 interface Company {
   title: string;
   categoryName?: string;
@@ -64,6 +77,8 @@ interface Company {
   reviewsCount?: number;
   address?: string;
   url?: string;
+  companyLinkedinUrl?: string;
+  socials?: CompanySocials;
   // enriched
   phoneType?: string;
   phoneCarrier?: string;
@@ -199,7 +214,17 @@ export default function RevenueIntelligencePage() {
     try {
       const res = await fetch(`${API}/results/${datasetId}`);
       const data = await res.json();
-      const items: Company[] = data.items || [];
+      const items: Company[] = (data.items || []).map((item: any) => ({
+        ...item,
+        companyLinkedinUrl: item.linkedin || item.linkedinUrl || item.socials?.linkedin || item.companyLinkedinUrl || null,
+        socials: {
+          linkedin: item.linkedin || item.linkedinUrl || item.socials?.linkedin || item.companyLinkedinUrl || null,
+          facebook: item.facebook || item.socials?.facebook || null,
+          instagram: item.instagram || item.socials?.instagram || null,
+          twitter: item.twitter || item.socials?.twitter || null,
+          youtube: item.youtube || item.socials?.youtube || null,
+        }
+      }));
       setCompanies(items);
       setStatus("done");
       setStatusMsg(`Found ${items.length} companies. Auditing websites...`);
@@ -307,7 +332,18 @@ export default function RevenueIntelligencePage() {
         const data = await res.json();
         if (res.ok && data.decisionMakers?.length) {
           const idx = updated.findIndex(c => c.title === company.title);
-          if (idx !== -1) updated[idx] = { ...updated[idx], decisionMakers: data.decisionMakers, hiringSignal: data.hiringSignal ?? true };
+          if (idx !== -1) {
+            updated[idx] = { 
+              ...updated[idx], 
+              decisionMakers: data.decisionMakers, 
+              hiringSignal: data.hiringSignal ?? true,
+              companyLinkedinUrl: data.companyLinkedinUrl || updated[idx].companyLinkedinUrl,
+              socials: {
+                ...updated[idx].socials,
+                linkedin: data.companyLinkedinUrl || updated[idx].companyLinkedinUrl
+              }
+            };
+          }
           found++;
           setEnrichLog(prev => [...prev, `✅ ${company.title} — ${data.decisionMakers.length} person(s) found`]);
         } else if (data.code === 'API_KEY_MISSING') {
@@ -572,6 +608,13 @@ export default function RevenueIntelligencePage() {
               description: companyData.description,
               foundedYear: companyData.foundedYear,
               hunterLinkedin: companyData.linkedinUrl,
+              companyLinkedinUrl: companyData.linkedinUrl || updated[idx].companyLinkedinUrl,
+              socials: {
+                ...updated[idx].socials,
+                linkedin: companyData.linkedinUrl || updated[idx].companyLinkedinUrl,
+                twitter: companyData.twitterUrl || updated[idx].socials?.twitter,
+                facebook: companyData.facebookUrl || updated[idx].socials?.facebook,
+              }
             } : {};
             updated[idx] = {
               ...updated[idx],
@@ -617,6 +660,11 @@ export default function RevenueIntelligencePage() {
                   ...updated[idx],
                   emails: scrapeData.emails.map((e: string) => ({ email: e })),
                   decisionMakers: [...existing, ...freshDMs],
+                  companyLinkedinUrl: scrapeData.linkedinUrl || updated[idx].companyLinkedinUrl,
+                  socials: {
+                    ...updated[idx].socials,
+                    ...scrapeData.socials
+                  }
                 };
               }
               done++;
@@ -694,6 +742,11 @@ export default function RevenueIntelligencePage() {
               ...updated[idx],
               emails: data.emails.map((e: string) => ({ email: e })),
               decisionMakers: [...existing, ...freshDMs],
+              companyLinkedinUrl: data.linkedinUrl || updated[idx].companyLinkedinUrl,
+              socials: {
+                ...updated[idx].socials,
+                ...data.socials
+              }
             };
             done++;
             setEnrichLog(prev => [...prev, `✅ ${company.title} — ${data.emails.join(', ')}`]);
@@ -785,7 +838,7 @@ export default function RevenueIntelligencePage() {
     const rows = scoredLeads.length ? scoredLeads : companies;
     if (!rows.length) return;
 
-    const headers = ["Name", "Category", "Phone", "Phone Type", "Website", "Rating", "Reviews", "Score", "Qualification", "Signals", "Address", "Google Maps", "DM Name", "DM Title", "DM Email", "DM Mobile", "DM LinkedIn"];
+    const headers = ["Name", "Category", "Phone", "Phone Type", "Website", "Company LinkedIn", "Facebook", "Instagram", "Twitter", "YouTube", "Rating", "Reviews", "Score", "Qualification", "Signals", "Address", "Google Maps", "DM Name", "DM Title", "DM Email", "DM Mobile", "DM LinkedIn"];
     const csv = [
       headers.join(","),
       ...rows.map((c) => {
@@ -796,6 +849,11 @@ export default function RevenueIntelligencePage() {
           `"${c.phone || ""}"`,
           `"${c.phoneType || ""}"`,
           `"${c.website || ""}"`,
+          `"${c.companyLinkedinUrl || ""}"`,
+          `"${c.socials?.facebook || ""}"`,
+          `"${c.socials?.instagram || ""}"`,
+          `"${c.socials?.twitter || ""}"`,
+          `"${c.socials?.youtube || ""}"`,
           c.totalScore ?? "",
           c.reviewsCount ?? "",
           c.score ?? "",
@@ -1052,6 +1110,7 @@ export default function RevenueIntelligencePage() {
                           <TableHead>Category</TableHead>
                           <TableHead>Phone</TableHead>
                           <TableHead>Website</TableHead>
+                          <TableHead>Socials</TableHead>
                           <TableHead>Rating</TableHead>
                           <TableHead>Reviews</TableHead>
                           <TableHead>Perf</TableHead>
@@ -1081,6 +1140,38 @@ export default function RevenueIntelligencePage() {
                               ) : (
                                 <span className="text-xs text-red-500 font-medium">No website</span>
                               )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {c.companyLinkedinUrl && (
+                                  <a href={c.companyLinkedinUrl} target="_blank" rel="noreferrer" title="LinkedIn" className="text-indigo-600 hover:text-indigo-700">
+                                    <Linkedin className="h-4 w-4" />
+                                  </a>
+                                )}
+                                {c.socials?.facebook && (
+                                  <a href={c.socials.facebook} target="_blank" rel="noreferrer" title="Facebook" className="text-blue-600 hover:text-blue-700">
+                                    <Facebook className="h-4 w-4" />
+                                  </a>
+                                )}
+                                {c.socials?.instagram && (
+                                  <a href={c.socials.instagram} target="_blank" rel="noreferrer" title="Instagram" className="text-pink-600 hover:text-pink-700">
+                                    <Instagram className="h-4 w-4" />
+                                  </a>
+                                )}
+                                {c.socials?.twitter && (
+                                  <a href={c.socials.twitter} target="_blank" rel="noreferrer" title="Twitter/X" className="text-sky-600 hover:text-sky-700">
+                                    <Twitter className="h-4 w-4" />
+                                  </a>
+                                )}
+                                {c.socials?.youtube && (
+                                  <a href={c.socials.youtube} target="_blank" rel="noreferrer" title="YouTube" className="text-red-600 hover:text-red-700">
+                                    <Youtube className="h-4 w-4" />
+                                  </a>
+                                )}
+                                {!c.companyLinkedinUrl && !c.socials?.facebook && !c.socials?.instagram && !c.socials?.twitter && !c.socials?.youtube && (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               {c.totalScore ? (
@@ -1647,7 +1738,7 @@ export default function RevenueIntelligencePage() {
                             <TableHead>Website</TableHead>
                             <TableHead>Decision Maker</TableHead>
                             <TableHead>Email</TableHead>
-                            <TableHead>LinkedIn</TableHead>
+                            <TableHead>Socials</TableHead>
                             <TableHead className="text-center">Score</TableHead>
                             <TableHead>Qualification</TableHead>
                             <TableHead>Signals</TableHead>
@@ -1720,17 +1811,45 @@ export default function RevenueIntelligencePage() {
                                 ) : <span className="text-xs text-muted-foreground">—</span>}
                               </TableCell>
                               <TableCell>
-                                {allDMs.filter(d => d.linkedinUrl).length > 0 ? (
-                                  <div className="space-y-1">
-                                    {allDMs.filter(d => d.linkedinUrl).map((d, di) => (
-                                      <a key={di} href={d.linkedinUrl!} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 hover:underline">
-                                        {d.name || "View Profile"}
-                                      </a>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                <div className="space-y-1.5">
+                                  {(c.companyLinkedinUrl || c.socials?.facebook || c.socials?.instagram || c.socials?.twitter || c.socials?.youtube) && (
+                                    <div className="flex items-center gap-1.5 flex-wrap border-b pb-1.5 mb-1.5">
+                                      {c.companyLinkedinUrl && (
+                                        <a href={c.companyLinkedinUrl} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="text-indigo-600 hover:text-indigo-700">
+                                          <Linkedin className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                      {c.socials?.facebook && (
+                                        <a href={c.socials.facebook} target="_blank" rel="noopener noreferrer" title="Facebook" className="text-blue-600 hover:text-blue-700">
+                                          <Facebook className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                      {c.socials?.instagram && (
+                                        <a href={c.socials.instagram} target="_blank" rel="noopener noreferrer" title="Instagram" className="text-pink-600 hover:text-pink-700">
+                                          <Instagram className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                      {c.socials?.twitter && (
+                                        <a href={c.socials.twitter} target="_blank" rel="noopener noreferrer" title="Twitter/X" className="text-sky-600 hover:text-sky-700">
+                                          <Twitter className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                      {c.socials?.youtube && (
+                                        <a href={c.socials.youtube} target="_blank" rel="noopener noreferrer" title="YouTube" className="text-red-600 hover:text-red-700">
+                                          <Youtube className="h-4 w-4" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+                                  {allDMs.filter(d => d.linkedinUrl).map((d, di) => (
+                                    <a key={di} href={d.linkedinUrl!} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 hover:underline">
+                                      👤 {d.name || "View Profile"}
+                                    </a>
+                                  ))}
+                                  {!c.companyLinkedinUrl && !c.socials?.facebook && !c.socials?.instagram && !c.socials?.twitter && !c.socials?.youtube && allDMs.filter(d => d.linkedinUrl).length === 0 && (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="text-center">
                                 <div className={`text-lg font-bold ${(c.score ?? 0) >= 90 ? "text-green-600" : (c.score ?? 0) >= 80 ? "text-amber-600" : "text-muted-foreground"}`}>
