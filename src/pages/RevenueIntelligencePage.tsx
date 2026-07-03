@@ -145,6 +145,7 @@ export default function RevenueIntelligencePage() {
   const [findingDM, setFindingDM] = useState(false);
   const [enrichingMobile, setEnrichingMobile] = useState(false);
   const [searchingSignalHire, setSearchingSignalHire] = useState(false);
+  const [enrichingLusha, setEnrichingLusha] = useState(false);
   const [scrapingWebsites, setScrapingWebsites] = useState(false);
   const [enrichLog, setEnrichLog] = useState<string[]>([]);
 
@@ -540,6 +541,102 @@ export default function RevenueIntelligencePage() {
     setEnrichLog(prev => [...prev, `Done — SignalHire found contacts at ${found} / ${snapshot.length} companies.`]);
   };
 
+  // ── Lusha: enrich decision makers that already have a name but no email ────
+  const enrichWithLusha = async () => {
+    // Target DMs that were found by SignalHire but have no email yet
+    const toEnrich = companiesRef.current.filter(c =>
+      c.decisionMakers?.some(d => d.name && !d.email)
+    );
+    if (!toEnrich.length) {
+      setEnrichLog(prev => [...prev, '— Lusha: no un-emailed DMs to enrich, skipping.']);
+      return;
+    }
+    setEnrichingLusha(true);
+    setEnrichLog(prev => [...prev,
+      `🔑 Lusha enriching contacts at ${toEnrich.length} companies (email + phone + direct dial)...`
+    ]);
+    const updated = [...companiesRef.current];
+    let enriched = 0;
+    let credits = true;
+
+    for (const company of toEnrich) {
+      if (!credits) break;
+      let domain = '';
+      try { domain = new URL(company.website!).hostname.replace(/^www\./, ''); } catch {}
+
+      const dms = company.decisionMakers?.filter(d => d.name && !d.email) || [];
+      for (const dm of dms) {
+        if (!credits) break;
+        const nameParts = dm.name.trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName  = nameParts.slice(1).join(' ') || '';
+        if (!firstName || !lastName) continue;
+
+        try {
+          const res = await fetch(`${API}/lusha-enrich`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName, lastName, company: company.title, domain: domain || undefined }),
+          });
+          const data = await res.json();
+
+          if (data.code === 'INVALID_API_KEY') {
+            setEnrichLog(prev => [...prev, '❌ Lusha API key invalid — check .env LUSHA_API_KEY']);
+            credits = false; break;
+          }
+          if (data.code === 'NO_CREDITS' || data.code === 'QUOTA_EXCEEDED') {
+            setEnrichLog(prev => [...prev, `⚠ Lusha credits exhausted after ${enriched} contacts`]);
+            credits = false; break;
+          }
+
+          if (res.ok && data.email) {
+            const idx = updated.findIndex(c => c.title === company.title);
+            if (idx !== -1) {
+              const dmIdx = updated[idx].decisionMakers!.findIndex(d => d.name === dm.name);
+              if (dmIdx !== -1) {
+                updated[idx].decisionMakers![dmIdx] = {
+                  ...updated[idx].decisionMakers![dmIdx],
+                  email:       data.email,
+                  phone:       data.phone       || updated[idx].decisionMakers![dmIdx].phone,
+                  linkedinUrl: data.linkedinUrl || updated[idx].decisionMakers![dmIdx].linkedinUrl,
+                  mobileVerified: !!data.mobile,
+                  source: 'Lusha',
+                };
+              }
+            }
+            enriched++;
+            setEnrichLog(prev => [...prev,
+              `✅ ${dm.name} @ ${company.title} — email: ${data.email}${data.phone ? ` | phone: ${data.phone}` : ''}`
+            ]);
+          } else {
+            setEnrichLog(prev => [...prev, `— ${dm.name} @ ${company.title}: not found in Lusha`]);
+          }
+        } catch {
+          setEnrichLog(prev => [...prev, `⚠ ${dm.name}: Lusha request failed`]);
+        }
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+
+    updateCompanies(updated);
+    setEnrichingLusha(false);
+    setEnrichLog(prev => [...prev, `Done — Lusha enriched ${enriched} contact(s).`]);
+
+    if (enriched > 0) {
+      try {
+        const res = await fetch(`${API}/score-leads`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leads: updated }),
+        });
+        const scoreData = await res.json();
+        setScoredLeads(scoreData.leads || []);
+        setEnrichLog(prev => [...prev, '✅ Score tab updated with Lusha contacts.']);
+      } catch {
+        setEnrichLog(prev => [...prev, '⚠ Lusha auto-rescore failed.']);
+      }
+    }
+  };
+
   // ── Step 5: Email discovery via Hunter.io ────────────────────────────────
   const enrichEmails = async () => {
     // Only search companies that have a website but no Hunter.io emails yet
@@ -918,11 +1015,13 @@ export default function RevenueIntelligencePage() {
             { key: 'apify',      label: 'Apify Google Maps' },
             { key: 'vapi',       label: 'Vapi/Twilio Calls' },
             { key: 'ses',        label: 'Amazon SES' },
-            { key: 'prospeo',    label: 'Prospeo' },
-            { key: 'hunter',     label: 'Hunter.io' },
-            { key: 'crunchbase', label: 'Crunchbase' },
-            { key: 'pagespeed',  label: 'Google PageSpeed' },
-            { key: 'signalhire', label: 'SignalHire' },
+            { key: 'prospeo',         label: 'Prospeo' },
+            { key: 'hunter',          label: 'Hunter.io' },
+            { key: 'lusha',           label: 'Lusha' },
+            { key: 'millionVerifier', label: 'MillionVerifier' },
+            { key: 'crunchbase',      label: 'Crunchbase' },
+            { key: 'pagespeed',       label: 'Google PageSpeed' },
+            { key: 'signalhire',      label: 'SignalHire' },
           ].map(({ key, label }) => (
             <Badge key={key} className={`text-xs ${
               Object.keys(apiKeys).length === 0
@@ -1648,13 +1747,14 @@ export default function RevenueIntelligencePage() {
                             : `${scoredLeads.filter(c => c.decisionMakers?.some(d => d.email)).length} companies have emails · click to find more`}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Tries SignalHire → Hunter.io (domain search + email-finder) → Prospeo → Website scraper
+                          Tries SignalHire → Lusha → Hunter.io → Prospeo → Website scraper
                         </div>
                       </div>
                       <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1"
                         onClick={async () => {
                           setEnrichLog([]);
                           await searchSignalHire();
+                          await enrichWithLusha();
                           await enrichEmails();
                           await enrichMobileNumbers();
                           await scrapeWebsiteEmails();
@@ -1676,8 +1776,8 @@ export default function RevenueIntelligencePage() {
                             }
                           }
                         }}
-                        disabled={searchingSignalHire || enrichingEmail || enrichingMobile || scrapingWebsites || scoring}>
-                        {(searchingSignalHire || enrichingEmail || enrichingMobile || scrapingWebsites)
+                        disabled={searchingSignalHire || enrichingLusha || enrichingEmail || enrichingMobile || scrapingWebsites || scoring}>
+                        {(searchingSignalHire || enrichingLusha || enrichingEmail || enrichingMobile || scrapingWebsites)
                           ? <><Loader2 className="h-3 w-3 animate-spin" /> Discovering...</>
                           : <><Zap className="h-3 w-3" /> Discover Contacts + Rescore</>}
                       </Button>

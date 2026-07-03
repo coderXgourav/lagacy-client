@@ -234,6 +234,15 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
+      id: "b2b-campaign",
+      title: "B2B Campaign Intelligence",
+      description: "Fill campaign form → Apollo finds companies & decision makers → Lusha enriches contacts → MillionVerifier validates emails → PageSpeed scores websites → qualified leads scored and exported.",
+      icon: Users,
+      available: true,
+      route: "/b2b-campaign",
+      beta: true,
+    },
+    {
       id: "kyptronix-product-hunt",
       title: "Kyptronix Product Hunt Lead Generation",
       description: "Cron Trigger → Product Hunt API/Apify → Website Enrichment → Email & Phone Discovery → LinkedIn Discovery → AI Lead Scoring → CRM → Email Outreach → LinkedIn Outreach → Follow-ups.",
