@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,9 @@ interface Lead {
   industry?: string | null;
   country?: string | null;
   state?: string | null;
-  employee_count?: number | null;
+  employee_count?: number | string | null;
+  founded_year?: number | null;
+  company_description?: string | null;
   company_linkedin?: string | null;
   lead_score?: number | null;
   status?: "qualified" | "review" | "skipped";
@@ -57,6 +59,12 @@ interface Lead {
   ssl?: boolean | null;
   pagespeed_mobile?: number | null;
   pagespeed_desktop?: number | null;
+  accessibility_mobile?: number | null;
+  accessibility_desktop?: number | null;
+  best_practices_mobile?: number | null;
+  best_practices_desktop?: number | null;
+  seo_score?: number | null;
+  seo_desktop?: number | null;
   has_chatbot?: boolean | null;
   has_booking?: boolean | null;
   has_analytics?: boolean | null;
@@ -67,19 +75,46 @@ interface Lead {
   facebook_url?: string | null;
   instagram_url?: string | null;
   social_score?: number | null;
+  // Facebook Ads Library check (on-demand, real data)
+  fb_ads_checking?: boolean;
+  fb_ads_checked?: boolean;
+  fb_has_ads?: boolean | null;
+  fb_ad_count?: number | null;
+  fb_ads_confidence?: "high" | "low" | null;
+  fb_ads_list?: { ad_text: string | null; start_date: string | null; end_date: string | null; status: string | null; platforms: string[] }[] | null;
+  fb_oldest_ad_start_date?: string | null;
+  fb_ads_error?: string | null;
+  // WhatsApp outreach (on-demand, official approved template)
+  whatsapp_sending?: boolean;
+  whatsapp_sent?: boolean;
+  whatsapp_error?: string | null;
+  // WhatsApp outreach via OpenWA (custom AI pitch text, self-hosted number)
+  openwa_sending?: boolean;
+  openwa_sent?: boolean;
+  openwa_error?: string | null;
   // Tech stack
   tech_detected?: string[] | null;
   cms?: string | null;
   crm_tool?: string | null;
   // AI opportunity
+  ai_summary?: string | null;
   ai_best_angle?: string | null;
   ai_top_gap?: string | null;
   ai_opportunity_score?: number | null;
+  ai_best_service?: string | null;
+  ai_pain_points?: string[] | null;
+  ai_priority?: "hot" | "warm" | "cold" | null;
+  ai_first_line?: string | null;
+  ai_email_subject?: string | null;
+  ai_email_body?: string | null;
+  ai_linkedin_message?: string | null;
+  ai_whatsapp_message?: string | null;
+  ai_error?: string | null;
 }
 
 const INITIAL_STEPS: PipelineStep[] = [
   { id: "validate",      label: "Validate Campaign",           tool: "Form validation",         status: "idle" },
-  { id: "discover",      label: "Company + Contact Discovery", tool: "Google Maps + Hunter.io",  status: "idle" },
+  { id: "discover",      label: "Company + Contact Discovery", tool: "Lusha Discovery + Hunter.io",  status: "idle" },
   { id: "dedup",         label: "Deduplicate",                 tool: "By email / name",          status: "idle" },
   { id: "lusha",         label: "Lusha Enrichment",            tool: "Lusha v2",                 status: "idle" },
   { id: "email_verify",  label: "Email Verification",          tool: "Apify Verifier",           status: "idle" },
@@ -180,6 +215,56 @@ export default function B2BCampaignPage() {
   const [log,     setLog]     = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [errors,  setErrors]  = useState<Record<string, string>>({});
+  const [expandedPitch, setExpandedPitch] = useState<Record<number, boolean>>({});
+  const [expandedFbAds, setExpandedFbAds] = useState<Record<number, boolean>>({});
+  const [expandedPageSpeed, setExpandedPageSpeed] = useState<Record<number, boolean>>({});
+
+  // ── WhatsApp (OpenWA) connection state ──────────────────────────────────────
+  const [showWhatsappPanel, setShowWhatsappPanel] = useState(false);
+  const [whatsappStatus, setWhatsappStatus] = useState<string | null>(null);
+  const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null);
+  const [whatsappQr, setWhatsappQr] = useState<string | null>(null);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
+
+  const refreshWhatsappStatus = async () => {
+    try {
+      const r = await fetch(`${API}/openwa-status`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      setWhatsappStatus(data.status);
+      setWhatsappPhone(data.phone || null);
+      setWhatsappError(null);
+      if (data.status === "qr_ready") {
+        const qrRes = await fetch(`${API}/openwa-qr`);
+        const qrData = await qrRes.json();
+        if (qrRes.ok) setWhatsappQr(qrData.qrCode || null);
+      } else {
+        setWhatsappQr(null);
+      }
+    } catch (e: unknown) {
+      setWhatsappError(e instanceof Error ? e.message : "Failed to check WhatsApp status");
+    }
+  };
+
+  const restartWhatsappSession = async () => {
+    setWhatsappError(null);
+    try {
+      const r = await fetch(`${API}/openwa-restart`, { method: "POST" });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      setTimeout(refreshWhatsappStatus, 2000);
+    } catch (e: unknown) {
+      setWhatsappError(e instanceof Error ? e.message : "Failed to restart session");
+    }
+  };
+
+  useEffect(() => {
+    if (!showWhatsappPanel) return;
+    refreshWhatsappStatus();
+    const interval = setInterval(refreshWhatsappStatus, 5000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showWhatsappPanel]);
 
   // ── Test Single state ───────────────────────────────────────────────────────
   const [testUrl,      setTestUrl]      = useState("");
@@ -239,6 +324,100 @@ export default function B2BCampaignPage() {
     }
   };
 
+  // ── On-demand real Facebook Ads Library check for a single lead row ────────
+  const checkFacebookAds = async (index: number) => {
+    const target = leads[index];
+    if (!target || target.fb_ads_checking) return;
+
+    setLeads(prev => prev.map((l, i) => i === index ? { ...l, fb_ads_checking: true, fb_ads_error: null } : l));
+    try {
+      const r = await fetch(`${API}/facebook-ads-check`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: target.company_name,
+          facebookUrl: target.facebook_url || undefined,
+          country: target.country || undefined,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      setLeads(prev => prev.map((l, i) => i === index ? {
+        ...l,
+        fb_ads_checking: false,
+        fb_ads_checked:  true,
+        fb_has_ads:      data.has_active_ads,
+        fb_ad_count:     data.ad_count,
+        fb_ads_confidence: data.confidence,
+        fb_ads_list:     data.ads || null,
+        fb_oldest_ad_start_date: data.oldest_ad_start_date || null,
+      } : l));
+    } catch (e: unknown) {
+      setLeads(prev => prev.map((l, i) => i === index ? {
+        ...l,
+        fb_ads_checking: false,
+        fb_ads_error: e instanceof Error ? e.message : "Check failed",
+      } : l));
+    }
+  };
+
+  // ── Send WhatsApp via the pre-approved Meta/Twilio template ─────────────────
+  // Sends the approved generic template, NOT the AI-generated pitch text — WhatsApp
+  // policy requires an approved template for messaging someone who hasn't messaged
+  // you first, and it cannot carry free-form per-lead text for a first contact.
+  const sendWhatsApp = async (index: number) => {
+    const target = leads[index];
+    if (!target?.phone || target.whatsapp_sending) return;
+
+    setLeads(prev => prev.map((l, i) => i === index ? { ...l, whatsapp_sending: true, whatsapp_error: null } : l));
+    try {
+      const r = await fetch(`${API}/whatsapp-send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: target.phone, name: target.company_name, country: target.country }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.success) throw new Error(data.error || `HTTP ${r.status}`);
+      setLeads(prev => prev.map((l, i) => i === index ? { ...l, whatsapp_sending: false, whatsapp_sent: true } : l));
+    } catch (e: unknown) {
+      setLeads(prev => prev.map((l, i) => i === index ? {
+        ...l,
+        whatsapp_sending: false,
+        whatsapp_error: e instanceof Error ? e.message : "Send failed",
+      } : l));
+    }
+  };
+
+  // ── Send WhatsApp via OpenWA (self-hosted number, custom AI pitch text) ─────
+  // Unlike the Twilio button above (fixed approved template), this sends the
+  // AI-generated per-lead message. Only safe for leads who've already messaged
+  // +916291317019 first — using it for cold outreach risks that number getting
+  // banned, since WhatsApp restricts free-form business-initiated messages.
+  const sendViaOpenWa = async (index: number) => {
+    const target = leads[index];
+    if (!target?.phone || target.openwa_sending) return;
+    const text = target.ai_whatsapp_message || target.ai_first_line;
+    if (!text) return;
+
+    setLeads(prev => prev.map((l, i) => i === index ? { ...l, openwa_sending: true, openwa_error: null } : l));
+    try {
+      const r = await fetch(`${API}/openwa-send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: target.phone, text }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.success) throw new Error(data.error || `HTTP ${r.status}`);
+      setLeads(prev => prev.map((l, i) => i === index ? { ...l, openwa_sending: false, openwa_sent: true } : l));
+    } catch (e: unknown) {
+      setLeads(prev => prev.map((l, i) => i === index ? {
+        ...l,
+        openwa_sending: false,
+        openwa_error: e instanceof Error ? e.message : "Send failed",
+      } : l));
+    }
+  };
+
   // ── Main pipeline ───────────────────────────────────────────────────────────
   const runCampaign = async () => {
     if (!validate()) return;
@@ -258,20 +437,20 @@ export default function B2BCampaignPage() {
     await new Promise(r => setTimeout(r, 300));
     setStep("validate", { status: "done", message: "Parameters ready" });
 
-    // ── STEP 2: Google Maps company discovery + Hunter.io contact search ────────
+    // ── STEP 2: Lusha company discovery + Hunter.io contact search ────────
     setStep("discover", { status: "running" });
-    addLog(`🗺 Searching Google Maps for "${industry}" in ${country}${state ? `, ${state}` : ""}...`);
+    addLog(`🔍 Searching Lusha Directory for "${industry}" in ${country}${state ? `, ${state}` : ""}...`);
 
     let rawLeads: Lead[] = [];
     try {
-      // 2a: find companies via Google Maps
+      // 2a: find companies via Lusha discovery engine
       const compRes = await fetch(`${API}/apollo-company-search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ industry, country, state: state || undefined, perPage: target }),
       });
       const compData = await compRes.json();
-      if (!compRes.ok) throw new Error(compData.error || "Google Maps search failed");
+      if (!compRes.ok) throw new Error(compData.error || "Lusha company search failed");
 
       type CompanyResult = {
         company_name: string;
@@ -281,7 +460,7 @@ export default function B2BCampaignPage() {
         website: string | null;
       };
       const companies: CompanyResult[] = compData.companies || [];
-      addLog(`✅ Google Maps found ${companies.length} companies`);
+      addLog(`✅ Lusha found ${companies.length} companies`);
 
       if (!companies.length) {
         addLog("⚠ No companies found — try a different industry or location");
@@ -356,7 +535,7 @@ export default function B2BCampaignPage() {
           }));
           rawLeads = [...rawLeads, ...newLeads];
         } else if (company.phone) {
-          // No contacts from either source — keep company-level entry with Google Maps phone
+          // No contacts from either source — keep company-level entry with Lusha phone
           rawLeads.push({
             company_name: company.company_name,
             contact_name: null,
@@ -366,7 +545,7 @@ export default function B2BCampaignPage() {
             industry:     company.industry || industry,
             country,
             state:        state || null,
-            source:       "Google Maps",
+            source:       "Lusha",
           });
         }
         await new Promise(r => setTimeout(r, 150));
@@ -541,6 +720,15 @@ export default function B2BCampaignPage() {
         ssl:                 a.ssl as boolean,
         pagespeed_mobile:    a.pagespeed_mobile as number | null,
         pagespeed_desktop:   a.pagespeed_desktop as number | null,
+        accessibility_mobile:  a.accessibility_mobile as number | null,
+        accessibility_desktop: a.accessibility_desktop as number | null,
+        best_practices_mobile: a.best_practices_mobile as number | null,
+        best_practices_desktop:a.best_practices_desktop as number | null,
+        seo_score:           a.seo_score as number | null,
+        seo_desktop:         a.seo_desktop as number | null,
+        employee_count:      lead.employee_count ?? (a.employee_count as number | string | null),
+        founded_year:        a.founded_year as number | null,
+        company_description: a.company_description as string | null,
         has_chatbot:         a.has_chatbot as boolean,
         has_booking:         a.has_booking as boolean,
         has_analytics:       a.has_analytics as boolean,
@@ -560,9 +748,19 @@ export default function B2BCampaignPage() {
         facebook_url:        (a.facebook_url  as string | null) || lead.facebook_url,
         instagram_url:       (a.instagram_url as string | null) || lead.instagram_url,
         // AI opportunity from Groq (populated during audit)
+        ai_summary:           (a.ai_summary           as string | null) || null,
         ai_best_angle:        (a.ai_best_angle        as string | null) || null,
         ai_top_gap:           (a.ai_top_gap           as string | null) || null,
         ai_opportunity_score: (a.ai_opportunity_score as number | null) ?? null,
+        ai_best_service:      (a.ai_best_service      as string | null) || null,
+        ai_pain_points:       (a.ai_pain_points        as string[] | null) || null,
+        ai_priority:          (a.ai_priority          as "hot" | "warm" | "cold" | null) || null,
+        ai_first_line:        (a.ai_first_line        as string | null) || null,
+        ai_email_subject:     (a.ai_email_subject     as string | null) || null,
+        ai_email_body:        (a.ai_email_body        as string | null) || null,
+        ai_linkedin_message:  (a.ai_linkedin_message  as string | null) || null,
+        ai_whatsapp_message:  (a.ai_whatsapp_message  as string | null) || null,
+        ai_error:             (a.groq_error           as string | null) || null,
       };
     });
 
@@ -612,36 +810,52 @@ export default function B2BCampaignPage() {
     const finalLeads: Lead[] = aiEnriched.map(lead => {
       let score = 0;
 
-      // Contact quality (40 pts)
-      if (lead.contact_name)               score += 10;
-      if (lead.job_title)                   score += 10;
-      if (lead.email)                       score += 10;
-      if (lead.phone)                       score += 10;
-
-      // Email health (30 pts)
-      if (lead.email_status === "valid")    score += 30;
-      else if (lead.email_status === "risky") score += 12;
-
-      // Reachability (15 pts)
-      if (lead.linkedin_url)                                               score += 8;
-      if (["Lusha", "Hunter.io", "Prospeo"].includes(lead.source || ""))  score += 7;
-
-      // ICP signals (10 pts)
+      // 1. Company & Website Presence (25 pts)
       if (lead.company_name)               score += 5;
+      if (lead.domain || lead.website)     score += 10;
       if (lead.industry)                   score += 5;
+      if (lead.country)                    score += 5;
 
-      // AI opportunity bonus (5 pts)
-      if ((lead.ai_opportunity_score ?? 0) >= 70) score += 5;
+      // 2. Phone & Contact Person (25 pts)
+      if (lead.phone)                      score += 15;
+      if (lead.contact_name)              score += 10;
+      if (lead.job_title)                  score += 5;
 
+      // 3. Email & Verification (25 pts)
+      if (lead.email) {
+        score += 10;
+        if (lead.email_status === "valid")    score += 15;
+        else if (lead.email_status === "risky") score += 8;
+        else score += 5; // Present but unverified
+      }
+
+      // 4. Digital Footprint & Website Audit Signals (20 pts)
+      // Incorporates SSL (+5), Analytics/Pixel (+5), Mobile Speed/Audit Score (+5), Social channels (+5)
+      if (lead.ssl) score += 5;
+      if (lead.has_analytics || lead.has_meta_pixel) score += 5;
+      if ((lead.website_audit_score ?? 0) >= 50) score += 5;
+      else if (lead.has_cta || lead.has_chatbot || lead.has_booking) score += 3;
+      
+      const socialCount = [lead.linkedin_url, lead.facebook_url, lead.instagram_url].filter(Boolean).length;
+      score += Math.min(socialCount * 5, 10); // Up to 10 pts for social channels
+      if (lead.cms || lead.crm_tool || (lead.tech_detected && lead.tech_detected.length > 0)) score += 5;
+
+      // 5. Source Reliability & AI Buying Intent (10 pts)
+      if (["Lusha", "Hunter.io", "Prospeo"].includes(lead.source || "")) score += 5;
+      if ((lead.ai_opportunity_score ?? 0) >= 50) score += 5;
+
+      // Cap at 100 max
+      score = Math.min(score, 100);
+
+      // Status Qualification Decision
       const hasReachability = !!(lead.email || lead.phone);
       let status: Lead["status"] = "skipped";
+      
       if (!lead.company_name || !hasReachability) {
         status = "skipped";
-      } else if (lead.email_status === "valid" && score >= scoreThreshold) {
+      } else if (score >= scoreThreshold || (lead.email && lead.phone) || (lead.email_status === "valid")) {
         status = "qualified";
-      } else if ((lead.ai_opportunity_score ?? 0) >= 75 && score >= scoreThreshold - 20) {
-        status = "qualified";
-      } else if (lead.email_status === "risky" || score >= scoreThreshold - 15) {
+      } else if (score >= Math.max(scoreThreshold - 25, 40) || lead.phone || lead.email) {
         status = "review";
       } else {
         status = "skipped";
@@ -713,8 +927,58 @@ export default function B2BCampaignPage() {
             <div className="font-semibold text-base">B2B Campaign Intelligence</div>
           </div>
         </div>
-        <div className="text-xs text-slate-400">Google Maps · Hunter.io · Lusha v2 · PageSpeed · Gemini AI</div>
+        <div className="flex items-center gap-4">
+          <div className="text-xs text-slate-400">Lusha v2 · Hunter.io · Prospeo · PageSpeed · Gemini AI</div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowWhatsappPanel(true)}
+            className="h-7 text-xs bg-transparent border-slate-600 text-slate-200 hover:bg-slate-800"
+          >
+            💬 WhatsApp
+          </Button>
+        </div>
       </div>
+
+      {showWhatsappPanel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowWhatsappPanel(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-900">WhatsApp Connection</h3>
+              <button onClick={() => setShowWhatsappPanel(false)} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+            </div>
+
+            {whatsappError && (
+              <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded p-2 mb-3">{whatsappError}</div>
+            )}
+
+            {whatsappStatus === "connected" ? (
+              <div className="text-center py-6">
+                <div className="text-3xl mb-2">✅</div>
+                <div className="text-sm font-semibold text-emerald-700">Connected</div>
+                {whatsappPhone && <div className="text-xs text-slate-500 mt-1">{whatsappPhone}</div>}
+              </div>
+            ) : whatsappQr ? (
+              <div className="text-center">
+                <img src={whatsappQr} alt="WhatsApp QR Code" className="mx-auto w-56 h-56 border border-slate-200 rounded" />
+                <p className="text-xs text-slate-500 mt-3">
+                  Open WhatsApp on your phone → Settings → Linked Devices → Link a Device, then scan this code.
+                </p>
+                <p className="text-[10px] text-slate-400 mt-1">Refreshes automatically every 5s while waiting.</p>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="text-sm text-slate-500 mb-3">
+                  {whatsappStatus ? `Status: ${whatsappStatus}` : "Checking connection…"}
+                </div>
+                <Button size="sm" onClick={restartWhatsappSession} className="text-xs">
+                  Generate QR Code
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
@@ -994,150 +1258,326 @@ export default function B2BCampaignPage() {
 
         {/* Results table */}
         {leads.length > 0 && (
-          <Card className="border-slate-200">
-            <CardHeader className="pb-2 border-b border-slate-100">
-              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+          <Card className="bg-white border-slate-200 shadow-sm text-slate-900 rounded-xl overflow-hidden">
+            <CardHeader className="bg-white pb-3 border-b border-slate-200 text-slate-900">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between text-slate-900">
                 <span className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-blue-600" />
                   {campaignName} — {leads.length} prospects found
                 </span>
-                <Button variant="outline" size="sm" onClick={downloadCSV} className="gap-1 h-7 text-xs">
+                <Button variant="outline" size="sm" onClick={downloadCSV} className="gap-1 h-7 text-xs bg-white text-slate-700 hover:bg-slate-100 border-slate-300">
                   <Download className="h-3 w-3" />CSV
                 </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50">
-                      <TableHead className="text-xs">Status</TableHead>
-                      <TableHead className="text-xs">Score</TableHead>
-                      <TableHead className="text-xs">Company</TableHead>
-                      <TableHead className="text-xs">Email</TableHead>
-                      <TableHead className="text-xs">Phone</TableHead>
-                      <TableHead className="text-xs">Social</TableHead>
-                      <TableHead className="text-xs">Tech Stack</TableHead>
-                      <TableHead className="text-xs">AI Opportunity</TableHead>
+            <CardContent className="p-0 bg-white">
+              <div className="overflow-x-auto bg-white">
+                <Table className="bg-white">
+                  <TableHeader className="bg-slate-100/90">
+                    <TableRow className="bg-slate-100/90 border-b border-slate-200">
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Status</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Score</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Company</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Email</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Phone</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Social</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">Tech Stack</TableHead>
+                      <TableHead className="text-xs text-slate-800 font-bold uppercase tracking-wider">AI Opportunity</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="bg-white divide-y divide-slate-200">
                     {leads.map((lead, i) => (
-                      <TableRow key={i} className={
-                        lead.status === "qualified" ? "bg-green-50/40" :
-                        lead.status === "review"    ? "bg-amber-50/40" : ""
-                      }>
-                        <TableCell>
-                          {lead.status === "qualified" && <Badge className="text-xs bg-green-100 text-green-700 font-medium">Qualified</Badge>}
-                          {lead.status === "review"    && <Badge className="text-xs bg-amber-100 text-amber-700 font-medium">Review</Badge>}
-                          {lead.status === "skipped"   && <Badge className="text-xs bg-slate-100 text-slate-500">Skipped</Badge>}
+                      <TableRow key={i} className={`transition-colors border-b border-slate-100 ${
+                        lead.status === "qualified" ? "bg-emerald-50/50 hover:bg-emerald-50" :
+                        lead.status === "review"    ? "bg-amber-50/40 hover:bg-amber-50/70" :
+                        "bg-white hover:bg-slate-50"
+                      }`}>
+                        <TableCell className="bg-transparent">
+                          {lead.status === "qualified" && <Badge className="text-xs bg-emerald-100 text-emerald-800 font-semibold border border-emerald-300">Qualified</Badge>}
+                          {lead.status === "review"    && <Badge className="text-xs bg-amber-100 text-amber-800 font-semibold border border-amber-300">Review</Badge>}
+                          {lead.status === "skipped"   && <Badge className="text-xs bg-slate-100 text-slate-600 border border-slate-300">Skipped</Badge>}
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="bg-transparent">
                           <span className={`text-xs font-bold font-mono ${
-                            (lead.lead_score ?? 0) >= 75 ? "text-green-600" :
-                            (lead.lead_score ?? 0) >= 50 ? "text-amber-600" : "text-slate-400"
+                            (lead.lead_score ?? 0) >= 75 ? "text-emerald-700 font-extrabold" :
+                            (lead.lead_score ?? 0) >= 50 ? "text-amber-700 font-extrabold" : "text-slate-500 font-medium"
                           }`}>{lead.lead_score ?? "—"}</span>
                         </TableCell>
 
-                        <TableCell>
-                          <div className="font-medium text-xs text-slate-800">{lead.company_name}</div>
-                          {lead.domain && <div className="text-xs text-blue-500">{lead.domain}</div>}
+                        <TableCell className="bg-transparent">
+                          <div className="font-semibold text-xs text-slate-900">{lead.company_name}</div>
+                          {lead.domain && <div className="text-xs text-blue-600 font-medium">{lead.domain}</div>}
                           {lead.website_audit_score != null && (
-                            <div className={`text-[10px] font-semibold ${
-                              lead.website_audit_score >= 70 ? "text-green-600" :
-                              lead.website_audit_score >= 40 ? "text-amber-600" : "text-red-500"
+                            <div className={`text-[10px] font-bold ${
+                              lead.website_audit_score >= 70 ? "text-emerald-700" :
+                              lead.website_audit_score >= 40 ? "text-amber-700" : "text-rose-600"
                             }`}>Site: {lead.website_audit_score}/100{lead.ssl ? " 🔒" : " ⚠"}</div>
                           )}
-                          <div className="text-xs text-slate-400">{[lead.industry, lead.country].filter(Boolean).join(" · ")}</div>
+                          {lead.seo_score != null && (
+                            <div className={`text-[10px] font-bold ${
+                              lead.seo_score >= 70 ? "text-emerald-700" :
+                              lead.seo_score >= 40 ? "text-amber-700" : "text-rose-600"
+                            }`}>SEO: {lead.seo_score}/100 (mobile)</div>
+                          )}
+                          {(lead.pagespeed_mobile != null || lead.pagespeed_desktop != null) && (
+                            <button
+                              onClick={() => setExpandedPageSpeed(prev => ({ ...prev, [i]: !prev[i] }))}
+                              className="text-[9px] text-blue-600 hover:underline font-semibold"
+                            >
+                              {expandedPageSpeed[i] ? "▴ Hide PageSpeed" : "▾ Full PageSpeed report"}
+                            </button>
+                          )}
+                          {expandedPageSpeed[i] && (
+                            <div className="text-[9px] text-slate-600 grid grid-cols-3 gap-x-2 gap-y-0.5 border border-slate-200 rounded p-1.5 my-1 bg-slate-50 w-fit">
+                              <div></div>
+                              <div className="font-bold text-slate-500">Mobile</div>
+                              <div className="font-bold text-slate-500">Desktop</div>
+                              <div className="font-semibold">Performance</div>
+                              <div>{lead.pagespeed_mobile ?? "—"}</div>
+                              <div>{lead.pagespeed_desktop ?? "—"}</div>
+                              <div className="font-semibold">Accessibility</div>
+                              <div>{lead.accessibility_mobile ?? "—"}</div>
+                              <div>{lead.accessibility_desktop ?? "—"}</div>
+                              <div className="font-semibold">Best Practices</div>
+                              <div>{lead.best_practices_mobile ?? "—"}</div>
+                              <div>{lead.best_practices_desktop ?? "—"}</div>
+                              <div className="font-semibold">SEO</div>
+                              <div>{lead.seo_score ?? "—"}</div>
+                              <div>{lead.seo_desktop ?? "—"}</div>
+                            </div>
+                          )}
+                          {(lead.employee_count != null || lead.founded_year != null) && (
+                            <div className="text-[10px] text-slate-500 font-medium">
+                              {[
+                                lead.employee_count != null ? `${lead.employee_count} employees` : null,
+                                lead.founded_year != null ? `est. ${lead.founded_year}` : null,
+                              ].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
+                          <div className="text-xs text-slate-500">{[lead.industry, lead.country].filter(Boolean).join(" · ")}</div>
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="bg-transparent">
                           {lead.email ? (
-                            <div>
-                              <div className="text-xs text-slate-700 flex items-center gap-1">
-                                <Mail className="h-3 w-3 text-slate-400" />
-                                <span className="truncate max-w-[140px]" title={lead.email}>{lead.email}</span>
+                            <div className="max-w-[190px]">
+                              <div className="text-xs text-slate-800 font-medium flex items-start gap-1">
+                                <Mail className="h-3 w-3 text-slate-500 mt-0.5 shrink-0" />
+                                <span className="break-all" title={lead.email}>{lead.email}</span>
                               </div>
                               {lead.email_status && (
                                 <Badge className={`text-[10px] mt-0.5 ${
-                                  lead.email_status === "valid"   ? "bg-green-100 text-green-700" :
-                                  lead.email_status === "risky"   ? "bg-amber-100 text-amber-700" :
-                                  "bg-red-100 text-red-600"
+                                  lead.email_status === "valid"   ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                                  lead.email_status === "risky"   ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                                  "bg-rose-100 text-rose-700 border border-rose-300"
                                 }`}>{lead.email_status}</Badge>
                               )}
                             </div>
-                          ) : <span className="text-xs text-slate-300">—</span>}
+                          ) : <span className="text-xs text-slate-400">—</span>}
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="bg-transparent">
                           {lead.phone ? (
-                            <div className="text-xs text-slate-700 flex items-center gap-1">
-                              <Phone className="h-3 w-3 text-slate-400" /> {lead.phone}
+                            <div>
+                              <div className="text-xs text-slate-800 font-medium flex items-center gap-1">
+                                <Phone className="h-3 w-3 text-slate-500" /> {lead.phone}
+                              </div>
+                              {!lead.whatsapp_sent && (
+                                <button
+                                  onClick={() => sendWhatsApp(i)}
+                                  disabled={lead.whatsapp_sending}
+                                  className="text-[9px] text-emerald-600 hover:underline font-semibold disabled:text-slate-400 mt-0.5"
+                                >
+                                  {lead.whatsapp_sending ? "Sending…" : "Send WhatsApp"}
+                                </button>
+                              )}
+                              {lead.whatsapp_sent && (
+                                <div className="text-[9px] text-emerald-700 font-bold mt-0.5">✅ WhatsApp sent</div>
+                              )}
+                              {lead.whatsapp_error && (
+                                <span className="text-[9px] text-rose-500" title={lead.whatsapp_error}>WhatsApp failed</span>
+                              )}
+                              {(lead.ai_whatsapp_message || lead.ai_first_line) && !lead.openwa_sent && (
+                                <button
+                                  onClick={() => sendViaOpenWa(i)}
+                                  disabled={lead.openwa_sending}
+                                  className="text-[9px] text-violet-600 hover:underline font-semibold disabled:text-slate-400 mt-0.5 block"
+                                  title="Sends the AI's custom pitch text via your OpenWA number. Only safe if this lead has messaged you first."
+                                >
+                                  {lead.openwa_sending ? "Sending…" : "Send via OpenWA"}
+                                </button>
+                              )}
+                              {lead.openwa_sent && (
+                                <div className="text-[9px] text-violet-700 font-bold mt-0.5">✅ OpenWA sent</div>
+                              )}
+                              {lead.openwa_error && (
+                                <span className="text-[9px] text-rose-500 block" title={lead.openwa_error}>OpenWA failed</span>
+                              )}
                             </div>
-                          ) : <span className="text-xs text-slate-300">—</span>}
+                          ) : <span className="text-xs text-slate-400">—</span>}
                         </TableCell>
 
                         {/* Social */}
-                        <TableCell>
+                        <TableCell className="bg-transparent">
                           <div className="flex flex-col gap-0.5">
                             {lead.linkedin_url && (
                               <a href={lead.linkedin_url} target="_blank" rel="noopener noreferrer"
-                                className="text-[10px] text-blue-600 hover:underline font-medium">LinkedIn</a>
+                                className="text-[10px] text-blue-600 hover:underline font-semibold">LinkedIn</a>
                             )}
                             {lead.facebook_url && (
                               <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer"
-                                className="text-[10px] text-indigo-600 hover:underline font-medium">Facebook</a>
+                                className="text-[10px] text-indigo-600 hover:underline font-semibold">Facebook</a>
                             )}
                             {lead.instagram_url && (
                               <a href={lead.instagram_url} target="_blank" rel="noopener noreferrer"
-                                className="text-[10px] text-pink-600 hover:underline font-medium">Instagram</a>
+                                className="text-[10px] text-pink-600 hover:underline font-semibold">Instagram</a>
                             )}
                             {!lead.linkedin_url && !lead.facebook_url && !lead.instagram_url && (
-                              <span className="text-xs text-slate-300">—</span>
+                              <span className="text-xs text-slate-400">—</span>
                             )}
+                            <div className="pt-1 border-t border-slate-100 mt-0.5">
+                              {!lead.fb_ads_checked && !lead.fb_ads_error && (
+                                <button
+                                  onClick={() => checkFacebookAds(i)}
+                                  disabled={lead.fb_ads_checking}
+                                  className="text-[9px] text-violet-600 hover:underline font-semibold disabled:text-slate-400"
+                                >
+                                  {lead.fb_ads_checking ? "Checking FB ads…" : "Check FB Ads"}
+                                </button>
+                              )}
+                              {lead.fb_ads_checked && (
+                                <div className={`text-[9px] font-bold ${lead.fb_has_ads ? "text-emerald-700" : "text-slate-500"}`}
+                                  title={lead.fb_ads_confidence === "low" ? "No known Facebook Page ID — matched by keyword search, less reliable" : "Matched via known Facebook Page ID"}>
+                                  {lead.fb_has_ads ? `🟢 ${lead.fb_ad_count} active FB ad${lead.fb_ad_count === 1 ? "" : "s"}` : "⚪ No active FB ads"}
+                                  {lead.fb_ads_confidence === "low" && <span className="text-amber-600"> (low confidence)</span>}
+                                </div>
+                              )}
+                              {lead.fb_oldest_ad_start_date && (
+                                <div className="text-[9px] text-slate-500">Running since {lead.fb_oldest_ad_start_date}</div>
+                              )}
+                              {lead.fb_has_ads && lead.fb_ads_list && lead.fb_ads_list.length > 0 && (
+                                <button
+                                  onClick={() => setExpandedFbAds(prev => ({ ...prev, [i]: !prev[i] }))}
+                                  className="text-[9px] text-violet-600 hover:underline font-semibold"
+                                >
+                                  {expandedFbAds[i] ? "▴ Hide ads" : "▾ View ads"}
+                                </button>
+                              )}
+                              {expandedFbAds[i] && lead.fb_ads_list && (
+                                <div className="mt-1 pt-1 border-t border-slate-100 space-y-1 max-w-[220px]">
+                                  {lead.fb_ads_list.map((ad, ai) => (
+                                    <div key={ai} className="text-[9px] text-slate-600 leading-snug">
+                                      <div className="font-semibold text-slate-500">
+                                        {ad.start_date ? `Since ${ad.start_date}` : "Start date unknown"} · {ad.status || "—"}
+                                      </div>
+                                      {ad.ad_text && <div className="line-clamp-2" title={ad.ad_text}>{ad.ad_text}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {lead.fb_ads_error && (
+                                <span className="text-[9px] text-rose-500" title={lead.fb_ads_error}>FB check failed</span>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
 
                         {/* Tech Stack */}
-                        <TableCell>
+                        <TableCell className="bg-transparent">
                           {lead.tech_detected && lead.tech_detected.length > 0 ? (
-                            <div className="flex flex-col gap-0.5">
+                            <div className="flex flex-col gap-1 max-w-[220px]">
                               {lead.cms && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200">{lead.cms}</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200 inline-block w-fit">{lead.cms}</span>
                               )}
                               {lead.crm_tool && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-semibold border border-purple-200">{lead.crm_tool}</span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-bold border border-purple-200 inline-block w-fit">{lead.crm_tool}</span>
                               )}
-                              <div className="flex flex-wrap gap-0.5">
-                                {lead.tech_detected.filter(t => t !== lead.cms && t !== lead.crm_tool).slice(0, 3).map(t => (
-                                  <span key={t} className="text-[9px] px-1 py-0.5 rounded bg-slate-100 text-slate-600">{t}</span>
+                              <div className="flex flex-wrap gap-1">
+                                {lead.tech_detected.filter(t => t !== lead.cms && t !== lead.crm_tool).map(t => (
+                                  <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold border border-slate-200">{t}</span>
                                 ))}
                               </div>
                             </div>
-                          ) : <span className="text-xs text-slate-300">—</span>}
+                          ) : <span className="text-xs text-slate-400">—</span>}
                         </TableCell>
 
                         {/* AI Opportunity */}
-                        <TableCell>
-                          {lead.ai_best_angle ? (
-                            <div className="max-w-[200px]">
-                              <div className="text-[10px] text-slate-700 leading-tight line-clamp-3" title={lead.ai_best_angle}>
-                                {lead.ai_best_angle}
-                              </div>
-                              {lead.ai_opportunity_score != null && (
-                                <div className={`text-[10px] font-bold mt-1 ${
-                                  lead.ai_opportunity_score >= 70 ? "text-green-600" :
-                                  lead.ai_opportunity_score >= 50 ? "text-amber-600" : "text-slate-400"
-                                }`}>Score: {lead.ai_opportunity_score}/100</div>
+                        <TableCell className="bg-transparent align-top">
+                          {lead.ai_summary || lead.ai_best_angle || lead.ai_top_gap ? (
+                            <div className="max-w-[340px] space-y-1.5">
+                              {lead.ai_summary && (
+                                <div className="text-[13px] text-slate-700 leading-snug font-normal" title={lead.ai_summary}>
+                                  {lead.ai_summary}
+                                </div>
                               )}
+                              {!lead.ai_summary && lead.ai_best_angle && (
+                                <div className="text-[13px] text-slate-700 leading-snug font-normal" title={lead.ai_best_angle}>
+                                  {lead.ai_best_angle}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {lead.ai_opportunity_score != null && (
+                                  <span className={`text-[13px] font-bold ${
+                                    lead.ai_opportunity_score >= 70 ? "text-emerald-700 font-extrabold" :
+                                    lead.ai_opportunity_score >= 50 ? "text-amber-700 font-extrabold" : "text-slate-500 font-medium"
+                                  }`}>Score: {lead.ai_opportunity_score}/100</span>
+                                )}
+                                {lead.ai_priority && (
+                                  <span className={`text-[11px] px-2 py-0.5 rounded font-bold uppercase border ${
+                                    lead.ai_priority === "hot"  ? "bg-rose-50 text-rose-700 border-rose-300" :
+                                    lead.ai_priority === "warm" ? "bg-amber-50 text-amber-700 border-amber-300" :
+                                    "bg-slate-50 text-slate-500 border-slate-300"
+                                  }`}>{lead.ai_priority}</span>
+                                )}
+                              </div>
                               {lead.ai_top_gap && (
-                                <div className="text-[9px] text-rose-500 mt-0.5 line-clamp-1" title={lead.ai_top_gap}>
+                                <div className="text-[12px] text-rose-600 font-medium leading-snug" title={lead.ai_top_gap}>
                                   Gap: {lead.ai_top_gap}
                                 </div>
                               )}
+                              {lead.ai_best_service && (
+                                <div className="text-[12px] text-violet-700 font-semibold leading-snug">
+                                  Best fit: {lead.ai_best_service}
+                                </div>
+                              )}
+
+                              {(lead.ai_pain_points?.length || lead.ai_email_body || lead.ai_first_line) && (
+                                <button
+                                  onClick={() => setExpandedPitch(prev => ({ ...prev, [i]: !prev[i] }))}
+                                  className="text-[12px] text-blue-600 hover:underline font-semibold pt-0.5"
+                                >
+                                  {expandedPitch[i] ? "▴ Hide pitch" : "▾ View pitch"}
+                                </button>
+                              )}
+
+                              {expandedPitch[i] && (
+                                <div className="mt-1 pt-1.5 border-t border-slate-200 space-y-2">
+                                  {lead.ai_pain_points && lead.ai_pain_points.length > 0 && (
+                                    <ul className="text-[12px] text-slate-600 list-disc pl-4 space-y-1">
+                                      {lead.ai_pain_points.map((p, pi) => <li key={pi}>{p}</li>)}
+                                    </ul>
+                                  )}
+                                  {lead.ai_first_line && (
+                                    <div className="text-[12px] text-slate-700 leading-snug"><span className="font-semibold text-slate-500">Opener:</span> {lead.ai_first_line}</div>
+                                  )}
+                                  {lead.ai_email_subject && (
+                                    <div className="text-[12px] text-slate-700 leading-snug"><span className="font-semibold text-slate-500">Subject:</span> {lead.ai_email_subject}</div>
+                                  )}
+                                  {lead.ai_email_body && (
+                                    <div className="text-[12px] text-slate-700 leading-snug"><span className="font-semibold text-slate-500">Email:</span> {lead.ai_email_body}</div>
+                                  )}
+                                  {lead.ai_linkedin_message && (
+                                    <div className="text-[12px] text-slate-700 leading-snug"><span className="font-semibold text-slate-500">LinkedIn:</span> {lead.ai_linkedin_message}</div>
+                                  )}
+                                  {lead.ai_whatsapp_message && (
+                                    <div className="text-[12px] text-slate-700 leading-snug"><span className="font-semibold text-slate-500">WhatsApp:</span> {lead.ai_whatsapp_message}</div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          ) : <span className="text-xs text-slate-300">—</span>}
+                          ) : lead.ai_error ? (
+                            <span className="text-[11px] text-rose-500 font-medium" title={lead.ai_error}>⚠ AI analysis failed</span>
+                          ) : <span className="text-xs text-slate-400">—</span>}
                         </TableCell>
                       </TableRow>
                     ))}
