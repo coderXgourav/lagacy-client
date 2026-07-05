@@ -14,6 +14,7 @@ import {
   Users, Mail, Phone,
   CheckCircle2, XCircle, AlertCircle, Clock,
 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const API = `${import.meta.env.VITE_API_URL ?? "http://localhost:8000/api"}/revenue-intelligence`;
 
@@ -84,14 +85,10 @@ interface Lead {
   fb_ads_list?: { ad_text: string | null; start_date: string | null; end_date: string | null; status: string | null; platforms: string[] }[] | null;
   fb_oldest_ad_start_date?: string | null;
   fb_ads_error?: string | null;
-  // WhatsApp outreach (on-demand, official approved template)
-  whatsapp_sending?: boolean;
-  whatsapp_sent?: boolean;
-  whatsapp_error?: string | null;
-  // WhatsApp outreach via OpenWA (custom AI pitch text, self-hosted number)
-  openwa_sending?: boolean;
-  openwa_sent?: boolean;
-  openwa_error?: string | null;
+  // WhatsApp outreach via Baileys (custom AI pitch text, self-hosted number)
+  baileys_sending?: boolean;
+  baileys_sent?: boolean;
+  baileys_error?: string | null;
   // Tech stack
   tech_detected?: string[] | null;
   cms?: string | null;
@@ -194,6 +191,7 @@ function SingleTestResult({ result }: { result: Record<string, unknown> }) {
 
 export default function B2BCampaignPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [campaignName,     setCampaignName]     = useState("");
@@ -219,28 +217,37 @@ export default function B2BCampaignPage() {
   const [expandedFbAds, setExpandedFbAds] = useState<Record<number, boolean>>({});
   const [expandedPageSpeed, setExpandedPageSpeed] = useState<Record<number, boolean>>({});
 
-  // ── WhatsApp (OpenWA) connection state ──────────────────────────────────────
+  // ── WhatsApp (Baileys) connection state ──────────────────────────────────────
   const [showWhatsappPanel, setShowWhatsappPanel] = useState(false);
   const [whatsappStatus, setWhatsappStatus] = useState<string | null>(null);
   const [whatsappPhone, setWhatsappPhone] = useState<string | null>(null);
   const [whatsappQr, setWhatsappQr] = useState<string | null>(null);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  const [notOnWhatsapp, setNotOnWhatsapp] = useState<Set<string>>(new Set());
+  const prevWhatsappStatusRef = useRef<string | null>(null);
 
   const refreshWhatsappStatus = async () => {
     try {
-      const r = await fetch(`${API}/openwa-status`);
+      const r = await fetch(`${API}/baileys-status`);
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
       setWhatsappStatus(data.status);
       setWhatsappPhone(data.phone || null);
       setWhatsappError(null);
       if (data.status === "qr_ready") {
-        const qrRes = await fetch(`${API}/openwa-qr`);
+        const qrRes = await fetch(`${API}/baileys-qr`);
         const qrData = await qrRes.json();
         if (qrRes.ok) setWhatsappQr(qrData.qrCode || null);
       } else {
         setWhatsappQr(null);
       }
+      if (data.status === "connected" && prevWhatsappStatusRef.current !== "connected") {
+        toast({
+          title: "WhatsApp Linked",
+          description: data.phone ? `Connected as ${data.phone}` : "Device linked successfully",
+        });
+      }
+      prevWhatsappStatusRef.current = data.status;
     } catch (e: unknown) {
       setWhatsappError(e instanceof Error ? e.message : "Failed to check WhatsApp status");
     }
@@ -249,7 +256,7 @@ export default function B2BCampaignPage() {
   const restartWhatsappSession = async () => {
     setWhatsappError(null);
     try {
-      const r = await fetch(`${API}/openwa-restart`, { method: "POST" });
+      const r = await fetch(`${API}/baileys-restart`, { method: "POST" });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
       setTimeout(refreshWhatsappStatus, 2000);
@@ -361,60 +368,62 @@ export default function B2BCampaignPage() {
     }
   };
 
-  // ── Send WhatsApp via the pre-approved Meta/Twilio template ─────────────────
-  // Sends the approved generic template, NOT the AI-generated pitch text — WhatsApp
-  // policy requires an approved template for messaging someone who hasn't messaged
-  // you first, and it cannot carry free-form per-lead text for a first contact.
-  const sendWhatsApp = async (index: number) => {
+  // ── Send WhatsApp via Baileys (self-hosted number, custom AI pitch text) ────
+  // Only safe for leads who've already messaged +916291317019 first — using it
+  // for cold outreach risks that number getting banned, since WhatsApp restricts
+  // free-form business-initiated messages.
+  const sendViaBaileys = async (index: number) => {
     const target = leads[index];
-    if (!target?.phone || target.whatsapp_sending) return;
-
-    setLeads(prev => prev.map((l, i) => i === index ? { ...l, whatsapp_sending: true, whatsapp_error: null } : l));
-    try {
-      const r = await fetch(`${API}/whatsapp-send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: target.phone, name: target.company_name, country: target.country }),
-      });
-      const data = await r.json();
-      if (!r.ok || !data.success) throw new Error(data.error || `HTTP ${r.status}`);
-      setLeads(prev => prev.map((l, i) => i === index ? { ...l, whatsapp_sending: false, whatsapp_sent: true } : l));
-    } catch (e: unknown) {
-      setLeads(prev => prev.map((l, i) => i === index ? {
-        ...l,
-        whatsapp_sending: false,
-        whatsapp_error: e instanceof Error ? e.message : "Send failed",
-      } : l));
-    }
-  };
-
-  // ── Send WhatsApp via OpenWA (self-hosted number, custom AI pitch text) ─────
-  // Unlike the Twilio button above (fixed approved template), this sends the
-  // AI-generated per-lead message. Only safe for leads who've already messaged
-  // +916291317019 first — using it for cold outreach risks that number getting
-  // banned, since WhatsApp restricts free-form business-initiated messages.
-  const sendViaOpenWa = async (index: number) => {
-    const target = leads[index];
-    if (!target?.phone || target.openwa_sending) return;
+    if (!target?.phone || target.baileys_sending) return;
     const text = target.ai_whatsapp_message || target.ai_first_line;
     if (!text) return;
 
-    setLeads(prev => prev.map((l, i) => i === index ? { ...l, openwa_sending: true, openwa_error: null } : l));
+    setLeads(prev => prev.map((l, i) => i === index ? { ...l, baileys_sending: true, baileys_error: null } : l));
     try {
-      const r = await fetch(`${API}/openwa-send`, {
+      const r = await fetch(`${API}/baileys-send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: target.phone, text }),
       });
       const data = await r.json();
       if (!r.ok || !data.success) throw new Error(data.error || `HTTP ${r.status}`);
-      setLeads(prev => prev.map((l, i) => i === index ? { ...l, openwa_sending: false, openwa_sent: true } : l));
+      setLeads(prev => prev.map((l, i) => i === index ? { ...l, baileys_sending: false, baileys_sent: true } : l));
     } catch (e: unknown) {
       setLeads(prev => prev.map((l, i) => i === index ? {
         ...l,
-        openwa_sending: false,
-        openwa_error: e instanceof Error ? e.message : "Send failed",
+        baileys_sending: false,
+        baileys_error: e instanceof Error ? e.message : "Send failed",
       } : l));
+    }
+  };
+
+  // ── Proactively check WhatsApp reachability for a finished campaign's leads ──
+  // Fired ONCE, right after the campaign's lead list is final — never on every
+  // incremental setLeads() update while a campaign is streaming in results,
+  // and never one query per lead. Both would look like automated enumeration
+  // to WhatsApp's abuse detection, which has already banned a session here.
+  const checkWhatsappReachability = async (finalLeads: Lead[]) => {
+    const phones = Array.from(new Set(
+      finalLeads.filter(l => l.phone && (l.ai_whatsapp_message || l.ai_first_line)).map(l => l.phone as string)
+    ));
+    if (!phones.length) return;
+    try {
+      const statusRes = await fetch(`${API}/baileys-status`);
+      const statusData = await statusRes.json();
+      if (statusData.status !== "connected") return;
+      const r = await fetch(`${API}/baileys-check-bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phones }),
+      });
+      if (!r.ok) return;
+      const data = await r.json();
+      const notReachable = new Set<string>(
+        (data.results as { phone: string; exists: boolean }[]).filter(x => !x.exists).map(x => x.phone)
+      );
+      setNotOnWhatsapp(notReachable);
+    } catch {
+      // best-effort UI hint only — the click-time check inside sendViaBaileys still guards actual sends
     }
   };
 
@@ -872,6 +881,7 @@ export default function B2BCampaignPage() {
     addLog(`✅ Done — ${qCount} qualified · ${rCount} review · ${sCount} skipped`);
 
     setLeads(finalLeads);
+    checkWhatsappReachability(finalLeads);
     setRunning(false);
   };
 
@@ -964,13 +974,20 @@ export default function B2BCampaignPage() {
                 <p className="text-xs text-slate-500 mt-3">
                   Open WhatsApp on your phone → Settings → Linked Devices → Link a Device, then scan this code.
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1">Refreshes automatically every 5s while waiting.</p>
+                <p className="text-[10px] text-slate-400 mt-1 flex items-center justify-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Waiting for scan — refreshes every 5s…
+                </p>
+              </div>
+            ) : (!whatsappStatus || whatsappStatus === "connecting") ? (
+              <div className="text-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-500 mx-auto mb-3" />
+                <div className="text-sm text-slate-500">
+                  {whatsappStatus === "connecting" ? "Linking device…" : "Checking connection…"}
+                </div>
               </div>
             ) : (
               <div className="text-center py-6">
-                <div className="text-sm text-slate-500 mb-3">
-                  {whatsappStatus ? `Status: ${whatsappStatus}` : "Checking connection…"}
-                </div>
+                <div className="text-sm text-slate-500 mb-3">Status: {whatsappStatus}</div>
                 <Button size="sm" onClick={restartWhatsappSession} className="text-xs">
                   Generate QR Code
                 </Button>
@@ -1382,36 +1399,27 @@ export default function B2BCampaignPage() {
                               <div className="text-xs text-slate-800 font-medium flex items-center gap-1">
                                 <Phone className="h-3 w-3 text-slate-500" /> {lead.phone}
                               </div>
-                              {!lead.whatsapp_sent && (
-                                <button
-                                  onClick={() => sendWhatsApp(i)}
-                                  disabled={lead.whatsapp_sending}
-                                  className="text-[9px] text-emerald-600 hover:underline font-semibold disabled:text-slate-400 mt-0.5"
-                                >
-                                  {lead.whatsapp_sending ? "Sending…" : "Send WhatsApp"}
-                                </button>
+                              {(lead.ai_whatsapp_message || lead.ai_first_line) && !lead.baileys_sent && !lead.baileys_error && (
+                                lead.phone && notOnWhatsapp.has(lead.phone) ? (
+                                  <span className="text-[9px] text-slate-400 block">Not on WhatsApp</span>
+                                ) : (
+                                  <button
+                                    onClick={() => sendViaBaileys(i)}
+                                    disabled={lead.baileys_sending}
+                                    className="text-[9px] text-violet-600 hover:underline font-semibold disabled:text-slate-400 mt-0.5 block"
+                                    title="Sends the AI's custom pitch text via your Baileys-connected number. Only safe if this lead has messaged you first."
+                                  >
+                                    {lead.baileys_sending ? "Sending…" : "Send via Baileys"}
+                                  </button>
+                                )
                               )}
-                              {lead.whatsapp_sent && (
-                                <div className="text-[9px] text-emerald-700 font-bold mt-0.5">✅ WhatsApp sent</div>
+                              {lead.baileys_sent && (
+                                <div className="text-[9px] text-violet-700 font-bold mt-0.5">✅ Baileys sent</div>
                               )}
-                              {lead.whatsapp_error && (
-                                <span className="text-[9px] text-rose-500" title={lead.whatsapp_error}>WhatsApp failed</span>
-                              )}
-                              {(lead.ai_whatsapp_message || lead.ai_first_line) && !lead.openwa_sent && (
-                                <button
-                                  onClick={() => sendViaOpenWa(i)}
-                                  disabled={lead.openwa_sending}
-                                  className="text-[9px] text-violet-600 hover:underline font-semibold disabled:text-slate-400 mt-0.5 block"
-                                  title="Sends the AI's custom pitch text via your OpenWA number. Only safe if this lead has messaged you first."
-                                >
-                                  {lead.openwa_sending ? "Sending…" : "Send via OpenWA"}
-                                </button>
-                              )}
-                              {lead.openwa_sent && (
-                                <div className="text-[9px] text-violet-700 font-bold mt-0.5">✅ OpenWA sent</div>
-                              )}
-                              {lead.openwa_error && (
-                                <span className="text-[9px] text-rose-500 block" title={lead.openwa_error}>OpenWA failed</span>
+                              {lead.baileys_error && (
+                                <span className="text-[9px] text-rose-500 block" title={lead.baileys_error}>
+                                  {/not registered on WhatsApp/i.test(lead.baileys_error) ? "Not on WhatsApp" : "Baileys failed"}
+                                </span>
                               )}
                             </div>
                           ) : <span className="text-xs text-slate-400">—</span>}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,8 @@ import {
   Phone,
   ArrowUpCircle,
   MailOpen,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -47,6 +49,7 @@ const workflowSteps = [
 ];
 
 export default function KyptronixProductHuntWorkflowPage() {
+  const navigate = useNavigate();
   const [pipeline, setPipeline] = useState<any>(null);
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -114,8 +117,13 @@ export default function KyptronixProductHuntWorkflowPage() {
         addLog(`✅ Workflow triggered successfully. Executing step-by-step pipeline...`, "success");
         toast({ title: "Workflow Started", description: "Product Hunt lead generation running in background." });
         
-        // Start polling for updates every 2 seconds
+        // Start polling for updates every 2 seconds. A deep "Past 10 Days" + niche-tag search
+        // can legitimately run for several minutes (per-day pagination, rate-limit retries) —
+        // the old 30-poll (60s) cutoff gave up and froze the UI on a stale mid-run snapshot
+        // while the backend kept going and finished with real results nobody ever saw.
+        // Rely on the real status instead; this cap is just a last-resort safety net.
         let pollCount = 0;
+        const MAX_POLLS = 300; // 10 minutes at 2s/poll
         const poll = setInterval(async () => {
           pollCount++;
           const latestRes = await (api as any).kyptronixPhLeads.getLatestWorkflow();
@@ -125,9 +133,12 @@ export default function KyptronixProductHuntWorkflowPage() {
             if (latestRes.data.pipeline?.logs) {
               setLogs(latestRes.data.pipeline.logs);
             }
-            if (latestRes.data.pipeline?.status !== "running" || pollCount > 30) {
+            if (latestRes.data.pipeline?.status !== "running" || pollCount > MAX_POLLS) {
               clearInterval(poll);
               setLoading(false);
+              if (pollCount > MAX_POLLS && latestRes.data.pipeline?.status === "running") {
+                addLog(`⚠️ Stopped polling after 10 minutes — the run may still be in progress on the server. Refresh to check.`, "error");
+              }
             }
           }
         }, 2000);
@@ -155,6 +166,9 @@ export default function KyptronixProductHuntWorkflowPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-12 animate-fade-in pb-20 max-w-7xl">
+      <Button variant="ghost" size="icon" onClick={() => navigate("/offerings")} className="h-9 w-9 rounded-lg">
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
       <div className="space-y-4 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-600 text-xs font-semibold uppercase tracking-wider">
           <Zap className="h-3 w-3 animate-pulse" /> Kyptronix Automations Pro
@@ -197,6 +211,7 @@ export default function KyptronixProductHuntWorkflowPage() {
                   <SelectItem value="today">Today's Launches</SelectItem>
                   <SelectItem value="yesterday">Yesterday's Launches</SelectItem>
                   <SelectItem value="week">Past Week</SelectItem>
+                  <SelectItem value="last10days">Past 10 Days</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -396,6 +411,13 @@ export default function KyptronixProductHuntWorkflowPage() {
                     <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
                       Email: {lead.email}
                     </Badge>
+                    {lead.decisionMakers?.[0]?.linkedin && lead.decisionMakers[0].linkedin !== 'Not Found' && (
+                      <a href={lead.decisionMakers[0].linkedin} target="_blank" rel="noreferrer">
+                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:underline cursor-pointer">
+                          LinkedIn: {lead.founderName}
+                        </Badge>
+                      </a>
+                    )}
                   </div>
                 </CardContent>
                 <div className="px-6 py-3 border-t border-orange-500/10 bg-orange-500/5 flex justify-between items-center">
