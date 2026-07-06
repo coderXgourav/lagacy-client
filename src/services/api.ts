@@ -563,6 +563,25 @@ export const kyptronixPhApi = {
   deleteLead: (id: string) => apiCall(`/kyptronix-ph-leads/${id}`, { method: 'DELETE' })
 };
 
+// Facebook B2B Leads API
+export const facebookB2bApi = {
+  getLeads: (status?: string, page: number = 1, limit: number = 50) => {
+    const queryParams = new URLSearchParams();
+    if (status) queryParams.append('status', status);
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    return apiCall(`/facebook-b2b?${queryParams.toString()}`);
+  },
+  triggerWorkflow: (params: { query: string, country: string, limit: number }) => 
+    apiCall('/facebook-b2b/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getLatestWorkflow: () => apiCall('/facebook-b2b/latest'),
+  deleteLead: (id: string) => apiCall(`/facebook-b2b/${id}`, { method: 'DELETE' })
+};
+
+
 // Lead Engine API
 export const leadEngineApi = {
   triggerCampaign: (params: { niche: string; country: string; limit: number; platforms: string[] }) => 
@@ -678,6 +697,7 @@ export default {
   csvFilter: csvFilterApi,
   kyptronixLeads: kyptronixApi,
   kyptronixPhLeads: kyptronixPhApi,
+  facebookB2b: facebookB2bApi,
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
   facebookAdsExtractor: facebookAdsExtractorApi,

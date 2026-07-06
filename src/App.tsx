@@ -93,6 +93,7 @@ import GoogleMapsScraperPage from "./pages/GoogleMapsScraperPage";
 import RevenueIntelligencePage from "./pages/RevenueIntelligencePage";
 import KyptronixProductHuntWorkflowPage from "./pages/KyptronixProductHuntWorkflowPage";
 import B2BCampaignPage from "./pages/B2BCampaignPage";
+import FacebookB2BCampaignPage from "./pages/FacebookB2BCampaignPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -228,6 +229,7 @@ const App = () => (
               <Route path="/kyptronix-workflow-ph" element={<ProtectedRoute><KyptronixProductHuntWorkflowPage /></ProtectedRoute>} />
               <Route path="/facebook-ads-extractor" element={<ProtectedRoute><FacebookAdsExtractorDashboard /></ProtectedRoute>} />
               <Route path="/tiktok-ads-extractor" element={<ProtectedRoute><TiktokAdsExtractorDashboard /></ProtectedRoute>} />
+              <Route path="/facebook-b2b-campaign" element={<ProtectedRoute><FacebookB2BCampaignPage /></ProtectedRoute>} />
               <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
                 <Route index element={<LeadEngineDashboard />} />
               </Route>

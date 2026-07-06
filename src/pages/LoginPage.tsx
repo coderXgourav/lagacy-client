@@ -109,6 +109,7 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">
               {isLogin ? "Sign In" : "Sign Up"}
             </Button>
+
           </form>
 
         </CardContent>

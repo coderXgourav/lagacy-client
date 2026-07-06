@@ -251,6 +251,15 @@ export default function OfferingsPage() {
       route: "/kyptronix-workflow-ph",
       beta: true,
     },
+    {
+      id: "facebook-b2b-campaign",
+      title: "Facebook Pages B2B Lead Generation",
+      description: "Generate 200–500 qualified B2B leads/day under $100/mo without Google Maps. FB Pages Scraper → Deduplication → Web Crawl → LinkedIn Comp/People → Enrichment → Verification → Tech Stack check → AI scoring → CRM push.",
+      icon: Facebook,
+      available: true,
+      route: "/facebook-b2b-campaign",
+      beta: true,
+    },
   ];
 
   return (
