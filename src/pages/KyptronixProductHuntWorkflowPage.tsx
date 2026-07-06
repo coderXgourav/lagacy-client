@@ -59,14 +59,51 @@ export default function KyptronixProductHuntWorkflowPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
 
+  const isPollingRef = useRef(false);
+
   const addLog = (msg: string, level: string = "info") => {
     setLogs(prev => [...prev, { timestamp: new Date(), message: msg, level }]);
   };
 
+  // Polls until the backend reports a real terminal status. Shared by the manual-trigger
+  // flow AND by loadPipeline on mount — a run started in a previous page load (or by someone
+  // else) has no in-memory interval tied to this page load, so without resuming polling here,
+  // a page refresh/reopen mid-run would freeze the UI on a one-time "running" snapshot forever,
+  // even once the backend actually finishes (guarded by isPollingRef so it never double-runs).
+  const pollForCompletion = () => {
+    if (isPollingRef.current) return;
+    isPollingRef.current = true;
+    setLoading(true);
+
+    let pollCount = 0;
+    const MAX_POLLS = 300; // 10 minutes at 2s/poll
+    const poll = setInterval(async () => {
+      pollCount++;
+      try {
+        const latestRes = await (api as any).kyptronixPhLeads.getLatestWorkflow();
+        if (latestRes.success && latestRes.data) {
+          setPipeline(latestRes.data.pipeline);
+          setLeads(latestRes.data.leads || []);
+          if (latestRes.data.pipeline?.logs) {
+            setLogs(latestRes.data.pipeline.logs);
+          }
+          if (latestRes.data.pipeline?.status !== "running" || pollCount > MAX_POLLS) {
+            clearInterval(poll);
+            isPollingRef.current = false;
+            setLoading(false);
+            if (pollCount > MAX_POLLS && latestRes.data.pipeline?.status === "running") {
+              addLog(`⚠️ Stopped polling after 10 minutes — the run may still be in progress on the server. Refresh to check.`, "error");
+            }
+          }
+        }
+      } catch (err) {
+        // Transient network hiccup — let the next tick retry instead of freezing polling.
+      }
+    }, 2000);
+  };
+
   const loadPipeline = async () => {
     try {
-      setLoading(true);
-      // Using direct call on client api wrapper
       const res = await (api as any).kyptronixPhLeads.getLatestWorkflow();
       if (res.success && res.data) {
         setPipeline(res.data.pipeline);
@@ -79,12 +116,13 @@ export default function KyptronixProductHuntWorkflowPage() {
           setTimeframe(res.data.pipeline.config.timeframe || "today");
           setMinUpvotes(res.data.pipeline.config.minUpvotes || 50);
         }
+        if (res.data.pipeline?.status === 'running') {
+          pollForCompletion();
+        }
       }
     } catch (err) {
       console.error(err);
       addLog("Failed to fetch pipeline status.", "error");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -116,32 +154,7 @@ export default function KyptronixProductHuntWorkflowPage() {
       if (res.success) {
         addLog(`✅ Workflow triggered successfully. Executing step-by-step pipeline...`, "success");
         toast({ title: "Workflow Started", description: "Product Hunt lead generation running in background." });
-        
-        // Start polling for updates every 2 seconds. A deep "Past 10 Days" + niche-tag search
-        // can legitimately run for several minutes (per-day pagination, rate-limit retries) —
-        // the old 30-poll (60s) cutoff gave up and froze the UI on a stale mid-run snapshot
-        // while the backend kept going and finished with real results nobody ever saw.
-        // Rely on the real status instead; this cap is just a last-resort safety net.
-        let pollCount = 0;
-        const MAX_POLLS = 300; // 10 minutes at 2s/poll
-        const poll = setInterval(async () => {
-          pollCount++;
-          const latestRes = await (api as any).kyptronixPhLeads.getLatestWorkflow();
-          if (latestRes.success && latestRes.data) {
-            setPipeline(latestRes.data.pipeline);
-            setLeads(latestRes.data.leads || []);
-            if (latestRes.data.pipeline?.logs) {
-              setLogs(latestRes.data.pipeline.logs);
-            }
-            if (latestRes.data.pipeline?.status !== "running" || pollCount > MAX_POLLS) {
-              clearInterval(poll);
-              setLoading(false);
-              if (pollCount > MAX_POLLS && latestRes.data.pipeline?.status === "running") {
-                addLog(`⚠️ Stopped polling after 10 minutes — the run may still be in progress on the server. Refresh to check.`, "error");
-              }
-            }
-          }
-        }, 2000);
+        pollForCompletion();
       }
     } catch (err: any) {
       addLog(`❌ Trigger Failed: ${err.message}`, "error");
