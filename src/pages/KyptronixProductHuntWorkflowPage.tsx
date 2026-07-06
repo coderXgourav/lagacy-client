@@ -408,13 +408,43 @@ export default function KyptronixProductHuntWorkflowPage() {
                     <Badge variant="secondary" className="bg-sky-500/10 text-sky-500 border-sky-500/20">
                       Outreach: {lead.outreachStatus}
                     </Badge>
-                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                      Email: {lead.email}
-                    </Badge>
+                    {lead.emailVerified && lead.email && (
+                      <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                        Email: {lead.email}
+                      </Badge>
+                    )}
+                    {lead.phone && lead.phone !== 'N/A' && (
+                      <a href={`tel:${lead.phone}`}>
+                        <Badge variant="secondary" className="bg-teal-500/10 text-teal-500 border-teal-500/20 hover:underline cursor-pointer">
+                          Phone: {lead.phone}
+                        </Badge>
+                      </a>
+                    )}
                     {lead.decisionMakers?.[0]?.linkedin && lead.decisionMakers[0].linkedin !== 'Not Found' && (
                       <a href={lead.decisionMakers[0].linkedin} target="_blank" rel="noreferrer">
                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:underline cursor-pointer">
                           LinkedIn: {lead.founderName}
+                        </Badge>
+                      </a>
+                    )}
+                    {lead.socialLinks?.twitter && (
+                      <a href={lead.socialLinks.twitter} target="_blank" rel="noreferrer">
+                        <Badge variant="secondary" className="bg-sky-400/10 text-sky-400 border-sky-400/20 hover:underline cursor-pointer">
+                          Twitter/X
+                        </Badge>
+                      </a>
+                    )}
+                    {lead.socialLinks?.instagram && (
+                      <a href={lead.socialLinks.instagram} target="_blank" rel="noreferrer">
+                        <Badge variant="secondary" className="bg-pink-500/10 text-pink-500 border-pink-500/20 hover:underline cursor-pointer">
+                          Instagram
+                        </Badge>
+                      </a>
+                    )}
+                    {lead.socialLinks?.facebook && (
+                      <a href={lead.socialLinks.facebook} target="_blank" rel="noreferrer">
+                        <Badge variant="secondary" className="bg-blue-700/10 text-blue-700 border-blue-700/20 hover:underline cursor-pointer">
+                          Facebook
                         </Badge>
                       </a>
                     )}
