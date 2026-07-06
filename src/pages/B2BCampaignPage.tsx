@@ -434,6 +434,7 @@ export default function B2BCampaignPage() {
     setLeads([]);
     setLog([]);
     setSteps(INITIAL_STEPS);
+    setNotOnWhatsapp(new Set());
 
     const target         = Math.min(parseInt(dailyTarget) || 25, 50);
     const scoreThreshold = parseInt(minScore) || 60;
