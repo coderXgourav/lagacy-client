@@ -59,7 +59,13 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
+  MapPin,
+  Star
 } from "lucide-react";
 
 const workflowSteps = [
@@ -605,6 +611,83 @@ export default function FacebookB2BCampaignPage() {
                 </div>
               </div>
 
+              {/* Social Media Presence */}
+              {(selectedLead.facebook || selectedLead.twitter || selectedLead.instagram || selectedLead.youtube) && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Social Media Presence</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedLead.facebook && (
+                      <a
+                        href={selectedLead.facebook}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 text-blue-400"
+                      >
+                        <Facebook className="h-3.5 w-3.5" /> Facebook
+                      </a>
+                    )}
+                    {selectedLead.twitter && (
+                      <a
+                        href={selectedLead.twitter}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 text-sky-400"
+                      >
+                        <Twitter className="h-3.5 w-3.5" /> Twitter / X
+                      </a>
+                    )}
+                    {selectedLead.instagram && (
+                      <a
+                        href={selectedLead.instagram}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 text-pink-400"
+                      >
+                        <Instagram className="h-3.5 w-3.5" /> Instagram
+                      </a>
+                    )}
+                    {selectedLead.youtube && (
+                      <a
+                        href={selectedLead.youtube}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 text-red-400"
+                      >
+                        <Youtube className="h-3.5 w-3.5" /> YouTube
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Google Business Profile */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Google Business Profile</h4>
+                {selectedLead.gmb_found ? (
+                  <a
+                    href={selectedLead.gmb_url || undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-xs bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg border border-slate-700 w-fit"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-slate-200 font-semibold">Listing found</span>
+                    {selectedLead.gmb_rating != null && (
+                      <span className="flex items-center gap-1 text-amber-400">
+                        <Star className="h-3 w-3 fill-amber-400" /> {selectedLead.gmb_rating}
+                      </span>
+                    )}
+                    <span className="text-slate-400">
+                      ({selectedLead.gmb_reviews_count} review{selectedLead.gmb_reviews_count === 1 ? "" : "s"})
+                    </span>
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 w-fit text-slate-500">
+                    <MapPin className="h-3.5 w-3.5" /> No Google Business Profile listing found
+                  </div>
+                )}
+              </div>
+
               {/* Score Breakdown weights */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lead Score Weights & Breakdown</h4>
@@ -635,6 +718,117 @@ export default function FacebookB2BCampaignPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Website Audit & Tech Stack */}
+              {(selectedLead.page_speed_score != null || selectedLead.tech_stack?.length > 0 || selectedLead.audit_issues?.length > 0) && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Website Audit & Tech Stack</h4>
+
+                  {selectedLead.page_speed_score != null && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-800 p-3 rounded border border-slate-700/50 text-center">
+                        <span className="text-slate-500 block text-[10px] uppercase">PageSpeed Score</span>
+                        <strong className={`text-lg ${
+                          selectedLead.page_speed_score >= 70 ? "text-emerald-400" :
+                          selectedLead.page_speed_score >= 40 ? "text-amber-400" : "text-red-400"
+                        }`}>
+                          {selectedLead.page_speed_score}/100
+                        </strong>
+                      </div>
+                      <div className="bg-slate-800 p-3 rounded border border-slate-700/50 text-center">
+                        <span className="text-slate-500 block text-[10px] uppercase">Load Time (mobile)</span>
+                        <strong className="text-lg text-slate-200">
+                          {selectedLead.page_load_seconds != null ? `${selectedLead.page_load_seconds}s` : "N/A"}
+                        </strong>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedLead.audit_issues?.length > 0 && (
+                    <div className="bg-slate-950/20 p-3 rounded-lg border border-slate-800">
+                      <span className="text-slate-500 text-xs uppercase block font-bold mb-1.5">Flagged Issues (real Lighthouse audit)</span>
+                      <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4">
+                        {selectedLead.audit_issues.map((issue: string, idx: number) => (
+                          <li key={idx}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedLead.tech_stack?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedLead.tech_stack.map((tech: string, idx: number) => (
+                        <Badge key={idx} variant="outline" className="text-[10px] bg-slate-800 border-slate-700 text-slate-300">
+                          {tech}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 text-xs">
+                    <span className={`flex items-center gap-1 ${selectedLead.running_meta_ads ? "text-emerald-400" : "text-slate-500"}`}>
+                      {selectedLead.running_meta_ads ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                      Meta Ads
+                    </span>
+                    <span className={`flex items-center gap-1 ${selectedLead.running_google_ads ? "text-emerald-400" : "text-slate-500"}`}>
+                      {selectedLead.running_google_ads ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                      Google Ads Tracking Detected
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Currently Running Ads — real creative pulled from Meta's public Ad Library */}
+              {selectedLead.active_ads?.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Currently Running Ads — Meta ({selectedLead.active_ads.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {selectedLead.active_ads.map((ad: { text?: string; imageUrl?: string; startDate?: string }, idx: number) => (
+                      <div key={idx} className="bg-slate-950/40 rounded-lg border border-slate-800 overflow-hidden">
+                        {ad.imageUrl && (
+                          <img src={ad.imageUrl} alt="Ad creative" className="w-full h-28 object-cover bg-slate-800" />
+                        )}
+                        <div className="p-2.5 space-y-1">
+                          {ad.text && <p className="text-xs text-slate-300 line-clamp-3">{ad.text}</p>}
+                          {ad.startDate && (
+                            <span className="text-[10px] text-slate-500 block">Running since {ad.startDate}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Currently Running Ads — real data pulled from Google's Ads Transparency Center */}
+              {selectedLead.google_ads?.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Currently Running Ads — Google ({selectedLead.google_ads.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedLead.google_ads.map((ad: { advertiser?: string; format?: string; firstShown?: string; lastShown?: string; totalDaysShown?: number; detailsLink?: string }, idx: number) => (
+                      <a
+                        key={idx}
+                        href={ad.detailsLink || undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-between text-xs bg-slate-950/40 hover:bg-slate-900 p-2.5 rounded-lg border border-slate-800"
+                      >
+                        <div>
+                          <span className="text-slate-200 font-semibold">{ad.format || "Ad"}</span>
+                          {ad.totalDaysShown != null && (
+                            <span className="text-slate-500 ml-2">Shown {ad.totalDaysShown} day{ad.totalDaysShown === 1 ? "" : "s"}</span>
+                          )}
+                        </div>
+                        {ad.lastShown && <span className="text-slate-500">Last seen {ad.lastShown.slice(0, 10)}</span>}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Recommended Service & Pain Points */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

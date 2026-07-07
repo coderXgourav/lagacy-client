@@ -260,6 +260,15 @@ export default function OfferingsPage() {
       route: "/facebook-b2b-campaign",
       beta: true,
     },
+    {
+      id: "website-intelligence-checker",
+      title: "Website Intelligence Checker",
+      description: "Upload a sheet of businesses → Website Audit (real PageSpeed score, load time, flagged issues) → Tech Stack Detection → Meta + Google Ads Check → Google Business Profile Lookup → Social Media Crawl → download the sheet back with it all added.",
+      icon: Activity,
+      available: true,
+      route: "/website-intelligence-checker",
+      beta: true,
+    },
   ];
 
   return (

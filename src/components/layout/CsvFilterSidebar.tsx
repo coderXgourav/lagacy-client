@@ -5,7 +5,8 @@ import {
     ArrowLeft,
     PhoneCall,
     Filter,
-    Mail
+    Mail,
+    Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ const navItems = [
     { to: "/csv-mobile-filter", label: "Mobile/Landline Filter", icon: Filter },
     { to: "/csv-active-checker", label: "Active Phone Checker", icon: PhoneCall },
     { to: "/csv-email-verifier", label: "Email Verifier", icon: Mail },
+    { to: "/website-intelligence-checker", label: "Website Intelligence", icon: Search },
 ];
 
 export function CsvFilterSidebar() {
