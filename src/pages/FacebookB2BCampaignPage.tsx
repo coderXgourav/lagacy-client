@@ -800,7 +800,7 @@ export default function FacebookB2BCampaignPage() {
                     Currently Running Ads — Meta ({selectedLead.active_ads.length})
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {selectedLead.active_ads.map((ad: { text?: string; imageUrl?: string; startDate?: string }, idx: number) => (
+                    {selectedLead.active_ads.map((ad: { text?: string; imageUrl?: string; startDate?: string; adLibraryUrl?: string }, idx: number) => (
                       <div key={idx} className="bg-slate-950/40 rounded-lg border border-slate-800 overflow-hidden">
                         {ad.imageUrl && (
                           <img src={ad.imageUrl} alt="Ad creative" className="w-full h-28 object-cover bg-slate-800" />
@@ -809,6 +809,13 @@ export default function FacebookB2BCampaignPage() {
                           {ad.text && <p className="text-xs text-slate-300 line-clamp-3">{ad.text}</p>}
                           {ad.startDate && (
                             <span className="text-[10px] text-slate-500 block">Running since {ad.startDate}</span>
+                          )}
+                          {ad.adLibraryUrl ? (
+                            <a href={ad.adLibraryUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-blue-400 font-medium">
+                              <ExternalLink className="h-3 w-3" /> View Ad
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-slate-500">No direct link available</span>
                           )}
                         </div>
                       </div>

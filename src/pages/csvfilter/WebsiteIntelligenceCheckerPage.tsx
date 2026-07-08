@@ -31,7 +31,7 @@ interface BusinessResult {
     runningGoogleAds: boolean;
     googleAds: { advertiser?: string; format?: string; firstShown?: string; lastShown?: string; totalDaysShown?: number; detailsLink?: string }[];
     runningMetaAds: boolean;
-    metaAds: { text?: string; imageUrl?: string; startDate?: string }[];
+    metaAds: { text?: string; imageUrl?: string; startDate?: string; adLibraryUrl?: string }[];
     gmbFound: boolean;
     gmbRating: number | null;
     gmbReviewsCount: number;
@@ -506,7 +506,16 @@ export default function WebsiteIntelligenceCheckerPage() {
                                                 {selectedResult.metaAds.map((ad, i) => (
                                                     <div key={i} className="bg-muted rounded-lg border overflow-hidden">
                                                         {ad.imageUrl && <img src={ad.imageUrl} alt="Ad" className="w-full h-20 object-cover" />}
-                                                        <div className="p-2"><p className="text-xs line-clamp-2">{ad.text}</p></div>
+                                                        <div className="p-2 space-y-1">
+                                                            <p className="text-xs line-clamp-2">{ad.text}</p>
+                                                            {ad.adLibraryUrl ? (
+                                                                <a href={ad.adLibraryUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[11px] text-primary font-medium">
+                                                                    <ExternalLink className="h-3 w-3" /> View Ad
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-[11px] text-muted-foreground">No direct link available</span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

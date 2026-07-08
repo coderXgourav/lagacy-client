@@ -316,6 +316,8 @@ export default function FundingLeadAgentPage() {
               <TableHeader>
                 <TableRow className="border-slate-800">
                   <TableHead className="text-slate-400">Company</TableHead>
+                  <TableHead className="text-slate-400">Location</TableHead>
+                  <TableHead className="text-slate-400">Website</TableHead>
                   <TableHead className="text-slate-400">Status</TableHead>
                   <TableHead className="text-slate-400">Decision Maker</TableHead>
                   <TableHead className="text-slate-400">Funding</TableHead>
@@ -329,8 +331,27 @@ export default function FundingLeadAgentPage() {
                 {filteredLeads.map((lead) => (
                   <TableRow key={lead._id} className="border-slate-800">
                     <TableCell>
-                      <div className="font-semibold text-slate-200">{lead.company}</div>
-                      <div className="text-xs text-slate-500">{lead.industry}</div>
+                      <div className="flex items-center gap-2">
+                        {lead.company_logo_url && (
+                          <img src={lead.company_logo_url} alt="" className="h-6 w-6 rounded object-cover bg-slate-800 shrink-0" />
+                        )}
+                        <div>
+                          <div className="font-semibold text-slate-200">{lead.company}</div>
+                          <div className="text-xs text-slate-500">{lead.industry}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-300">
+                      {lead.city ? `${lead.city}, ${lead.country}` : (lead.country || "—")}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {lead.website ? (
+                        <a href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                          {lead.website.replace(/^https?:\/\//, "")}
+                        </a>
+                      ) : (
+                        <span className="text-slate-500">Not found (news-discovered)</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {lead.status === "qualified" ? (
@@ -346,7 +367,15 @@ export default function FundingLeadAgentPage() {
                       <div className="text-slate-300">{lead.decision_maker || "Not found"}</div>
                       <div className="text-xs text-slate-500">{lead.decision_maker_title}</div>
                     </TableCell>
-                    <TableCell className="text-slate-300 text-sm">{lead.funding_stage || "—"}</TableCell>
+                    <TableCell className="text-slate-300 text-sm max-w-[200px]">
+                      {lead.funding_stage ? (
+                        lead.source_article_url ? (
+                          <a href={lead.source_article_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline flex items-center gap-1">
+                            <Newspaper className="h-3 w-3 shrink-0" /> <span className="truncate">{lead.funding_stage}</span>
+                          </a>
+                        ) : lead.funding_stage
+                      ) : "—"}
+                    </TableCell>
                     <TableCell className="text-emerald-400 text-sm">{lead.mobile_phone || "—"}</TableCell>
                     <TableCell>
                       {lead.status === "qualified" ? (
@@ -369,7 +398,7 @@ export default function FundingLeadAgentPage() {
                 ))}
                 {filteredLeads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-slate-500 py-8">
+                    <TableCell colSpan={10} className="text-center text-slate-500 py-8">
                       {leads.length === 0 ? "No leads yet. Configure the query and launch the campaign." : "No leads in this tab."}
                     </TableCell>
                   </TableRow>
@@ -384,7 +413,12 @@ export default function FundingLeadAgentPage() {
         <DialogContent className="max-w-3xl bg-slate-900 border-slate-800 text-slate-200">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center justify-between">
-              <span>{selectedLead?.company}</span>
+              <span className="flex items-center gap-2">
+                {selectedLead?.company_logo_url && (
+                  <img src={selectedLead.company_logo_url} alt="" className="h-7 w-7 rounded object-cover bg-slate-800" />
+                )}
+                {selectedLead?.company}
+              </span>
               {selectedLead?.status === "qualified" ? (
                 <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-mono text-xs">
                   Score: {selectedLead?.lead_score} / 100
@@ -443,6 +477,11 @@ export default function FundingLeadAgentPage() {
                 {selectedLead.crunchbase_url && (
                   <a href={selectedLead.crunchbase_url} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
                     <ExternalLink className="h-3 w-3" /> View on Crunchbase
+                  </a>
+                )}
+                {!selectedLead.crunchbase_url && selectedLead.source_article_url && (
+                  <a href={selectedLead.source_article_url} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                    <Newspaper className="h-3 w-3" /> {selectedLead.source_article_title || "View source article"}
                   </a>
                 )}
                 {selectedLead.news_mentions?.length > 0 && (
