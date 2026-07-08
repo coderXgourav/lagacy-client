@@ -809,23 +809,34 @@ export default function FacebookB2BCampaignPage() {
                     Currently Running Ads — Google ({selectedLead.google_ads.length})
                   </h4>
                   <div className="space-y-2">
-                    {selectedLead.google_ads.map((ad: { advertiser?: string; format?: string; firstShown?: string; lastShown?: string; totalDaysShown?: number; detailsLink?: string }, idx: number) => (
-                      <a
-                        key={idx}
-                        href={ad.detailsLink || undefined}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between text-xs bg-slate-950/40 hover:bg-slate-900 p-2.5 rounded-lg border border-slate-800"
-                      >
+                    {selectedLead.google_ads.map((ad: { advertiser?: string; format?: string; firstShown?: string; lastShown?: string; totalDaysShown?: number; detailsLink?: string }, idx: number) => {
+                      const summary = (
                         <div>
                           <span className="text-slate-200 font-semibold">{ad.format || "Ad"}</span>
                           {ad.totalDaysShown != null && (
                             <span className="text-slate-500 ml-2">Shown {ad.totalDaysShown} day{ad.totalDaysShown === 1 ? "" : "s"}</span>
                           )}
+                          {ad.lastShown && <span className="text-slate-500 ml-2">Last seen {ad.lastShown.slice(0, 10)}</span>}
                         </div>
-                        {ad.lastShown && <span className="text-slate-500">Last seen {ad.lastShown.slice(0, 10)}</span>}
-                      </a>
-                    ))}
+                      );
+                      return ad.detailsLink ? (
+                        <a
+                          key={idx}
+                          href={ad.detailsLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-between text-xs bg-slate-950/40 hover:bg-slate-900 p-2.5 rounded-lg border border-slate-800"
+                        >
+                          {summary}
+                          <span className="flex items-center gap-1 text-blue-400 font-medium shrink-0 ml-2"><ExternalLink className="h-3 w-3" /> View Ad</span>
+                        </a>
+                      ) : (
+                        <div key={idx} className="flex items-center justify-between text-xs bg-slate-950/40 p-2.5 rounded-lg border border-slate-800">
+                          {summary}
+                          <span className="text-slate-500 shrink-0 ml-2">No direct link available</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

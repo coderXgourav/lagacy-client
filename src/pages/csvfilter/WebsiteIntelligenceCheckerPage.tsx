@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
     Loader2, Upload, Download, ArrowLeft, RefreshCw, Play, Search,
-    CheckCircle, XCircle, MapPin, Star, Facebook, Twitter, Instagram, Youtube, Link2
+    CheckCircle, XCircle, MapPin, Star, Facebook, Twitter, Instagram, Youtube, Link2, ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -204,7 +204,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     const response = await axios.post(
                         `${API_URL}/website-intelligence/analyze-batch`,
                         { businesses: withWebsite.map(({ originalRow, ...b }) => b) },
-                        { headers: { Authorization: `Bearer ${token}` }, timeout: 180000 }
+                        { headers: { Authorization: `Bearer ${token}` }, timeout: 300000 }
                     );
                     const batchResults: Omit<BusinessResult, 'originalRow'>[] = response.data?.results || [];
                     batchResults.forEach((r, idx) => {
@@ -517,10 +517,17 @@ export default function WebsiteIntelligenceCheckerPage() {
                                         <div className="space-y-2">
                                             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Currently Running Ads — Google ({selectedResult.googleAds.length})</h4>
                                             {selectedResult.googleAds.map((ad, i) => (
-                                                <a key={i} href={ad.detailsLink} target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs bg-muted p-2 rounded-lg border">
-                                                    <span>{ad.format || 'Ad'} · Shown {ad.totalDaysShown ?? '?'} days</span>
-                                                    <span className="text-muted-foreground">Last seen {ad.lastShown?.slice(0, 10)}</span>
-                                                </a>
+                                                ad.detailsLink ? (
+                                                    <a key={i} href={ad.detailsLink} target="_blank" rel="noreferrer" className="flex items-center justify-between text-xs bg-muted hover:bg-muted/70 p-2 rounded-lg border">
+                                                        <span>{ad.format || 'Ad'} · Shown {ad.totalDaysShown ?? '?'} days · Last seen {ad.lastShown?.slice(0, 10)}</span>
+                                                        <span className="flex items-center gap-1 text-primary font-medium shrink-0 ml-2"><ExternalLink className="h-3 w-3" /> View Ad</span>
+                                                    </a>
+                                                ) : (
+                                                    <div key={i} className="flex items-center justify-between text-xs bg-muted p-2 rounded-lg border">
+                                                        <span>{ad.format || 'Ad'} · Shown {ad.totalDaysShown ?? '?'} days · Last seen {ad.lastShown?.slice(0, 10)}</span>
+                                                        <span className="text-muted-foreground shrink-0 ml-2">No direct link available</span>
+                                                    </div>
+                                                )
                                             ))}
                                         </div>
                                     )}
