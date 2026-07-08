@@ -279,7 +279,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
-                            <Search className="h-6 w-6 text-primary" /> Website Intelligence Checker
+                            <Search className="h-6 w-6 text-primary" /> Website Signal Checker
                         </h1>
                         <p className="text-muted-foreground text-sm font-medium">
                             Upload a sheet of businesses — get real website audit, ads status, tech stack, and social media back for each one.
@@ -374,7 +374,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                         </div>
                         <p className="text-xs text-muted-foreground">{parsedRows.length} row(s) detected in this sheet.</p>
                         <Button onClick={startAnalysis} className="gap-2">
-                            <Play className="h-4 w-4" /> Run Website Intelligence Check
+                            <Play className="h-4 w-4" /> Run Website Signal Check
                         </Button>
                     </CardContent>
                 </Card>

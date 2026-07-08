@@ -45,7 +45,8 @@ import {
   Filter,
   Facebook,
   Video,
-  MapPin
+  MapPin,
+  DollarSign
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -262,11 +263,20 @@ export default function OfferingsPage() {
     },
     {
       id: "website-intelligence-checker",
-      title: "Website Intelligence Checker",
+      title: "Website Signal Checker",
       description: "Upload a sheet of businesses → Website Audit (real PageSpeed score, load time, flagged issues) → Tech Stack Detection → Meta + Google Ads Check → Google Business Profile Lookup → Social Media Crawl → download the sheet back with it all added.",
       icon: Activity,
       available: true,
       route: "/website-intelligence-checker",
+      beta: true,
+    },
+    {
+      id: "funding-lead-agent",
+      title: "Funding Lead Agent",
+      description: "Discover businesses actively raising funding — no Google Search or Maps. Company Discovery (Crunchbase) → LinkedIn Company → LinkedIn People → News → Job Signals → Website Crawl → Contact Discovery → Mobile Enrichment → AI Analysis → Lead Score → Google Drive Export. Verified mobile only.",
+      icon: DollarSign,
+      available: true,
+      route: "/funding-lead-agent",
       beta: true,
     },
   ];

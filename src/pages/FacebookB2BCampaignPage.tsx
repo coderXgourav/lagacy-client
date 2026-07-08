@@ -96,6 +96,7 @@ export default function FacebookB2BCampaignPage() {
   // Form Config
   const [query, setQuery] = useState("Marketing agency");
   const [country, setCountry] = useState("US");
+  const [city, setCity] = useState("");
   const [limit, setLimit] = useState(50);
   
   // UI Tabs & details
@@ -123,6 +124,7 @@ export default function FacebookB2BCampaignPage() {
         if (res.data.pipeline?.config) {
           setQuery(res.data.pipeline.config.query || "Marketing agency");
           setCountry(res.data.pipeline.config.country || "US");
+          setCity(res.data.pipeline.config.city || "");
           setLimit(res.data.pipeline.config.limit || 50);
         }
       }
@@ -155,6 +157,7 @@ export default function FacebookB2BCampaignPage() {
       const res = await (api as any).facebookB2b.triggerWorkflow({
         query,
         country,
+        city,
         limit
       });
 
@@ -322,16 +325,28 @@ export default function FacebookB2BCampaignPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="limit" className="text-slate-300">Lead Target Limit</Label>
-                  <Input 
-                    id="limit"
-                    type="number"
-                    value={limit} 
-                    onChange={(e) => setLimit(parseInt(e.target.value) || 50)} 
+                  <Label htmlFor="city" className="text-slate-300">City (optional)</Label>
+                  <Input
+                    id="city"
+                    placeholder="e.g. New York"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
                     disabled={loading}
                     className="bg-slate-900 border-slate-700 text-slate-200 focus-visible:ring-blue-500"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="limit" className="text-slate-300">Lead Target Limit</Label>
+                <Input
+                  id="limit"
+                  type="number"
+                  value={limit}
+                  onChange={(e) => setLimit(parseInt(e.target.value) || 50)}
+                  disabled={loading}
+                  className="bg-slate-900 border-slate-700 text-slate-200 focus-visible:ring-blue-500"
+                />
               </div>
 
               <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3.5 space-y-2 text-xs">

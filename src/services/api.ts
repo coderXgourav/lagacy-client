@@ -582,6 +582,17 @@ export const facebookB2bApi = {
 };
 
 
+// Funding Lead Agent API
+export const fundingLeadApi = {
+  triggerWorkflow: (params: { query: string, country: string, city: string, limit: number }) =>
+    apiCall('/funding-leads/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getLatestWorkflow: () => apiCall('/funding-leads/latest'),
+  deleteLead: (id: string) => apiCall(`/funding-leads/${id}`, { method: 'DELETE' })
+};
+
 // Lead Engine API
 export const leadEngineApi = {
   triggerCampaign: (params: { niche: string; country: string; limit: number; platforms: string[] }) => 
@@ -698,6 +709,7 @@ export default {
   kyptronixLeads: kyptronixApi,
   kyptronixPhLeads: kyptronixPhApi,
   facebookB2b: facebookB2bApi,
+  fundingLeads: fundingLeadApi,
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
   facebookAdsExtractor: facebookAdsExtractorApi,

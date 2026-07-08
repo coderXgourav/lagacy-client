@@ -16,7 +16,7 @@ const navItems = [
     { to: "/csv-mobile-filter", label: "Mobile/Landline Filter", icon: Filter },
     { to: "/csv-active-checker", label: "Active Phone Checker", icon: PhoneCall },
     { to: "/csv-email-verifier", label: "Email Verifier", icon: Mail },
-    { to: "/website-intelligence-checker", label: "Website Intelligence", icon: Search },
+    { to: "/website-intelligence-checker", label: "Website Signal", icon: Search },
 ];
 
 export function CsvFilterSidebar() {
