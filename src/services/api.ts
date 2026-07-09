@@ -593,6 +593,26 @@ export const fundingLeadApi = {
   deleteLead: (id: string) => apiCall(`/funding-leads/${id}`, { method: 'DELETE' })
 };
 
+export const whatsappOutreachApi = {
+  triggerCampaign: (params: {
+    contacts: { name: string; email?: string; phone: string; company?: string }[];
+    sendMethod: "meta" | "baileys";
+    templateName: string;
+    languageCode: string;
+    messageText: string;
+    minDelaySec: number;
+    maxDelaySec: number;
+    batchSize: number;
+    bodyParamFields: string[];
+    maxRetries: number;
+  }) =>
+    apiCall('/whatsapp-outreach/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getLatestCampaign: () => apiCall('/whatsapp-outreach/latest'),
+};
+
 // Lead Engine API
 export const leadEngineApi = {
   triggerCampaign: (params: { niche: string; country: string; limit: number; platforms: string[] }) => 
@@ -710,6 +730,7 @@ export default {
   kyptronixPhLeads: kyptronixPhApi,
   facebookB2b: facebookB2bApi,
   fundingLeads: fundingLeadApi,
+  whatsappOutreach: whatsappOutreachApi,
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
   facebookAdsExtractor: facebookAdsExtractorApi,

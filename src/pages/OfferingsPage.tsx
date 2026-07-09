@@ -46,7 +46,8 @@ import {
   Facebook,
   Video,
   MapPin,
-  DollarSign
+  DollarSign,
+  MessageCircle
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -277,6 +278,15 @@ export default function OfferingsPage() {
       icon: DollarSign,
       available: true,
       route: "/funding-lead-agent",
+      beta: true,
+    },
+    {
+      id: "whatsapp-outreach",
+      title: "WhatsApp Outreach Workflow",
+      description: "Upload a CSV and run real bulk WhatsApp outreach via the official WhatsApp Business Cloud API — clean & validate, check phone format, dedupe, batch, pace with random delays, personalize, send, save status, and retry failures.",
+      icon: MessageCircle,
+      available: true,
+      route: "/whatsapp-outreach",
       beta: true,
     },
   ];

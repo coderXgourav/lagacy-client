@@ -96,6 +96,7 @@ import KyptronixProductHuntWorkflowPage from "./pages/KyptronixProductHuntWorkfl
 import B2BCampaignPage from "./pages/B2BCampaignPage";
 import FacebookB2BCampaignPage from "./pages/FacebookB2BCampaignPage";
 import FundingLeadAgentPage from "./pages/FundingLeadAgentPage";
+import WhatsAppOutreachPage from "./pages/WhatsAppOutreachPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -236,6 +237,7 @@ const App = () => (
               <Route path="/tiktok-ads-extractor" element={<ProtectedRoute><TiktokAdsExtractorDashboard /></ProtectedRoute>} />
               <Route path="/facebook-b2b-campaign" element={<ProtectedRoute><FacebookB2BCampaignPage /></ProtectedRoute>} />
               <Route path="/funding-lead-agent" element={<ProtectedRoute><FundingLeadAgentPage /></ProtectedRoute>} />
+              <Route path="/whatsapp-outreach" element={<ProtectedRoute><WhatsAppOutreachPage /></ProtectedRoute>} />
               <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
                 <Route index element={<LeadEngineDashboard />} />
               </Route>
