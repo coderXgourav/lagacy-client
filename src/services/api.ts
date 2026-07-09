@@ -613,6 +613,21 @@ export const whatsappOutreachApi = {
   getLatestCampaign: () => apiCall('/whatsapp-outreach/latest'),
 };
 
+export const linkedinConnectApi = {
+  triggerCampaign: (params: {
+    contacts: { email: string; name?: string; company?: string }[];
+    inviteMessage: string;
+    dailyLimit: number;
+    minDelaySec: number;
+    maxDelaySec: number;
+  }) =>
+    apiCall('/linkedin-connect/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getLatestCampaign: () => apiCall('/linkedin-connect/latest'),
+};
+
 // Lead Engine API
 export const leadEngineApi = {
   triggerCampaign: (params: { niche: string; country: string; limit: number; platforms: string[] }) => 
@@ -731,6 +746,7 @@ export default {
   facebookB2b: facebookB2bApi,
   fundingLeads: fundingLeadApi,
   whatsappOutreach: whatsappOutreachApi,
+  linkedinConnect: linkedinConnectApi,
   leadEngine: leadEngineApi,
   intelligence: intelligenceApi,
   facebookAdsExtractor: facebookAdsExtractorApi,

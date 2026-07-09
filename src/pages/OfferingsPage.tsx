@@ -47,7 +47,8 @@ import {
   Video,
   MapPin,
   DollarSign,
-  MessageCircle
+  MessageCircle,
+  Linkedin
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -287,6 +288,15 @@ export default function OfferingsPage() {
       icon: MessageCircle,
       available: true,
       route: "/whatsapp-outreach",
+      beta: true,
+    },
+    {
+      id: "linkedin-connect",
+      title: "LinkedIn Connect Workflow",
+      description: "Upload a CSV of emails, resolve real LinkedIn profiles (Prospeo), validate them (Apify), and send real connection requests via PhantomBuster — with a hard daily cap and randomized delays enforced. Real ToS/ban risk — read the in-app warning before using.",
+      icon: Linkedin,
+      available: true,
+      route: "/linkedin-connect",
       beta: true,
     },
   ];
