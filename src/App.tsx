@@ -98,6 +98,7 @@ import FacebookB2BCampaignPage from "./pages/FacebookB2BCampaignPage";
 import FundingLeadAgentPage from "./pages/FundingLeadAgentPage";
 import WhatsAppOutreachPage from "./pages/WhatsAppOutreachPage";
 import LinkedInConnectPage from "./pages/LinkedInConnectPage";
+import MobileLeadAgentPage from "./pages/MobileLeadAgentPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -240,6 +241,7 @@ const App = () => (
               <Route path="/funding-lead-agent" element={<ProtectedRoute><FundingLeadAgentPage /></ProtectedRoute>} />
               <Route path="/whatsapp-outreach" element={<ProtectedRoute><WhatsAppOutreachPage /></ProtectedRoute>} />
               <Route path="/linkedin-connect" element={<ProtectedRoute><LinkedInConnectPage /></ProtectedRoute>} />
+              <Route path="/mobile-lead-agent" element={<ProtectedRoute><MobileLeadAgentPage /></ProtectedRoute>} />
               <Route path="/lead-engine" element={<ProtectedRoute><LeadEngineLayout /></ProtectedRoute>}>
                 <Route index element={<LeadEngineDashboard />} />
               </Route>

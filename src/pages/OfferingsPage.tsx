@@ -48,7 +48,8 @@ import {
   MapPin,
   DollarSign,
   MessageCircle,
-  Linkedin
+  Linkedin,
+  Smartphone
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -297,6 +298,15 @@ export default function OfferingsPage() {
       icon: Linkedin,
       available: true,
       route: "/linkedin-connect",
+      beta: true,
+    },
+    {
+      id: "mobile-lead-agent",
+      title: "Mobile Lead Agent",
+      description: "Generate qualified mobile-app leads (US, Canada, UK, Australia) — no Google Search or Maps. Yellow Pages Discovery → LinkedIn Company → LinkedIn People → Job Signals → Website Crawl (tech stack + app-store detection) → Mobile Enrichment (hard gate) → AI Analysis → Lead Score (80+ only) → Drive XLSX Export → on-demand CEO PDF Summary.",
+      icon: Smartphone,
+      available: true,
+      route: "/mobile-lead-agent",
       beta: true,
     },
   ];

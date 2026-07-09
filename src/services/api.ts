@@ -593,6 +593,33 @@ export const fundingLeadApi = {
   deleteLead: (id: string) => apiCall(`/funding-leads/${id}`, { method: 'DELETE' })
 };
 
+// Mobile Lead Agent API
+export const mobileLeadApi = {
+  triggerWorkflow: (params: { niche: string, country: string, city: string, limit: number }) =>
+    apiCall('/mobile-leads/trigger', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+  getLatestWorkflow: () => apiCall('/mobile-leads/latest'),
+  deleteLead: (id: string) => apiCall(`/mobile-leads/${id}`, { method: 'DELETE' }),
+  downloadLeadPdf: async (id: string, companyName: string) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/mobile-leads/${id}/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error('Failed to generate PDF summary');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${companyName.replace(/[^a-z0-9]/gi, '_')}-summary.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
+};
+
 export const whatsappOutreachApi = {
   triggerCampaign: (params: {
     contacts: { name: string; email?: string; phone: string; company?: string }[];
@@ -745,6 +772,7 @@ export default {
   kyptronixPhLeads: kyptronixPhApi,
   facebookB2b: facebookB2bApi,
   fundingLeads: fundingLeadApi,
+  mobileLeads: mobileLeadApi,
   whatsappOutreach: whatsappOutreachApi,
   linkedinConnect: linkedinConnectApi,
   leadEngine: leadEngineApi,
