@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
     Loader2, Upload, Download, ArrowLeft, RefreshCw, Play, Search,
-    CheckCircle, XCircle, MapPin, Star, Facebook, Twitter, Instagram, Youtube, Link2, ExternalLink
+    CheckCircle, XCircle, MinusCircle, MapPin, Star, Facebook, Twitter, Instagram, Youtube, Link2, ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -31,6 +31,7 @@ interface BusinessResult {
     runningGoogleAds: boolean;
     googleAds: { advertiser?: string; format?: string; firstShown?: string; lastShown?: string; totalDaysShown?: number; detailsLink?: string }[];
     runningMetaAds: boolean;
+    metaAdsChecked: boolean;
     metaAds: { text?: string; imageUrl?: string; startDate?: string; adLibraryUrl?: string }[];
     gmbFound: boolean;
     gmbRating: number | null;
@@ -193,7 +194,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     company: b.company, website: '', isLive: false, error: 'No website provided',
                     pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
                     runningGoogleAdsTracking: false, runningGoogleAds: false, googleAds: [],
-                    runningMetaAds: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
+                    runningMetaAds: false, metaAdsChecked: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                     socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                     originalRow: b.originalRow,
                 });
@@ -216,7 +217,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                             company: b.company, website: b.website, isLive: false, error: err.message || 'Request failed',
                             pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
                             runningGoogleAdsTracking: false, runningGoogleAds: false, googleAds: [],
-                            runningMetaAds: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
+                            runningMetaAds: false, metaAdsChecked: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                             socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                             originalRow: b.originalRow,
                         });
@@ -239,7 +240,7 @@ export default function WebsiteIntelligenceCheckerPage() {
             'Load Time (s)': r.loadTimeSeconds ?? 'N/A',
             'Flagged Issues': r.auditIssues.join('; '),
             'Technology': r.techStack.join(', '),
-            'Meta Ads Running': r.runningMetaAds ? 'YES' : 'NO',
+            'Meta Ads Running': r.runningMetaAds ? 'YES' : (r.metaAdsChecked ? 'NO' : 'NOT CHECKED (no Facebook Page found)'),
             'Google Ads Running': r.runningGoogleAds ? 'YES' : 'NO',
             'Google Business Profile': r.gmbFound ? `${r.gmbRating ?? 'N/A'}★ (${r.gmbReviewsCount} reviews)` : 'Not found',
             'Facebook': r.socialLinks.facebook,
@@ -425,7 +426,12 @@ export default function WebsiteIntelligenceCheckerPage() {
                                             <TableCell>{r.techStack.length > 0 ? r.techStack.join(', ') : '—'}</TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2 text-xs">
-                                                    <span className={r.runningMetaAds ? 'text-emerald-600' : 'text-muted-foreground'}>Meta {r.runningMetaAds ? '✓' : '✗'}</span>
+                                                    <span
+                                                        className={r.runningMetaAds ? 'text-emerald-600' : 'text-muted-foreground'}
+                                                        title={!r.metaAdsChecked ? 'Not checked — no Facebook Page URL was found for this business' : undefined}
+                                                    >
+                                                        Meta {r.runningMetaAds ? '✓' : (r.metaAdsChecked ? '✗' : '—')}
+                                                    </span>
                                                     <span className={r.runningGoogleAds ? 'text-emerald-600' : 'text-muted-foreground'}>Google {r.runningGoogleAds ? '✓' : '✗'}</span>
                                                 </div>
                                             </TableCell>
@@ -479,8 +485,11 @@ export default function WebsiteIntelligenceCheckerPage() {
                                             </div>
                                         )}
                                         <div className="flex gap-4 text-xs">
-                                            <span className={`flex items-center gap-1 ${selectedResult.runningMetaAds ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                                                {selectedResult.runningMetaAds ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />} Meta Ads
+                                            <span
+                                                className={`flex items-center gap-1 ${selectedResult.runningMetaAds ? 'text-emerald-600' : 'text-muted-foreground'}`}
+                                                title={!selectedResult.metaAdsChecked ? 'Not checked — no Facebook Page URL was found for this business' : undefined}
+                                            >
+                                                {selectedResult.runningMetaAds ? <CheckCircle className="h-3.5 w-3.5" /> : selectedResult.metaAdsChecked ? <XCircle className="h-3.5 w-3.5" /> : <MinusCircle className="h-3.5 w-3.5" />} Meta Ads{!selectedResult.metaAdsChecked && ' (not checked)'}
                                             </span>
                                             <span className={`flex items-center gap-1 ${selectedResult.runningGoogleAds ? 'text-emerald-600' : 'text-muted-foreground'}`}>
                                                 {selectedResult.runningGoogleAds ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />} Google Ads
