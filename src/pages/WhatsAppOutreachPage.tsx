@@ -41,6 +41,7 @@ import {
   Play,
   RefreshCw,
   Loader2,
+  Download,
 } from "lucide-react";
 
 const BAILEYS_API = `${(import.meta as any).env.VITE_API_URL ?? "http://localhost:8000/api"}/revenue-intelligence`;
@@ -309,6 +310,31 @@ export default function WhatsAppOutreachPage() {
   const filteredContacts = filterTab === "all" ? contacts
     : filterTab === "skipped" ? contacts.filter(c => c.status?.startsWith("skipped"))
     : contacts.filter(c => c.status === filterTab);
+
+  const handleDownloadContacts = () => {
+    if (contacts.length === 0) {
+      toast({ title: "Nothing to download", description: "No contacts yet — upload a CSV and run a campaign first." });
+      return;
+    }
+    const rows = contacts.map((c) => ({
+      Name: c.name || "",
+      Phone: c.phone || c.rawPhone || "",
+      Company: c.company || "",
+      Status: c.status || "",
+      Detail: c.status === "sent" ? `Message ID: ${c.whatsappMessageId || ""}` : (c.error || ""),
+      Retries: c.retryCount || 0,
+    }));
+    const csv = Papa.unparse(rows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `whatsapp-outreach-contacts-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const statusBadge = (status: string) => {
     if (status === "sent") return <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30">Sent</Badge>;
@@ -599,11 +625,14 @@ export default function WhatsAppOutreachPage() {
                   <CardTitle className="text-slate-200 text-base">Contacts</CardTitle>
                   <CardDescription className="text-slate-500 text-xs">{pendingCount} pending · {sentCount} sent · {failedCount} failed · {skippedCount} skipped</CardDescription>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <Badge onClick={() => setFilterTab("all")} className={`cursor-pointer ${filterTab === "all" ? "bg-emerald-600" : "bg-slate-800 text-slate-400"}`}>All ({contacts.length})</Badge>
                   <Badge onClick={() => setFilterTab("sent")} className={`cursor-pointer ${filterTab === "sent" ? "bg-emerald-600" : "bg-slate-800 text-slate-400"}`}>Sent ({sentCount})</Badge>
                   <Badge onClick={() => setFilterTab("failed")} className={`cursor-pointer ${filterTab === "failed" ? "bg-red-600" : "bg-slate-800 text-slate-400"}`}>Failed ({failedCount})</Badge>
                   <Badge onClick={() => setFilterTab("skipped")} className={`cursor-pointer ${filterTab === "skipped" ? "bg-amber-600" : "bg-slate-800 text-slate-400"}`}>Skipped ({skippedCount})</Badge>
+                  <Button size="sm" variant="outline" onClick={handleDownloadContacts} className="border-slate-700 text-slate-300 gap-1.5 ml-1">
+                    <Download className="h-3.5 w-3.5" /> Download CSV
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
