@@ -342,7 +342,16 @@ export default function FundingLeadAgentPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-slate-300">
-                      {lead.city ? `${lead.city}, ${lead.country}` : (lead.country || "—")}
+                      {lead.location_verified ? (
+                        lead.city ? `${lead.city}, ${lead.country}` : (lead.country || "—")
+                      ) : (
+                        <span
+                          className="text-slate-500 italic"
+                          title={`Not confirmed — this is just the search filter (${[lead.city, lead.country].filter(Boolean).join(", ") || "—"}), not a verified location for this specific company. News-based discovery doesn't confirm company HQ location.`}
+                        >
+                          Unverified
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">
                       {lead.website ? (

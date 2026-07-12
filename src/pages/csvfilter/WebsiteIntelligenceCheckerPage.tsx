@@ -29,6 +29,7 @@ interface BusinessResult {
     techStack: string[];
     runningGoogleAdsTracking: boolean;
     runningGoogleAds: boolean;
+    googleAdsChecked: boolean;
     googleAds: { advertiser?: string; format?: string; firstShown?: string; lastShown?: string; totalDaysShown?: number; detailsLink?: string }[];
     runningMetaAds: boolean;
     metaAdsChecked: boolean;
@@ -193,7 +194,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                 collected.push({
                     company: b.company, website: '', isLive: false, error: 'No website provided',
                     pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
-                    runningGoogleAdsTracking: false, runningGoogleAds: false, googleAds: [],
+                    runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
                     runningMetaAds: false, metaAdsChecked: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                     socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                     originalRow: b.originalRow,
@@ -216,7 +217,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                         collected.push({
                             company: b.company, website: b.website, isLive: false, error: err.message || 'Request failed',
                             pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
-                            runningGoogleAdsTracking: false, runningGoogleAds: false, googleAds: [],
+                            runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
                             runningMetaAds: false, metaAdsChecked: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                             socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                             originalRow: b.originalRow,
@@ -241,7 +242,7 @@ export default function WebsiteIntelligenceCheckerPage() {
             'Flagged Issues': r.auditIssues.join('; '),
             'Technology': r.techStack.join(', '),
             'Meta Ads Running': r.runningMetaAds ? 'YES' : (r.metaAdsChecked ? 'NO' : 'NOT CHECKED (no Facebook Page found)'),
-            'Google Ads Running': r.runningGoogleAds ? 'YES' : 'NO',
+            'Google Ads Running': r.runningGoogleAds ? 'YES' : (r.googleAdsChecked ? 'NO' : 'NOT CHECKED (Ads Transparency quota exceeded)'),
             'Google Business Profile': r.gmbFound ? `${r.gmbRating ?? 'N/A'}★ (${r.gmbReviewsCount} reviews)` : 'Not found',
             'Facebook': r.socialLinks.facebook,
             'Twitter': r.socialLinks.twitter,
@@ -432,7 +433,12 @@ export default function WebsiteIntelligenceCheckerPage() {
                                                     >
                                                         Meta {r.runningMetaAds ? '✓' : (r.metaAdsChecked ? '✗' : '—')}
                                                     </span>
-                                                    <span className={r.runningGoogleAds ? 'text-emerald-600' : 'text-muted-foreground'}>Google {r.runningGoogleAds ? '✓' : '✗'}</span>
+                                                    <span
+                                                        className={r.runningGoogleAds ? 'text-emerald-600' : 'text-muted-foreground'}
+                                                        title={!r.runningGoogleAds && !r.googleAdsChecked ? 'Not checked — Ads Transparency Center lookup unavailable (quota exceeded)' : undefined}
+                                                    >
+                                                        Google {r.runningGoogleAds ? '✓' : (r.googleAdsChecked ? '✗' : '—')}
+                                                    </span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -491,8 +497,11 @@ export default function WebsiteIntelligenceCheckerPage() {
                                             >
                                                 {selectedResult.runningMetaAds ? <CheckCircle className="h-3.5 w-3.5" /> : selectedResult.metaAdsChecked ? <XCircle className="h-3.5 w-3.5" /> : <MinusCircle className="h-3.5 w-3.5" />} Meta Ads{!selectedResult.metaAdsChecked && ' (not checked)'}
                                             </span>
-                                            <span className={`flex items-center gap-1 ${selectedResult.runningGoogleAds ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                                                {selectedResult.runningGoogleAds ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />} Google Ads
+                                            <span
+                                                className={`flex items-center gap-1 ${selectedResult.runningGoogleAds ? 'text-emerald-600' : 'text-muted-foreground'}`}
+                                                title={!selectedResult.runningGoogleAds && !selectedResult.googleAdsChecked ? 'Not checked — Ads Transparency Center lookup unavailable (quota exceeded)' : undefined}
+                                            >
+                                                {selectedResult.runningGoogleAds ? <CheckCircle className="h-3.5 w-3.5" /> : selectedResult.googleAdsChecked ? <XCircle className="h-3.5 w-3.5" /> : <MinusCircle className="h-3.5 w-3.5" />} Google Ads{!selectedResult.runningGoogleAds && !selectedResult.googleAdsChecked && ' (not checked)'}
                                             </span>
                                         </div>
                                     </div>
