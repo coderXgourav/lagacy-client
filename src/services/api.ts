@@ -623,7 +623,7 @@ export const mobileLeadApi = {
 export const whatsappOutreachApi = {
   triggerCampaign: (params: {
     contacts: { name: string; email?: string; phone: string; company?: string }[];
-    sendMethod: "meta" | "baileys";
+    sendMethod: "meta" | "nexbotix";
     templateName: string;
     languageCode: string;
     messageText: string;

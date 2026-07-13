@@ -40,11 +40,8 @@ import {
   ArrowLeft,
   Play,
   RefreshCw,
-  Loader2,
   Download,
 } from "lucide-react";
-
-const BAILEYS_API = `${(import.meta as any).env.VITE_API_URL ?? "http://localhost:8000/api"}/revenue-intelligence`;
 
 type Step = "upload" | "configure" | "processing" | "results";
 
@@ -88,55 +85,17 @@ export default function WhatsAppOutreachPage() {
   const [campaign, setCampaign] = useState<any>(null);
   const [contacts, setContacts] = useState<any[]>([]);
   const [whatsappConfigured, setWhatsappConfigured] = useState(true);
-  const [baileysConnected, setBaileysConnected] = useState(false);
+  const [nexbotixConfigured, setNexbotixConfigured] = useState(true);
   const [loading, setLoading] = useState(false);
   const [filterTab, setFilterTab] = useState<"all" | "sent" | "failed" | "skipped">("all");
 
-  const [sendMethod, setSendMethod] = useState<"meta" | "baileys">("meta");
+  const [sendMethod, setSendMethod] = useState<"meta" | "nexbotix">("meta");
   const [messageText, setMessageText] = useState(
     "Hi {{name}}, we noticed your business may benefit from our automation services. Would you like a free consultation?"
   );
 
-  const [baileysStatus, setBaileysStatus] = useState<string | null>(null);
-  const [baileysPhone, setBaileysPhone] = useState<string | null>(null);
-  const [baileysQr, setBaileysQr] = useState<string | null>(null);
-  const [baileysError, setBaileysError] = useState<string | null>(null);
-
   const logEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const refreshBaileysStatus = async () => {
-    try {
-      const r = await fetch(`${BAILEYS_API}/baileys-status`);
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-      setBaileysStatus(data.status);
-      setBaileysPhone(data.phone || null);
-      setBaileysError(null);
-      setBaileysConnected(data.status === "connected");
-      if (data.status === "qr_ready") {
-        const qrRes = await fetch(`${BAILEYS_API}/baileys-qr`);
-        const qrData = await qrRes.json();
-        if (qrRes.ok) setBaileysQr(qrData.qrCode || null);
-      } else {
-        setBaileysQr(null);
-      }
-    } catch (e: unknown) {
-      setBaileysError(e instanceof Error ? e.message : "Failed to check Baileys status");
-    }
-  };
-
-  const restartBaileysSession = async () => {
-    setBaileysError(null);
-    try {
-      const r = await fetch(`${BAILEYS_API}/baileys-restart`, { method: "POST" });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-      setTimeout(refreshBaileysStatus, 2000);
-    } catch (e: unknown) {
-      setBaileysError(e instanceof Error ? e.message : "Failed to restart session");
-    }
-  };
 
   const loadLatest = async () => {
     try {
@@ -145,7 +104,7 @@ export default function WhatsAppOutreachPage() {
         setCampaign(res.data.campaign);
         setContacts(res.data.contacts || []);
         setWhatsappConfigured(res.data.whatsappConfigured);
-        setBaileysConnected(!!res.data.baileysConnected);
+        setNexbotixConfigured(!!res.data.nexbotixConfigured);
         return res.data.campaign;
       }
     } catch (err) {
@@ -155,15 +114,6 @@ export default function WhatsAppOutreachPage() {
   };
 
   useEffect(() => { loadLatest(); }, []);
-  useEffect(() => {
-    // Polls regardless of which send method is currently selected, so the connection
-    // panel is always accurate the moment the page loads — not gated behind uploading a
-    // CSV first and picking Baileys, which is what made the QR seem "missing" before.
-    refreshBaileysStatus();
-    const interval = setInterval(refreshBaileysStatus, 5000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   useEffect(() => {
     if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [campaign?.logs]);
@@ -252,12 +202,12 @@ export default function WhatsAppOutreachPage() {
       toast({ title: "Template name is required — Meta requires a pre-approved template for cold outreach.", variant: "destructive" });
       return;
     }
-    if (sendMethod === "baileys" && !messageText.trim()) {
+    if (sendMethod === "nexbotix" && !messageText.trim()) {
       toast({ title: "Message text is required.", variant: "destructive" });
       return;
     }
-    if (sendMethod === "baileys" && !baileysConnected) {
-      toast({ title: "Baileys is not connected", description: "Scan the QR code first, or switch to Meta Cloud API.", variant: "destructive" });
+    if (sendMethod === "nexbotix" && !nexbotixConfigured) {
+      toast({ title: "NexBotix WhatsApp API is not configured", description: "Set NEXBOTIX_API_KEY in the server .env, or switch to Meta Cloud API.", variant: "destructive" });
       return;
     }
 
@@ -371,55 +321,11 @@ export default function WhatsAppOutreachPage() {
           </div>
         )}
 
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader>
-            <CardTitle className="text-slate-200 flex items-center gap-2 text-base">
-              <MessageCircle className="h-4 w-4 text-emerald-400" /> WhatsApp Connection (Baileys)
-            </CardTitle>
-            <CardDescription className="text-slate-500 text-xs">
-              Only needed if you plan to use Baileys as the Send Method below — the Meta Cloud API doesn't need this.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-amber-300 text-xs mb-3">⚠️ This project's Baileys session has already been banned once for lighter automated behavior than bulk outreach — real risk to this number.</div>
-
-            {baileysError && (
-              <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded p-2 mb-2">{baileysError}</div>
-            )}
-
-            {baileysStatus === "connected" ? (
-              <div className="text-center py-3">
-                <div className="text-2xl mb-1">✅</div>
-                <div className="text-sm font-semibold text-emerald-400">Connected</div>
-                {baileysPhone && <div className="text-xs text-slate-500 mt-1">{baileysPhone}</div>}
-              </div>
-            ) : baileysQr ? (
-              <div className="text-center">
-                <img src={baileysQr} alt="WhatsApp QR Code" className="mx-auto w-48 h-48 border border-slate-700 rounded bg-white p-1" />
-                <p className="text-xs text-slate-500 mt-2">
-                  Open WhatsApp on your phone → Settings → Linked Devices → Link a Device, then scan this code.
-                </p>
-                <p className="text-[10px] text-slate-600 mt-1 flex items-center justify-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Waiting for scan — refreshes every 5s…
-                </p>
-              </div>
-            ) : (!baileysStatus || baileysStatus === "connecting") ? (
-              <div className="text-center py-3">
-                <Loader2 className="h-5 w-5 animate-spin text-emerald-500 mx-auto mb-2" />
-                <div className="text-sm text-slate-500">
-                  {baileysStatus === "connecting" ? "Linking device…" : "Checking connection…"}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-3">
-                <div className="text-sm text-slate-500 mb-2">Status: {baileysStatus}</div>
-                <Button size="sm" onClick={restartBaileysSession} className="text-xs bg-emerald-600 hover:bg-emerald-700">
-                  Generate QR Code
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {!nexbotixConfigured && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-300">
+            ⚠️ NexBotix WhatsApp API is not configured yet (NEXBOTIX_API_KEY missing in .env) — you can still upload and configure a campaign, but sends via NexBotix will fail until this is set, and until a WhatsApp number is connected on nexbotix.online/developer.
+          </div>
+        )}
 
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
@@ -521,18 +427,18 @@ export default function WhatsAppOutreachPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-slate-300">Send Method</Label>
-                  <Select value={sendMethod} onValueChange={(v) => setSendMethod(v as "meta" | "baileys")}>
+                  <Select value={sendMethod} onValueChange={(v) => setSendMethod(v as "meta" | "nexbotix")}>
                     <SelectTrigger className="bg-slate-950 border-slate-700"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
                       <SelectItem value="meta">Meta Cloud API (official, template required)</SelectItem>
-                      <SelectItem value="baileys">Baileys (unofficial, freeform text, real ban risk)</SelectItem>
+                      <SelectItem value="nexbotix">NexBotix API (freeform text)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {sendMethod === "baileys" && (
-                  <div className={`rounded-lg p-3 text-xs border ${baileysConnected ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-300" : "bg-red-500/5 border-red-500/30 text-red-300"}`}>
-                    {baileysConnected ? `✔️ Baileys is connected${baileysPhone ? ` as ${baileysPhone}` : ""}.` : "⚠️ Baileys is NOT connected — see the WhatsApp Connection panel above to scan the QR code."}
+                {sendMethod === "nexbotix" && (
+                  <div className={`rounded-lg p-3 text-xs border ${nexbotixConfigured ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-300" : "bg-red-500/5 border-red-500/30 text-red-300"}`}>
+                    {nexbotixConfigured ? "✔️ NexBotix API key is configured." : "⚠️ NexBotix API key is NOT configured — set NEXBOTIX_API_KEY in the server .env."} Make sure a WhatsApp number is connected at nexbotix.online/developer before sending.
                   </div>
                 )}
 
