@@ -55,6 +55,7 @@ import {
   Youtube,
   CheckCircle,
   XCircle,
+  History,
 } from "lucide-react";
 
 const workflowSteps = [
@@ -90,6 +91,46 @@ export default function FundingLeadAgentPage() {
 
   const [logs, setLogs] = useState<any[]>([]);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await (api as any).fundingLeads.getHistory();
+      if (res.success) setHistoryList(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openHistoryRun = async (id: string) => {
+    setShowHistory(false);
+    setLoading(true);
+    try {
+      const res = await (api as any).fundingLeads.getHistoryById(id);
+      if (res.success && res.data) {
+        setPipeline(res.data.pipeline);
+        setLeads(res.data.leads || []);
+        if (res.data.pipeline?.logs) setLogs(res.data.pipeline.logs);
+        if (res.data.pipeline?.config) {
+          setQuery(res.data.pipeline.config.query || "SaaS");
+          setCountry(res.data.pipeline.config.country || "US");
+          setCity(res.data.pipeline.config.city || "");
+          setLimit(res.data.pipeline.config.limit || 25);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Failed to load that run", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadPipeline = async () => {
     try {
@@ -174,9 +215,41 @@ export default function FundingLeadAgentPage() {
               <p className="text-slate-400 text-sm">14-Step Autonomous Funding-Signal Lead Generation Pipeline (Under $100/mo)</p>
             </div>
           </div>
-          <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 font-mono text-xs">
-            NO GOOGLE SEARCH / MAPS — VERIFIED MOBILE ONLY
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/30 font-mono text-xs">
+              NO GOOGLE SEARCH / MAPS — VERIFIED MOBILE ONLY
+            </Badge>
+            <div className="relative">
+              <Button
+                variant="outline" size="sm"
+                onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+                className="gap-2 border-slate-700"
+              >
+                <History className="h-4 w-4" /> History
+              </Button>
+              {showHistory && (
+                <div className="absolute right-0 mt-2 w-96 max-h-96 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 p-2">
+                  {loadingHistory && <p className="text-xs text-slate-500 p-2">Loading past runs…</p>}
+                  {!loadingHistory && historyList.length === 0 && (
+                    <p className="text-xs text-slate-500 p-2">No past runs yet.</p>
+                  )}
+                  {historyList.map((h) => (
+                    <button
+                      key={h._id}
+                      onClick={() => openHistoryRun(h._id)}
+                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-800 text-xs border-b border-slate-800 last:border-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-200">{h.config?.query || "(no query)"}{h.config?.city ? ` · ${h.config.city}` : ""}</span>
+                        <Badge className={`text-[10px] ${h.status === "completed" ? "bg-emerald-500/15 text-emerald-400" : h.status === "failed" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400"}`}>{h.status}</Badge>
+                      </div>
+                      <div className="text-slate-500 mt-0.5">{new Date(h.createdAt).toLocaleString()} · {h.qualifiedCount} qualified / {h.totalCount} total</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <Card className="bg-slate-900 border-slate-800">

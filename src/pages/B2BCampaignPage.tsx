@@ -217,6 +217,49 @@ export default function B2BCampaignPage() {
   const [expandedFbAds, setExpandedFbAds] = useState<Record<number, boolean>>({});
   const [expandedPageSpeed, setExpandedPageSpeed] = useState<Record<number, boolean>>({});
 
+  // ── History (past runs) ──────────────────────────────────────────────────────
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`${API}/campaign-history`).then(r => r.json());
+      if (res.success) setHistoryList(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openHistoryRun = async (id: string) => {
+    setShowHistory(false);
+    try {
+      const res = await fetch(`${API}/campaign-history/${id}`).then(r => r.json());
+      if (res.success && res.data) {
+        const run = res.data;
+        setCampaignName(run.campaignName || "");
+        setLeads(run.leads || []);
+        setLog(run.logs || []);
+        if (run.config) {
+          setIndustry(run.config.industry || "");
+          setService(run.config.service || "");
+          setCountry(run.config.country || "");
+          setState_(run.config.state || "");
+          setEmployeesMin(run.config.employeesMin || "");
+          setEmployeesMax(run.config.employeesMax || "");
+          setDailyTarget(run.config.dailyTarget || "25");
+          setMinScore(run.config.minScore || "60");
+          if (run.config.selectedRoles) setSelectedRoles(run.config.selectedRoles);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load that run:", err);
+    }
+  };
+
   // ── WhatsApp (Baileys) connection state ──────────────────────────────────────
   const [showWhatsappPanel, setShowWhatsappPanel] = useState(false);
   const [whatsappStatus, setWhatsappStatus] = useState<string | null>(null);
@@ -457,10 +500,16 @@ export default function B2BCampaignPage() {
       const compRes = await fetch(`${API}/apollo-company-search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ industry, country, state: state || undefined, perPage: target }),
+        body: JSON.stringify({
+          industry, country, state: state || undefined, perPage: target,
+          employeesMin: employeesMin || undefined, employeesMax: employeesMax || undefined,
+        }),
       });
       const compData = await compRes.json();
       if (!compRes.ok) throw new Error(compData.error || "Lusha company search failed");
+      if (compData.employeeFilterApplied) {
+        addLog(`   👥 Employee range ${employeesMin || "-"}-${employeesMax || "-"} (informational only, nothing excluded): ${compData.inRangeCount} in range, ${compData.outOfRangeCount} out of range, ${compData.unknownHeadcountCount} unknown headcount — all ${compData.discoveredBeforeEmployeeFilter} companies still included below.`);
+      }
 
       type CompanyResult = {
         company_name: string;
@@ -884,6 +933,27 @@ export default function B2BCampaignPage() {
     setLeads(finalLeads);
     checkWhatsappReachability(finalLeads);
     setRunning(false);
+
+    // Save a snapshot so this run stays browsable as history after a refresh/close — the whole
+    // campaign runs client-side, so this is the only point a completed run's data reaches the
+    // backend at all.
+    try {
+      await fetch(`${API}/campaign-history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignName,
+          config: { industry, service, country, state, employeesMin, employeesMax, dailyTarget, minScore, selectedRoles },
+          logs: log,
+          leads: finalLeads,
+          qualifiedCount: qCount,
+          reviewCount: rCount,
+          skippedCount: sCount,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to save campaign history snapshot:", err);
+    }
   };
 
   // ── CSV Export ──────────────────────────────────────────────────────────────
@@ -940,6 +1010,37 @@ export default function B2BCampaignPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-xs text-slate-400">Lusha v2 · Hunter.io · Prospeo · PageSpeed · Gemini AI</div>
+          <div className="relative">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+              className="h-7 text-xs bg-transparent border-slate-600 text-slate-200 hover:bg-slate-800"
+            >
+              🕘 History
+            </Button>
+            {showHistory && (
+              <div className="absolute right-0 mt-2 w-96 max-h-96 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 text-slate-900">
+                {loadingHistory && <p className="text-xs text-slate-500 p-2">Loading past runs…</p>}
+                {!loadingHistory && historyList.length === 0 && (
+                  <p className="text-xs text-slate-500 p-2">No past runs yet.</p>
+                )}
+                {historyList.map((h) => (
+                  <button
+                    key={h._id}
+                    onClick={() => openHistoryRun(h._id)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-slate-100 text-xs border-b border-slate-100 last:border-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{h.campaignName || "(untitled)"}</span>
+                      <span className="text-emerald-600 font-medium">{h.qualifiedCount} qualified</span>
+                    </div>
+                    <div className="text-slate-500 mt-0.5">{new Date(h.createdAt).toLocaleString()} · {h.config?.industry || ""}{h.config?.country ? ` · ${h.config.country}` : ""}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <Button
             size="sm"
             variant="outline"

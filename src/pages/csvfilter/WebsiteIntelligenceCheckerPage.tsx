@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
     Loader2, Upload, Download, ArrowLeft, RefreshCw, Play, Search,
-    CheckCircle, XCircle, MinusCircle, MapPin, Star, Facebook, Twitter, Instagram, Youtube, Link2, ExternalLink
+    CheckCircle, XCircle, MinusCircle, MapPin, Star, Facebook, Twitter, Instagram, Youtube, Link2, ExternalLink, History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +34,8 @@ interface BusinessResult {
     runningMetaAds: boolean;
     metaAdsChecked: boolean;
     metaAds: { text?: string; imageUrl?: string; startDate?: string; adLibraryUrl?: string }[];
+    jobOpeningsCount: number;
+    jobTitles: string[];
     gmbFound: boolean;
     gmbRating: number | null;
     gmbReviewsCount: number;
@@ -195,7 +197,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     company: b.company, website: '', isLive: false, error: 'No website provided',
                     pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
                     runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
-                    runningMetaAds: false, metaAdsChecked: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
+                    runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                     socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                     originalRow: b.originalRow,
                 });
@@ -218,7 +220,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                             company: b.company, website: b.website, isLive: false, error: err.message || 'Request failed',
                             pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
                             runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
-                            runningMetaAds: false, metaAdsChecked: false, metaAds: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
+                            runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                             socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                             originalRow: b.originalRow,
                         });
@@ -231,6 +233,58 @@ export default function WebsiteIntelligenceCheckerPage() {
 
         setResults(collected);
         setStep('results');
+
+        // Save a snapshot so this run stays browsable as history after a refresh/close — the
+        // whole run happens client-side, so this is the only point the results reach the
+        // backend at all.
+        try {
+            await axios.post(
+                `${API_URL}/website-intelligence/history`,
+                { fileName: file?.name || '', results: collected.map(({ originalRow, ...r }) => r) },
+                { headers: { Authorization: `Bearer ${token}` }, timeout: 30000 }
+            );
+        } catch (err) {
+            console.error('Failed to save history snapshot:', err);
+        }
+    };
+
+    // ── History (past runs) ──────────────────────────────────────────────────────
+    const [historyList, setHistoryList] = useState<any[]>([]);
+    const [showHistory, setShowHistory] = useState(false);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+
+    const loadHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get(`${API_URL}/website-intelligence/history`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data?.success) setHistoryList(res.data.data || []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    const openHistoryRun = async (id: string) => {
+        setShowHistory(false);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get(`${API_URL}/website-intelligence/history/${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data?.success && res.data.data) {
+                const run = res.data.data;
+                const restored: BusinessResult[] = (run.results || []).map((r: any) => ({ ...r, originalRow: {} }));
+                setResults(restored);
+                setStep('results');
+            }
+        } catch (err) {
+            console.error('Failed to load that run:', err);
+            toast.error('Failed to load that run.');
+        }
     };
 
     const handleDownload = () => {
@@ -243,6 +297,8 @@ export default function WebsiteIntelligenceCheckerPage() {
             'Technology': r.techStack.join(', '),
             'Meta Ads Running': r.runningMetaAds ? 'YES' : (r.metaAdsChecked ? 'NO' : 'NOT CHECKED (no Facebook Page found)'),
             'Google Ads Running': r.runningGoogleAds ? 'YES' : (r.googleAdsChecked ? 'NO' : 'NOT CHECKED (Ads Transparency quota exceeded)'),
+            'Hiring (Open Roles)': r.jobOpeningsCount,
+            'Job Titles': r.jobTitles.join('; '),
             'Google Business Profile': r.gmbFound ? `${r.gmbRating ?? 'N/A'}★ (${r.gmbReviewsCount} reviews)` : 'Not found',
             'Facebook': r.socialLinks.facebook,
             'Twitter': r.socialLinks.twitter,
@@ -288,11 +344,40 @@ export default function WebsiteIntelligenceCheckerPage() {
                         </p>
                     </div>
                 </div>
-                {step !== 'upload' && (
-                    <Button variant="outline" size="sm" onClick={resetState} className="gap-2">
-                        <RefreshCw className="h-4 w-4" /> Start Over
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Button
+                            variant="outline" size="sm"
+                            onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+                            className="gap-2"
+                        >
+                            <History className="h-4 w-4" /> History
+                        </Button>
+                        {showHistory && (
+                            <div className="absolute right-0 mt-2 w-96 max-h-96 overflow-y-auto bg-card border rounded-lg shadow-xl z-50 p-2">
+                                {loadingHistory && <p className="text-xs text-muted-foreground p-2">Loading past runs…</p>}
+                                {!loadingHistory && historyList.length === 0 && (
+                                    <p className="text-xs text-muted-foreground p-2">No past runs yet.</p>
+                                )}
+                                {historyList.map((h) => (
+                                    <button
+                                        key={h._id}
+                                        onClick={() => openHistoryRun(h._id)}
+                                        className="w-full text-left px-3 py-2 rounded hover:bg-muted text-xs border-b last:border-0"
+                                    >
+                                        <div className="font-semibold">{h.fileName || "(untitled)"}</div>
+                                        <div className="text-muted-foreground mt-0.5">{new Date(h.createdAt).toLocaleString()}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    {step !== 'upload' && (
+                        <Button variant="outline" size="sm" onClick={resetState} className="gap-2">
+                            <RefreshCw className="h-4 w-4" /> Start Over
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {step === 'upload' && (
@@ -387,7 +472,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     <CardContent className="pt-6 flex flex-col items-center gap-4 py-12">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
                         <p className="font-semibold">Checking {processedCount} / {totalToProcess} businesses...</p>
-                        <p className="text-sm text-muted-foreground">Each business gets a real PageSpeed audit, tech-stack scan, Meta + Google ads check, Google Business Profile lookup, and social media crawl — this can take a while for larger sheets.</p>
+                        <p className="text-sm text-muted-foreground">Each business gets a real PageSpeed audit, tech-stack scan, Meta + Google ads check, LinkedIn hiring signal, Google Business Profile lookup, and social media crawl — this can take a while for larger sheets.</p>
                         <div className="w-full max-w-md h-2 bg-muted rounded-full overflow-hidden">
                             <div className="h-full bg-primary transition-all" style={{ width: `${totalToProcess ? (processedCount / totalToProcess) * 100 : 0}%` }} />
                         </div>
@@ -412,6 +497,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                                         <TableHead>Website Audit</TableHead>
                                         <TableHead>Technology</TableHead>
                                         <TableHead>Ads Running</TableHead>
+                                        <TableHead>Hiring</TableHead>
                                         <TableHead>Social Media</TableHead>
                                         <TableHead></TableHead>
                                     </TableRow>
@@ -440,6 +526,11 @@ export default function WebsiteIntelligenceCheckerPage() {
                                                         Google {r.runningGoogleAds ? '✓' : (r.googleAdsChecked ? '✗' : '—')}
                                                     </span>
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={r.jobOpeningsCount > 0 ? 'text-emerald-600 text-xs font-medium' : 'text-muted-foreground text-xs'}>
+                                                    {r.jobOpeningsCount > 0 ? `${r.jobOpeningsCount} open role${r.jobOpeningsCount === 1 ? '' : 's'}` : 'None found'}
+                                                </span>
                                             </TableCell>
                                             <TableCell>
                                                 {[r.socialLinks.facebook, r.socialLinks.twitter, r.socialLinks.instagram, r.socialLinks.youtube, r.socialLinks.linkedin].filter(Boolean).length || '—'}
@@ -516,6 +607,22 @@ export default function WebsiteIntelligenceCheckerPage() {
                                             </a>
                                         </div>
                                     )}
+
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Hiring (LinkedIn Jobs)</h4>
+                                        {selectedResult.jobOpeningsCount > 0 ? (
+                                            <>
+                                                <p className="text-xs text-emerald-600 font-medium">{selectedResult.jobOpeningsCount} open role(s) currently posted on LinkedIn</p>
+                                                {selectedResult.jobTitles.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {selectedResult.jobTitles.map((t, i) => <Badge key={i} variant="outline">{t}</Badge>)}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground">No open roles found on LinkedIn for this company.</p>
+                                        )}
+                                    </div>
 
                                     {selectedResult.metaAds.length > 0 && (
                                         <div className="space-y-2">

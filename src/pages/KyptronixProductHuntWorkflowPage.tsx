@@ -31,7 +31,8 @@ import {
   ArrowUpCircle,
   MailOpen,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  History
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -100,6 +101,45 @@ export default function KyptronixProductHuntWorkflowPage() {
         // Transient network hiccup — let the next tick retry instead of freezing polling.
       }
     }, 2000);
+  };
+
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await (api as any).kyptronixPhLeads.getHistory();
+      if (res.success) setHistoryList(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openHistoryRun = async (id: string) => {
+    setShowHistory(false);
+    setLoading(true);
+    try {
+      const res = await (api as any).kyptronixPhLeads.getHistoryById(id);
+      if (res.success && res.data) {
+        setPipeline(res.data.pipeline);
+        setLeads(res.data.leads || []);
+        if (res.data.pipeline?.logs) setLogs(res.data.pipeline.logs);
+        if (res.data.pipeline?.config) {
+          setTag(res.data.pipeline.config.tag || "AI");
+          setTimeframe(res.data.pipeline.config.timeframe || "today");
+          setMinUpvotes(res.data.pipeline.config.minUpvotes || 50);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      addLog("Failed to load that run.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadPipeline = async () => {
@@ -179,9 +219,41 @@ export default function KyptronixProductHuntWorkflowPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-12 animate-fade-in pb-20 max-w-7xl">
-      <Button variant="ghost" size="icon" onClick={() => navigate("/offerings")} className="h-9 w-9 rounded-lg">
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/offerings")} className="h-9 w-9 rounded-lg">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="relative">
+          <Button
+            variant="outline" size="sm"
+            onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+            className="gap-2"
+          >
+            <History className="h-4 w-4" /> History
+          </Button>
+          {showHistory && (
+            <div className="absolute right-0 mt-2 w-96 max-h-96 overflow-y-auto bg-card border rounded-lg shadow-xl z-50 p-2">
+              {loadingHistory && <p className="text-xs text-muted-foreground p-2">Loading past runs…</p>}
+              {!loadingHistory && historyList.length === 0 && (
+                <p className="text-xs text-muted-foreground p-2">No past runs yet.</p>
+              )}
+              {historyList.map((h) => (
+                <button
+                  key={h._id}
+                  onClick={() => openHistoryRun(h._id)}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-muted text-xs border-b last:border-0"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{h.config?.tag || "(all tags)"} · {h.config?.timeframe || ""}</span>
+                    <Badge className={`text-[10px] ${h.status === "completed" ? "bg-emerald-500/15 text-emerald-600" : h.status === "failed" ? "bg-red-500/15 text-red-600" : "bg-amber-500/15 text-amber-600"}`}>{h.status}</Badge>
+                  </div>
+                  <div className="text-muted-foreground mt-0.5">{new Date(h.createdAt).toLocaleString()} · {h.totalCount} leads</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
       <div className="space-y-4 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-600 text-xs font-semibold uppercase tracking-wider">
           <Zap className="h-3 w-3 animate-pulse" /> Kyptronix Automations Pro

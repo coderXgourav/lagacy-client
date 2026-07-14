@@ -560,6 +560,8 @@ export const kyptronixPhApi = {
       body: JSON.stringify(params),
     }),
   getLatestWorkflow: () => apiCall('/kyptronix-ph-leads/latest'),
+  getHistory: () => apiCall('/kyptronix-ph-leads/history'),
+  getHistoryById: (id: string) => apiCall(`/kyptronix-ph-leads/history/${id}`),
   deleteLead: (id: string) => apiCall(`/kyptronix-ph-leads/${id}`, { method: 'DELETE' })
 };
 
@@ -578,6 +580,8 @@ export const facebookB2bApi = {
       body: JSON.stringify(params),
     }),
   getLatestWorkflow: () => apiCall('/facebook-b2b/latest'),
+  getHistory: () => apiCall('/facebook-b2b/history'),
+  getHistoryById: (id: string) => apiCall(`/facebook-b2b/history/${id}`),
   deleteLead: (id: string) => apiCall(`/facebook-b2b/${id}`, { method: 'DELETE' })
 };
 
@@ -590,6 +594,8 @@ export const fundingLeadApi = {
       body: JSON.stringify(params),
     }),
   getLatestWorkflow: () => apiCall('/funding-leads/latest'),
+  getHistory: () => apiCall('/funding-leads/history'),
+  getHistoryById: (id: string) => apiCall(`/funding-leads/history/${id}`),
   deleteLead: (id: string) => apiCall(`/funding-leads/${id}`, { method: 'DELETE' })
 };
 
@@ -601,6 +607,8 @@ export const mobileLeadApi = {
       body: JSON.stringify(params),
     }),
   getLatestWorkflow: () => apiCall('/mobile-leads/latest'),
+  getHistory: () => apiCall('/mobile-leads/history'),
+  getHistoryById: (id: string) => apiCall(`/mobile-leads/history/${id}`),
   deleteLead: (id: string) => apiCall(`/mobile-leads/${id}`, { method: 'DELETE' }),
   downloadLeadPdf: async (id: string, companyName: string) => {
     const token = localStorage.getItem('token');

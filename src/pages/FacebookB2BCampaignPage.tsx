@@ -65,7 +65,8 @@ import {
   Instagram,
   Youtube,
   MapPin,
-  Star
+  Star,
+  History
 } from "lucide-react";
 
 const workflowSteps = [
@@ -109,6 +110,48 @@ export default function FacebookB2BCampaignPage() {
 
   const addLog = (msg: string, level: string = "info") => {
     setLogs(prev => [...prev, { timestamp: new Date(), message: msg, level }]);
+  };
+
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await (api as any).facebookB2b.getHistory();
+      if (res.success) setHistoryList(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openHistoryRun = async (id: string) => {
+    setShowHistory(false);
+    setLoading(true);
+    try {
+      const res = await (api as any).facebookB2b.getHistoryById(id);
+      if (res.success && res.data) {
+        setPipeline(res.data.pipeline);
+        setLeads(res.data.leads || []);
+        if (res.data.pipeline?.logs) {
+          setLogs(res.data.pipeline.logs);
+        }
+        if (res.data.pipeline?.config) {
+          setQuery(res.data.pipeline.config.query || "Marketing agency");
+          setCountry(res.data.pipeline.config.country || "US");
+          setCity(res.data.pipeline.config.city || "");
+          setLimit(res.data.pipeline.config.limit || 50);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      addLog("Failed to load that run.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadPipeline = async () => {
@@ -228,12 +271,44 @@ export default function FacebookB2BCampaignPage() {
               </p>
             </div>
           </div>
-          <Badge 
-            variant="outline" 
-            className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs px-3 py-1 font-semibold uppercase tracking-wider"
-          >
-            Primary Source: Facebook Pages
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-xs px-3 py-1 font-semibold uppercase tracking-wider"
+            >
+              Primary Source: Facebook Pages
+            </Badge>
+            <div className="relative">
+              <Button
+                variant="outline" size="sm"
+                onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+                className="gap-2 border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
+              >
+                <History className="h-4 w-4" /> History
+              </Button>
+              {showHistory && (
+                <div className="absolute right-0 mt-2 w-96 max-h-96 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 p-2">
+                  {loadingHistory && <p className="text-xs text-slate-500 p-2">Loading past runs…</p>}
+                  {!loadingHistory && historyList.length === 0 && (
+                    <p className="text-xs text-slate-500 p-2">No past runs yet.</p>
+                  )}
+                  {historyList.map((h) => (
+                    <button
+                      key={h._id}
+                      onClick={() => openHistoryRun(h._id)}
+                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-800 text-xs border-b border-slate-800 last:border-0"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-200">{h.config?.query || "(no query)"}{h.config?.city ? ` · ${h.config.city}` : ""}</span>
+                        <Badge className={`text-[10px] ${h.status === "completed" ? "bg-emerald-500/15 text-emerald-400" : h.status === "failed" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400"}`}>{h.status}</Badge>
+                      </div>
+                      <div className="text-slate-500 mt-0.5">{new Date(h.createdAt).toLocaleString()} · {h.qualifiedCount} qualified / {h.totalCount} total</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 16 Steps Workflow Tracker */}
