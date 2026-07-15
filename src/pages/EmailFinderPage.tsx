@@ -54,7 +54,7 @@ export default function EmailFinderPage() {
     setLog([]);
     setResults([]);
 
-    const perCountryLimit = Math.min(parseInt(target) || 25, 50);
+    const perCountryLimit = Math.min(parseInt(target) || 25, 2000);
     addLog(`🔍 Searching Google Maps for "${niche}" across ${countryList.length} location(s): ${countryList.join(", ")}...`);
 
     // Real coverage, not a padded number — each country gets its own real Google Maps search
@@ -244,7 +244,7 @@ export default function EmailFinderPage() {
               <div className="space-y-1.5">
                 <Label className="text-slate-300">Target Count (per country)</Label>
                 <Input type="number" value={target} onChange={e => setTarget(e.target.value)} className="bg-slate-950 border-slate-700" />
-                <p className="text-[10px] text-slate-500">Max 50 per country</p>
+                <p className="text-[10px] text-slate-500">Max 2000 per country — large values can exhaust your Apify budget in one search</p>
               </div>
             </div>
             <Button onClick={runSearch} disabled={running} className="w-full bg-cyan-600 hover:bg-cyan-700 gap-2">
