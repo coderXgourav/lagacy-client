@@ -274,6 +274,15 @@ export default function OfferingsPage() {
       beta: true,
     },
     {
+      id: "email-finder",
+      title: "Email Finder",
+      description: "Select a Niche, Country, and City → real businesses via Google Maps → real emails via Hunter.io (falls back to Prospeo) → download as CSV.",
+      icon: Mail,
+      available: true,
+      route: "/email-finder",
+      beta: true,
+    },
+    {
       id: "funding-lead-agent",
       title: "Funding Lead Agent",
       description: "Discover businesses actively raising funding — no Google Search or Maps. Company Discovery (Crunchbase) → LinkedIn Company → LinkedIn People → News → Job Signals → Website Crawl → Contact Discovery → Mobile Enrichment → AI Analysis → Lead Score → Google Drive Export. Verified mobile only.",
