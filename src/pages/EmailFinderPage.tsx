@@ -85,7 +85,8 @@ export default function EmailFinderPage() {
           allCompanies.push({ ...c, country: countryName });
           added++;
         }
-        addLog(`  ✅ ${countryName}: ${companies.length} found, ${added} new after dedup.`);
+        const filteredMsg = compData.filteredIrrelevantCount > 0 ? ` (${compData.filteredIrrelevantCount} filtered as not actually matching "${niche}")` : "";
+        addLog(`  ✅ ${countryName}: ${companies.length} genuine match(es) found${filteredMsg}, ${added} new after dedup.`);
       } catch (err: any) {
         addLog(`  ⚠️ ${countryName} search failed: ${err.message || "request error"}`);
       }
