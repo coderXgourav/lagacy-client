@@ -520,6 +520,11 @@ export default function MobileLeadAgentPage() {
                       <Link2 className="h-3 w-3" /> View LinkedIn Profile
                     </a>
                   )}
+                  {selectedLead.linkedin_company_url && (
+                    <a href={selectedLead.linkedin_company_url} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                      <Link2 className="h-3 w-3" /> Company LinkedIn{selectedLead.linkedin_employee_count != null ? ` (${selectedLead.linkedin_employee_count} employees)` : ""}
+                    </a>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <span className="text-slate-500 text-xs uppercase block font-bold">Website & Contact</span>
@@ -531,6 +536,7 @@ export default function MobileLeadAgentPage() {
                     <span className="text-slate-500">Not found</span>
                   )}
                   <span className="text-xs text-slate-400 mt-1 block">Verified Mobile: {selectedLead.mobile_phone} | Email: {selectedLead.email || 'Not found (optional)'}</span>
+                  {selectedLead.business_phone && <span className="text-xs text-slate-500 block">Business Phone: {selectedLead.business_phone}</span>}
                 </div>
               </div>
 
@@ -556,16 +562,39 @@ export default function MobileLeadAgentPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-3 gap-3 text-xs">
                 <div className="bg-slate-800 p-2.5 rounded border border-slate-700/50">
                   <span className="text-slate-500 block text-[10px]">Mobile App Detected</span>
                   <strong className="text-slate-200">{selectedLead.has_app_detected ? "Yes" : "No"}</strong>
+                  {selectedLead.app_links_found?.length > 0 && (
+                    <div className="mt-1 space-y-0.5">
+                      {selectedLead.app_links_found.map((link: string, i: number) => (
+                        <a key={i} href={link} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline block truncate">{link}</a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="bg-slate-800 p-2.5 rounded border border-slate-700/50">
                   <span className="text-slate-500 block text-[10px]">Open Jobs</span>
                   <strong className="text-slate-200">{selectedLead.job_openings_count}</strong>
+                  {selectedLead.job_titles?.length > 0 && (
+                    <div className="mt-1 text-slate-400 truncate" title={selectedLead.job_titles.join(", ")}>{selectedLead.job_titles.slice(0, 3).join(", ")}</div>
+                  )}
+                </div>
+                <div className="bg-slate-800 p-2.5 rounded border border-slate-700/50">
+                  <span className="text-slate-500 block text-[10px]">PageSpeed Score</span>
+                  <strong className="text-slate-200">{selectedLead.page_speed_score ?? "N/A"}</strong>
                 </div>
               </div>
+
+              {(selectedLead.facebook || selectedLead.twitter || selectedLead.instagram || selectedLead.youtube) && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedLead.facebook && <a href={selectedLead.facebook} target="_blank" rel="noreferrer" className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-blue-400 hover:underline">Facebook</a>}
+                  {selectedLead.twitter && <a href={selectedLead.twitter} target="_blank" rel="noreferrer" className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-sky-400 hover:underline">Twitter/X</a>}
+                  {selectedLead.instagram && <a href={selectedLead.instagram} target="_blank" rel="noreferrer" className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-pink-400 hover:underline">Instagram</a>}
+                  {selectedLead.youtube && <a href={selectedLead.youtube} target="_blank" rel="noreferrer" className="text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-red-400 hover:underline">YouTube</a>}
+                </div>
+              )}
 
               {selectedLead.tech_stack?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">

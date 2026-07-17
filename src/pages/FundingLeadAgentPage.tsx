@@ -533,9 +533,13 @@ export default function FundingLeadAgentPage() {
                 </div>
                 <div className="space-y-1">
                   <span className="text-slate-500 text-xs uppercase block font-bold">Website & Contact</span>
-                  <a href={selectedLead.website} target="_blank" rel="noreferrer" className="text-slate-200 hover:underline flex items-center gap-1 font-semibold">
-                    {selectedLead.website?.replace(/^https?:\/\//, '')} <ExternalLink className="h-3 w-3" />
-                  </a>
+                  {selectedLead.website ? (
+                    <a href={selectedLead.website.startsWith('http') ? selectedLead.website : `https://${selectedLead.website}`} target="_blank" rel="noreferrer" className="text-slate-200 hover:underline flex items-center gap-1 font-semibold">
+                      {selectedLead.website.replace(/^https?:\/\//, '')} <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    <span className="text-slate-500">Not found (news-discovered)</span>
+                  )}
                   <span className="text-xs text-slate-400 mt-1 block">Verified Mobile: {selectedLead.mobile_phone} | Email: {selectedLead.email || 'Not found'}</span>
                 </div>
               </div>
