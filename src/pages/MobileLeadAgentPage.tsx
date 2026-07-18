@@ -342,7 +342,7 @@ export default function MobileLeadAgentPage() {
                   <ShieldCheck className="h-4 w-4" /> HARD RULES
                 </div>
                 <ul className="text-slate-400 space-y-1 list-disc pl-4">
-                  <li>No Google Search or Google Maps used anywhere in this pipeline</li>
+                  <li>Google Search is only used as a fallback when LinkedIn's own directories find nothing — Yellow Pages/LinkedIn are still the primary source</li>
                   <li>CEO/Founder verified mobile number is mandatory — no exceptions</li>
                   <li>Only companies scoring 80+ are qualified</li>
                   <li>Email is optional and never blocks qualification</li>
@@ -393,6 +393,7 @@ export default function MobileLeadAgentPage() {
                   <TableHead className="text-slate-400">Company</TableHead>
                   <TableHead className="text-slate-400">Location</TableHead>
                   <TableHead className="text-slate-400">Website</TableHead>
+                  <TableHead className="text-slate-400">LinkedIn</TableHead>
                   <TableHead className="text-slate-400">Status</TableHead>
                   <TableHead className="text-slate-400">CEO / Founder</TableHead>
                   <TableHead className="text-slate-400">Verified Mobile</TableHead>
@@ -426,6 +427,19 @@ export default function MobileLeadAgentPage() {
                       ) : (
                         <span className="text-slate-500">Not found</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <div className="flex flex-col gap-0.5">
+                        {lead.linkedin_company_url && (
+                          <a href={lead.linkedin_company_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline text-xs">Company</a>
+                        )}
+                        {lead.linkedin_person_url && (
+                          <a href={lead.linkedin_person_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline text-xs">Person</a>
+                        )}
+                        {!lead.linkedin_company_url && !lead.linkedin_person_url && (
+                          <span className="text-slate-500">Not found</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {lead.status === "qualified" ? (
