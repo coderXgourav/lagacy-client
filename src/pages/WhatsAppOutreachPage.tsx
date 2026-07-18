@@ -86,10 +86,11 @@ export default function WhatsAppOutreachPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [whatsappConfigured, setWhatsappConfigured] = useState(true);
   const [nexbotixConfigured, setNexbotixConfigured] = useState(true);
+  const [twilioConfigured, setTwilioConfigured] = useState(true);
   const [loading, setLoading] = useState(false);
   const [filterTab, setFilterTab] = useState<"all" | "sent" | "failed" | "skipped">("all");
 
-  const [sendMethod, setSendMethod] = useState<"meta" | "nexbotix">("meta");
+  const [sendMethod, setSendMethod] = useState<"meta" | "nexbotix" | "twilio">("meta");
   const [messageText, setMessageText] = useState(
     "Hi {{name}}, we noticed your business may benefit from our automation services. Would you like a free consultation?"
   );
@@ -105,6 +106,7 @@ export default function WhatsAppOutreachPage() {
         setContacts(res.data.contacts || []);
         setWhatsappConfigured(res.data.whatsappConfigured);
         setNexbotixConfigured(!!res.data.nexbotixConfigured);
+        setTwilioConfigured(!!res.data.twilioConfigured);
         return res.data.campaign;
       }
     } catch (err) {
@@ -200,6 +202,14 @@ export default function WhatsAppOutreachPage() {
     }
     if (sendMethod === "meta" && !templateName.trim()) {
       toast({ title: "Template name is required — Meta requires a pre-approved template for cold outreach.", variant: "destructive" });
+      return;
+    }
+    if (sendMethod === "twilio" && !templateName.trim()) {
+      toast({ title: "Content SID is required — Twilio requires a pre-approved Content Template for cold outreach.", variant: "destructive" });
+      return;
+    }
+    if (sendMethod === "twilio" && !twilioConfigured) {
+      toast({ title: "Twilio WhatsApp API is not configured", description: "Set TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_WHATSAPP_NUMBER in the server .env, or switch to another Send Method.", variant: "destructive" });
       return;
     }
     if (sendMethod === "nexbotix" && !messageText.trim()) {
@@ -422,15 +432,16 @@ export default function WhatsAppOutreachPage() {
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader>
                 <CardTitle className="text-slate-200 text-base">Campaign Configuration</CardTitle>
-                <CardDescription className="text-slate-500 text-xs">Must match a template already approved in Meta Business Manager</CardDescription>
+                <CardDescription className="text-slate-500 text-xs">Must match a template already approved for cold outreach (Meta Business Manager or Twilio Content Template Builder, depending on Send Method)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-slate-300">Send Method</Label>
-                  <Select value={sendMethod} onValueChange={(v) => setSendMethod(v as "meta" | "nexbotix")}>
+                  <Select value={sendMethod} onValueChange={(v) => setSendMethod(v as "meta" | "nexbotix" | "twilio")}>
                     <SelectTrigger className="bg-slate-950 border-slate-700"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
                       <SelectItem value="meta">Meta Cloud API (official, template required)</SelectItem>
+                      <SelectItem value="twilio">Twilio WhatsApp API (Content Template required)</SelectItem>
                       <SelectItem value="nexbotix">NexBotix API (freeform text)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -442,7 +453,13 @@ export default function WhatsAppOutreachPage() {
                   </div>
                 )}
 
-                {sendMethod === "meta" ? (
+                {sendMethod === "twilio" && (
+                  <div className={`rounded-lg p-3 text-xs border ${twilioConfigured ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-300" : "bg-red-500/5 border-red-500/30 text-red-300"}`}>
+                    {twilioConfigured ? "✔️ Twilio WhatsApp is configured." : "⚠️ Twilio WhatsApp is NOT configured — set TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_WHATSAPP_NUMBER in the server .env."}
+                  </div>
+                )}
+
+                {sendMethod === "meta" && (
                   <>
                     <div className="space-y-1.5">
                       <Label className="text-slate-300">Approved Template Name *</Label>
@@ -460,7 +477,25 @@ export default function WhatsAppOutreachPage() {
                       Template body must use {"{{1}}"} for Name{includeCompanyVar ? " and {{2}} for Company" : ""}. This must already be approved in Meta Business Manager — freeform text will be rejected for cold outreach.
                     </div>
                   </>
-                ) : (
+                )}
+
+                {sendMethod === "twilio" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-300">Content SID *</Label>
+                      <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="e.g. HXbfe4834a3a63b2092643391f0e1894a7" className="bg-slate-950 border-slate-700" />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-slate-300">
+                      <input type="checkbox" checked={includeCompanyVar} onChange={(e) => setIncludeCompanyVar(e.target.checked)} />
+                      Template has a 2nd variable ({"{{2}}"}) for Company
+                    </label>
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-3 text-xs text-slate-400">
+                      Enter the Content SID (starts with "HX...") from Twilio's Content Template Builder — must already be approved for WhatsApp. Template body must use {"{{1}}"} for Name{includeCompanyVar ? " and {{2}} for Company" : ""}.
+                    </div>
+                  </>
+                )}
+
+                {sendMethod === "nexbotix" && (
                   <div className="space-y-1.5">
                     <Label className="text-slate-300">Message Text *</Label>
                     <textarea
