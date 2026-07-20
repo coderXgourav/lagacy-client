@@ -35,6 +35,8 @@ interface BusinessResult {
     metaAdsChecked: boolean;
     metaAds: { text?: string; imageUrl?: string; startDate?: string; adLibraryUrl?: string }[];
     jobOpeningsCount: number;
+    jobOpeningsCapped: boolean;
+    jobOpeningsLowConfidence: boolean;
     jobTitles: string[];
     gmbFound: boolean;
     gmbRating: number | null;
@@ -76,7 +78,12 @@ export default function WebsiteIntelligenceCheckerPage() {
     // explicit "company" column (WHOIS's "registrant_name" is a person, not the business), and
     // a dedicated "country" column must win over "city"/"state" even if one of those happens to
     // appear earlier in the sheet.
-    const applyParsedData = (fields: string[], rows: Record<string, string>[]) => {
+    const applyParsedData = (rawFields: string[], rows: Record<string, string>[]) => {
+        // A CSV with a blank/unnamed column (trailing comma, empty header cell) produces an
+        // empty-string field name here — rendering that as a Radix <SelectItem value=""> crashes
+        // the whole page, since Select reserves "" to mean "cleared/placeholder". Real column
+        // mapping can't target a nameless column anyway, so it's dropped rather than crashing.
+        const fields = rawFields.filter(h => h && h.trim() !== '');
         setHeaders(fields);
         setParsedRows(rows);
 
@@ -197,7 +204,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     company: b.company, website: '', isLive: false, error: 'No website provided',
                     pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
                     runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
-                    runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
+                    runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobOpeningsCapped: false, jobOpeningsLowConfidence: false, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                     socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                     originalRow: b.originalRow,
                 });
@@ -220,7 +227,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                             company: b.company, website: b.website, isLive: false, error: err.message || 'Request failed',
                             pageSpeedScore: null, loadTimeSeconds: null, auditIssues: [], techStack: [],
                             runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
-                            runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
+                            runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobOpeningsCapped: false, jobOpeningsLowConfidence: false, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                             socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
                             originalRow: b.originalRow,
                         });
@@ -297,7 +304,7 @@ export default function WebsiteIntelligenceCheckerPage() {
             'Technology': r.techStack.join(', '),
             'Meta Ads Running': r.runningMetaAds ? 'YES' : (r.metaAdsChecked ? 'NO' : 'NOT CHECKED (no Facebook Page found)'),
             'Google Ads Running': r.runningGoogleAds ? 'YES' : (r.googleAdsChecked ? 'NO' : 'NOT CHECKED (Ads Transparency quota exceeded)'),
-            'Hiring (Open Roles)': r.jobOpeningsCount,
+            'Hiring (Open Roles)': r.jobOpeningsCapped ? `${r.jobOpeningsCount}+` : r.jobOpeningsCount,
             'Job Titles': r.jobTitles.join('; '),
             'Google Business Profile': r.gmbFound ? `${r.gmbRating ?? 'N/A'}★ (${r.gmbReviewsCount} reviews)` : 'Not found',
             'Facebook': r.socialLinks.facebook,
@@ -528,8 +535,8 @@ export default function WebsiteIntelligenceCheckerPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={r.jobOpeningsCount > 0 ? 'text-emerald-600 text-xs font-medium' : 'text-muted-foreground text-xs'}>
-                                                    {r.jobOpeningsCount > 0 ? `${r.jobOpeningsCount} open role${r.jobOpeningsCount === 1 ? '' : 's'}` : 'None found'}
+                                                <span className={r.jobOpeningsCount > 0 ? 'text-emerald-600 text-xs font-medium' : 'text-muted-foreground text-xs'} title={r.jobOpeningsLowConfidence ? 'No exact LinkedIn company match found — this count is from a broader name search and may be less accurate' : undefined}>
+                                                    {r.jobOpeningsCount > 0 ? `${r.jobOpeningsCount}${r.jobOpeningsCapped ? '+' : ''} open role${r.jobOpeningsCount === 1 && !r.jobOpeningsCapped ? '' : 's'}${r.jobOpeningsLowConfidence ? ' ⚠️' : ''}` : 'None found'}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
@@ -612,7 +619,13 @@ export default function WebsiteIntelligenceCheckerPage() {
                                         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Hiring (LinkedIn Jobs)</h4>
                                         {selectedResult.jobOpeningsCount > 0 ? (
                                             <>
-                                                <p className="text-xs text-emerald-600 font-medium">{selectedResult.jobOpeningsCount} open role(s) currently posted on LinkedIn</p>
+                                                <p className="text-xs text-emerald-600 font-medium">
+                                                    {selectedResult.jobOpeningsCount}{selectedResult.jobOpeningsCapped ? '+' : ''} open role(s) currently posted on LinkedIn
+                                                    {selectedResult.jobOpeningsCapped && <span className="text-muted-foreground font-normal"> (capped — the real total may be higher, only the first {selectedResult.jobOpeningsCount} were checked)</span>}
+                                                </p>
+                                                {selectedResult.jobOpeningsLowConfidence && (
+                                                    <p className="text-xs text-amber-600">⚠️ No exact LinkedIn company match was found for this business — this count comes from a broader name-based search and may include unrelated companies' listings.</p>
+                                                )}
                                                 {selectedResult.jobTitles.length > 0 && (
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {selectedResult.jobTitles.map((t, i) => <Badge key={i} variant="outline">{t}</Badge>)}

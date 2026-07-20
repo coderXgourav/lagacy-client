@@ -169,7 +169,11 @@ export default function WhatsAppOutreachPage() {
     if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [campaign?.logs]);
 
-  const applyParsedData = (fields: string[], rows: Record<string, string>[]) => {
+  const applyParsedData = (rawFields: string[], rows: Record<string, string>[]) => {
+    // A blank/unnamed CSV column (trailing comma, empty header cell) produces an empty-string
+    // field name — rendering that as a Radix <SelectItem value=""> crashes the whole page, since
+    // Select reserves "" to mean "cleared/placeholder". Dropped rather than crashing.
+    const fields = rawFields.filter(h => h && h.trim() !== '');
     setHeaders(fields);
     setParsedRows(rows);
     const find = (keywords: string[]) => fields.find(h => keywords.some(k => h.toLowerCase().includes(k)));
