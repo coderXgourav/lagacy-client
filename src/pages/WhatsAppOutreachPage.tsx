@@ -24,6 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/services/api";
+
+const BAILEYS_API = `${import.meta.env.VITE_API_URL ?? "http://localhost:8000/api"}/revenue-intelligence`;
 import {
   MessageCircle,
   Upload,
@@ -90,7 +92,54 @@ export default function WhatsAppOutreachPage() {
   const [loading, setLoading] = useState(false);
   const [filterTab, setFilterTab] = useState<"all" | "sent" | "failed" | "skipped">("all");
 
-  const [sendMethod, setSendMethod] = useState<"meta" | "nexbotix" | "twilio">("meta");
+  const [sendMethod, setSendMethod] = useState<"meta" | "nexbotix" | "twilio" | "baileys">("meta");
+
+  // Baileys (self-hosted WhatsApp Web, QR-linked) connection state — same global singleton
+  // connection already used by the B2B Campaign Intelligence page's "Send via Baileys" feature.
+  const [baileysStatus, setBaileysStatus] = useState<string | null>(null);
+  const [baileysPhone, setBaileysPhone] = useState<string | null>(null);
+  const [baileysQr, setBaileysQr] = useState<string | null>(null);
+  const [baileysError, setBaileysError] = useState<string | null>(null);
+
+  const refreshBaileysStatus = async () => {
+    try {
+      const r = await fetch(`${BAILEYS_API}/baileys-status`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      setBaileysStatus(data.status);
+      setBaileysPhone(data.phone || null);
+      setBaileysError(null);
+      if (data.status === "qr_ready") {
+        const qrRes = await fetch(`${BAILEYS_API}/baileys-qr`);
+        const qrData = await qrRes.json();
+        if (qrRes.ok) setBaileysQr(qrData.qrCode || null);
+      } else {
+        setBaileysQr(null);
+      }
+    } catch (e: unknown) {
+      setBaileysError(e instanceof Error ? e.message : "Failed to check WhatsApp status");
+    }
+  };
+
+  const restartBaileysSession = async () => {
+    setBaileysError(null);
+    try {
+      const r = await fetch(`${BAILEYS_API}/baileys-restart`, { method: "POST" });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      setTimeout(refreshBaileysStatus, 2000);
+    } catch (e: unknown) {
+      setBaileysError(e instanceof Error ? e.message : "Failed to restart session");
+    }
+  };
+
+  useEffect(() => {
+    if (sendMethod !== "baileys") return;
+    refreshBaileysStatus();
+    const interval = setInterval(refreshBaileysStatus, 5000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sendMethod]);
   const [messageText, setMessageText] = useState(
     "Hi {{name}}, we noticed your business may benefit from our automation services. Would you like a free consultation?"
   );
@@ -218,6 +267,14 @@ export default function WhatsAppOutreachPage() {
     }
     if (sendMethod === "nexbotix" && !nexbotixConfigured) {
       toast({ title: "NexBotix WhatsApp API is not configured", description: "Set NEXBOTIX_API_KEY in the server .env, or switch to Meta Cloud API.", variant: "destructive" });
+      return;
+    }
+    if (sendMethod === "baileys" && !messageText.trim()) {
+      toast({ title: "Message text is required.", variant: "destructive" });
+      return;
+    }
+    if (sendMethod === "baileys" && baileysStatus !== "connected") {
+      toast({ title: "WhatsApp is not linked yet", description: "Scan the QR code below to connect before launching a Baileys campaign.", variant: "destructive" });
       return;
     }
 
@@ -437,15 +494,42 @@ export default function WhatsAppOutreachPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-slate-300">Send Method</Label>
-                  <Select value={sendMethod} onValueChange={(v) => setSendMethod(v as "meta" | "nexbotix" | "twilio")}>
+                  <Select value={sendMethod} onValueChange={(v) => setSendMethod(v as "meta" | "nexbotix" | "twilio" | "baileys")}>
                     <SelectTrigger className="bg-slate-950 border-slate-700"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-700">
                       <SelectItem value="meta">Meta Cloud API (official, template required)</SelectItem>
                       <SelectItem value="twilio">Twilio WhatsApp API (Content Template required)</SelectItem>
                       <SelectItem value="nexbotix">NexBotix API (freeform text)</SelectItem>
+                      <SelectItem value="baileys">Baileys (self-hosted, QR-linked, freeform)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {sendMethod === "baileys" && (
+                  <div className="rounded-lg p-3 text-xs border bg-slate-950 border-slate-700 space-y-2">
+                    {baileysError && (
+                      <div className="text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded p-2">{baileysError}</div>
+                    )}
+                    {baileysStatus === "connected" ? (
+                      <div className="text-center py-2">
+                        <div className="text-emerald-400 font-semibold">✅ Connected{baileysPhone ? ` as ${baileysPhone}` : ""}</div>
+                      </div>
+                    ) : baileysQr ? (
+                      <div className="text-center">
+                        <img src={baileysQr} alt="WhatsApp QR Code" className="mx-auto w-48 h-48 border border-slate-700 rounded bg-white p-1" />
+                        <p className="text-slate-400 mt-2">Open WhatsApp on your phone → Settings → Linked Devices → Link a Device, then scan this code.</p>
+                        <p className="text-slate-500 mt-1">Waiting for scan — refreshes every 5s…</p>
+                      </div>
+                    ) : (!baileysStatus || baileysStatus === "connecting") ? (
+                      <div className="text-center py-2 text-slate-400">Checking connection…</div>
+                    ) : (
+                      <div className="text-center py-2 space-y-2">
+                        <div className="text-slate-400">Status: {baileysStatus}</div>
+                        <Button size="sm" onClick={restartBaileysSession} className="text-xs">Generate QR Code</Button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {sendMethod === "nexbotix" && (
                   <div className={`rounded-lg p-3 text-xs border ${nexbotixConfigured ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-300" : "bg-red-500/5 border-red-500/30 text-red-300"}`}>
@@ -495,7 +579,7 @@ export default function WhatsAppOutreachPage() {
                   </>
                 )}
 
-                {sendMethod === "nexbotix" && (
+                {(sendMethod === "nexbotix" || sendMethod === "baileys") && (
                   <div className="space-y-1.5">
                     <Label className="text-slate-300">Message Text *</Label>
                     <textarea
