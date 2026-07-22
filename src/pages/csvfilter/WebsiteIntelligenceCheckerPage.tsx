@@ -43,11 +43,15 @@ interface BusinessResult {
     gmbReviewsCount: number;
     gmbUrl: string;
     socialLinks: { facebook: string; twitter: string; instagram: string; youtube: string; linkedin: string };
+    servicePitch: string;
+    coldCallScript: string;
+    emailSubject: string;
+    emailBody: string;
     originalRow: Record<string, string>;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const BATCH_SIZE = 6;
+const BATCH_SIZE = 1;
 
 export default function WebsiteIntelligenceCheckerPage() {
     const navigate = useNavigate();
@@ -206,6 +210,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                     runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
                     runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobOpeningsCapped: false, jobOpeningsLowConfidence: false, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                     socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
+                    servicePitch: '', coldCallScript: '', emailSubject: '', emailBody: '',
                     originalRow: b.originalRow,
                 });
             });
@@ -229,6 +234,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                             runningGoogleAdsTracking: false, runningGoogleAds: false, googleAdsChecked: false, googleAds: [],
                             runningMetaAds: false, metaAdsChecked: false, metaAds: [], jobOpeningsCount: 0, jobOpeningsCapped: false, jobOpeningsLowConfidence: false, jobTitles: [], gmbFound: false, gmbRating: null, gmbReviewsCount: 0, gmbUrl: '',
                             socialLinks: { facebook: b.facebookUrl || '', twitter: '', instagram: '', youtube: '', linkedin: '' },
+                            servicePitch: '', coldCallScript: '', emailSubject: '', emailBody: '',
                             originalRow: b.originalRow,
                         });
                     });
@@ -236,6 +242,7 @@ export default function WebsiteIntelligenceCheckerPage() {
             }
 
             setProcessedCount(Math.min(i + BATCH_SIZE, businesses.length));
+            setResults([...collected]);
         }
 
         setResults(collected);
@@ -306,6 +313,10 @@ export default function WebsiteIntelligenceCheckerPage() {
             'Google Ads Running': r.runningGoogleAds ? 'YES' : (r.googleAdsChecked ? 'NO' : 'NOT CHECKED (Ads Transparency quota exceeded)'),
             'Hiring (Open Roles)': r.jobOpeningsCapped ? `${r.jobOpeningsCount}+` : r.jobOpeningsCount,
             'Job Titles': r.jobTitles.join('; '),
+            'Recommended Services': r.servicePitch || '',
+            'Cold Call Script': r.coldCallScript || '',
+            'Email Subject': r.emailSubject || '',
+            'Email Body': r.emailBody || '',
             'Google Business Profile': r.gmbFound ? `${r.gmbRating ?? 'N/A'}★ (${r.gmbReviewsCount} reviews)` : 'Not found',
             'Facebook': r.socialLinks.facebook,
             'Twitter': r.socialLinks.twitter,
@@ -503,6 +514,7 @@ export default function WebsiteIntelligenceCheckerPage() {
                                         <TableHead>Company</TableHead>
                                         <TableHead>Website Audit</TableHead>
                                         <TableHead>Technology</TableHead>
+                                        <TableHead>Google Business</TableHead>
                                         <TableHead>Ads Running</TableHead>
                                         <TableHead>Hiring</TableHead>
                                         <TableHead>Social Media</TableHead>
@@ -518,6 +530,16 @@ export default function WebsiteIntelligenceCheckerPage() {
                                                     r.pageSpeedScore != null ? `${r.pageSpeedScore}/100 · ${r.loadTimeSeconds ?? '?'}s` : 'N/A'}
                                             </TableCell>
                                             <TableCell>{r.techStack.length > 0 ? r.techStack.join(', ') : '—'}</TableCell>
+                                            <TableCell>
+                                                {r.gmbFound ? (
+                                                    <a href={r.gmbUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-amber-500 font-medium hover:underline">
+                                                        <Star className="h-3.5 w-3.5 fill-amber-500" />
+                                                        {r.gmbRating ?? 'Found'} ({r.gmbReviewsCount})
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2 text-xs">
                                                     <span
@@ -583,6 +605,25 @@ export default function WebsiteIntelligenceCheckerPage() {
                                                 {selectedResult.auditIssues.map((issue, i) => <li key={i}>{issue}</li>)}
                                             </ul>
                                         )}
+                                        {selectedResult.servicePitch && (
+                                            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded p-3">
+                                                <span className="text-indigo-500 block text-[10px] uppercase font-bold mb-1">Recommended Services to Pitch</span>
+                                                <p className="text-xs text-foreground leading-relaxed">{selectedResult.servicePitch}</p>
+                                            </div>
+                                        )}
+                                        {selectedResult.coldCallScript && (
+                                            <div className="bg-rose-500/10 border border-rose-500/20 rounded p-3">
+                                                <span className="text-rose-500 block text-[10px] uppercase font-bold mb-1">Cold Call Script</span>
+                                                <p className="text-xs text-foreground leading-relaxed whitespace-pre-line">{selectedResult.coldCallScript}</p>
+                                            </div>
+                                        )}
+                                        {selectedResult.emailBody && (
+                                            <div className="bg-blue-500/10 border border-blue-500/20 rounded p-3 space-y-1.5">
+                                                <span className="text-blue-500 block text-[10px] uppercase font-bold">Email Pitch</span>
+                                                <p className="text-xs font-bold text-foreground">Subject: {selectedResult.emailSubject}</p>
+                                                <p className="text-xs text-foreground leading-relaxed whitespace-pre-line">{selectedResult.emailBody}</p>
+                                            </div>
+                                        )}
                                         {selectedResult.techStack.length > 0 && (
                                             <div className="flex flex-wrap gap-1.5">
                                                 {selectedResult.techStack.map((t, i) => <Badge key={i} variant="outline">{t}</Badge>)}
@@ -604,16 +645,18 @@ export default function WebsiteIntelligenceCheckerPage() {
                                         </div>
                                     </div>
 
-                                    {selectedResult.gmbFound && (
-                                        <div className="space-y-1">
-                                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Google Business Profile</h4>
-                                            <a href={selectedResult.gmbUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs bg-muted px-3 py-2 rounded-lg border w-fit">
+                                    <div className="space-y-1">
+                                        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Google Business Profile</h4>
+                                        {selectedResult.gmbFound ? (
+                                            <a href={selectedResult.gmbUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs bg-muted px-3 py-2 rounded-lg border w-fit hover:border-primary">
                                                 <MapPin className="h-3.5 w-3.5 text-emerald-600" />
                                                 {selectedResult.gmbRating != null && <span className="flex items-center gap-1 text-amber-500"><Star className="h-3 w-3 fill-amber-500" /> {selectedResult.gmbRating}</span>}
                                                 <span>({selectedResult.gmbReviewsCount} reviews)</span>
                                             </a>
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground">No Google Business Profile listing found on Google Maps.</p>
+                                        )}
+                                    </div>
 
                                     <div className="space-y-2">
                                         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Hiring (LinkedIn Jobs)</h4>
