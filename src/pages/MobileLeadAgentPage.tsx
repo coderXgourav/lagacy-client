@@ -396,8 +396,6 @@ export default function MobileLeadAgentPage() {
                   <TableHead className="text-slate-400">LinkedIn</TableHead>
                   <TableHead className="text-slate-400">Status</TableHead>
                   <TableHead className="text-slate-400">CEO / Founder</TableHead>
-                  <TableHead className="text-slate-400">Verified Mobile</TableHead>
-                  <TableHead className="text-slate-400">Lead Score</TableHead>
                   <TableHead className="text-slate-400">Recommended Service</TableHead>
                   <TableHead className="text-slate-400"></TableHead>
                 </TableRow>
@@ -454,14 +452,6 @@ export default function MobileLeadAgentPage() {
                     <TableCell>
                       <div className="text-slate-300">{lead.ceo || "Not found"}</div>
                       <div className="text-xs text-slate-500">{lead.ceo_title}</div>
-                    </TableCell>
-                    <TableCell className="text-emerald-400 text-sm">{lead.mobile_phone || "—"}</TableCell>
-                    <TableCell>
-                      {lead.status === "qualified" ? (
-                        <Badge className={lead.lead_score >= 80 ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-800 text-slate-400"}>
-                          {lead.lead_score} pts
-                        </Badge>
-                      ) : "—"}
                     </TableCell>
                     <TableCell>
                       {lead.recommended_service ? (
