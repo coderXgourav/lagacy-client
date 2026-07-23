@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Mail, ArrowLeft, Play, Loader2, Download, Building2 } from "lucide-react";
+import { Mail, ArrowLeft, Play, Loader2, Download, Building2, History } from "lucide-react";
 
 const API = `${(import.meta as any).env.VITE_API_URL ?? "http://localhost:8000/api"}/revenue-intelligence`;
 
@@ -40,6 +40,9 @@ export default function EmailFinderPage() {
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [results, setResults] = useState<ResultRow[]>([]);
+  const [loadingStage, setLoadingStage] = useState("");
+  const [processedCount, setProcessedCount] = useState(0);
+  const [totalToProcess, setTotalToProcess] = useState(0);
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg]);
 
@@ -53,6 +56,9 @@ export default function EmailFinderPage() {
     setRunning(true);
     setLog([]);
     setResults([]);
+    setProcessedCount(0);
+    setTotalToProcess(0);
+    setLoadingStage(`Searching Google Maps for "${niche}"...`);
 
     const perCountryLimit = Math.min(parseInt(target) || 25, 2000);
     addLog(`🔍 Searching Google Maps for "${niche}" across ${countryList.length} location(s): ${countryList.join(", ")}...`);
@@ -97,15 +103,19 @@ export default function EmailFinderPage() {
     if (allCompanies.length === 0) {
       addLog("⚠ No businesses found in any of the searched locations — try a broader niche.");
       setRunning(false);
+      setLoadingStage("");
       return;
     }
 
     try {
       const companies = allCompanies;
       addLog(`📧 Looking up emails — free website crawl first, then Hunter.io, then Prospeo...`);
+      setTotalToProcess(companies.length);
+
       const collected: ResultRow[] = [];
 
       for (const company of companies) {
+        setLoadingStage(`Looking up email for ${company.company_name}...`);
         let contact: { name: string | null; title: string | null; email: string | null; source: string | null } = {
           name: null, title: null, email: null, source: null,
         };
@@ -173,17 +183,69 @@ export default function EmailFinderPage() {
         if (contact.email) addLog(`   ✔️ ${company.company_name}: ${contact.email} [${contact.source}]`);
         else addLog(`   — ${company.company_name}: no email found`);
 
+        setProcessedCount(prev => prev + 1);
+
         await new Promise(r => setTimeout(r, 200));
       }
 
       setResults(collected);
       const withEmail = collected.filter(r => r.email).length;
       addLog(`✅ Done — ${withEmail}/${collected.length} businesses with a real email found.`);
+
+      // Save a snapshot so this run stays browsable as history after a refresh/close — the
+      // whole run happens client-side, so this is the only point the results reach the backend.
+      try {
+        await fetch(`${API}/email-finder-history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ niche, countries: countriesInput, city, results: collected }),
+        });
+      } catch (err) {
+        console.error("Failed to save history snapshot:", err);
+      }
     } catch (err: any) {
       addLog(`❌ Error: ${err.message || "Request failed"}`);
       toast({ title: "Search failed", description: err.message, variant: "destructive" });
     } finally {
       setRunning(false);
+      setLoadingStage("");
+    }
+  };
+
+  // ── History (past runs) ────────────────────────────────────────────────────
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`${API}/email-finder-history`);
+      const data = await res.json();
+      if (data?.success) setHistoryList(data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const openHistoryRun = async (id: string) => {
+    setShowHistory(false);
+    try {
+      const res = await fetch(`${API}/email-finder-history/${id}`);
+      const data = await res.json();
+      if (data?.success && data.data) {
+        const run = data.data;
+        setNiche(run.niche || "");
+        setCountriesInput(run.countries || "");
+        setCity(run.city || "");
+        setResults(run.results || []);
+        setLog([]);
+      }
+    } catch (err) {
+      console.error("Failed to load that run:", err);
+      toast({ title: "Failed to load that run.", variant: "destructive" });
     }
   };
 
@@ -220,6 +282,33 @@ export default function EmailFinderPage() {
               <p className="text-slate-400 text-sm">Niche + Country(s) + City → real businesses via Google Maps, real emails via free website crawl / Hunter.io / Prospeo</p>
             </div>
           </div>
+          <div className="relative">
+            <Button
+              variant="outline" size="sm"
+              onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+              className="gap-2 border-slate-700 text-slate-300"
+            >
+              <History className="h-4 w-4" /> History
+            </Button>
+            {showHistory && (
+              <div className="absolute right-0 mt-2 w-96 max-h-96 overflow-y-auto bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 p-2">
+                {loadingHistory && <p className="text-xs text-slate-500 p-2">Loading past runs…</p>}
+                {!loadingHistory && historyList.length === 0 && (
+                  <p className="text-xs text-slate-500 p-2">No past runs yet.</p>
+                )}
+                {historyList.map((h) => (
+                  <button
+                    key={h._id}
+                    onClick={() => openHistoryRun(h._id)}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-slate-800 text-xs border-b border-slate-800 last:border-0"
+                  >
+                    <div className="font-semibold text-slate-200">{h.niche || "(untitled)"} — {h.countries}</div>
+                    <div className="text-slate-500 mt-0.5">{new Date(h.createdAt).toLocaleString()}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <Card className="bg-slate-900 border-slate-800">
@@ -254,6 +343,21 @@ export default function EmailFinderPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {running && (
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="py-10 flex flex-col items-center justify-center text-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+              <p className="text-slate-200 font-medium">
+                {totalToProcess > 0 ? `Checking ${processedCount} / ${totalToProcess} businesses…` : (loadingStage || "Searching…")}
+              </p>
+              {totalToProcess > 0 && (
+                <p className="text-slate-500 text-xs max-w-md">{loadingStage}</p>
+              )}
+              <p className="text-slate-500 text-xs max-w-md">Each business gets a real Google Maps lookup, then a free website crawl, Hunter.io, and Prospeo check for a real email — this can take a while for larger searches.</p>
+            </CardContent>
+          </Card>
+        )}
 
         {log.length > 0 && (
           <Card className="bg-slate-900 border-slate-800">
